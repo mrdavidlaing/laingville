@@ -1,0 +1,25 @@
+arch:
+  pacman:
+    - hyprland
+    - waybar
+    - rofi
+    - thunar
+    - brightnessctl
+    - playerctl
+    - hyprpaper
+    - gnome-console
+    - gimp
+    - bats
+    - bats-assert
+    - bats-support
+    - bats-file
+  aur:
+    - vivaldi
+
+windows:
+  winget:
+    - Microsoft.WindowsTerminal
+    - Mozilla.Firefox
+    - Git.Git
+    - GIMP.GIMP
+    - Roblox.RobloxStudio

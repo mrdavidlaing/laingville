@@ -1,0 +1,151 @@
+#!/bin/bash
+
+# Functions for setup-user script
+# Note: Do not set -e here as functions need to handle their own error cases
+
+# Platform detection
+detect_platform() {
+    if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "$WINDIR" ]]; then
+        echo "windows"
+    elif command -v pacman >/dev/null 2>&1; then
+        echo "arch"
+    else
+        echo "unknown"
+    fi
+}
+
+# Simple YAML parsing using sed
+get_packages() {
+    local platform="$1" manager="$2" file="$DOTFILES_DIR/packages.yml"
+    [ -f "$file" ] || return
+    
+    # Extract platform section, then manager section, then package list
+    sed -n "/${platform}:/,/^[a-z]/p" "$file" | \
+    sed -n "/${manager}:/,/^  [a-z]/p" | \
+    grep "^    - " | sed 's/^    - //'
+}
+
+# Process packages for a manager
+process_packages() {
+    local manager="$1" cmd="$2" platform="$3" dry_run="$4"
+    local packages
+    
+    case "$manager" in
+        "pacman") packages=$(get_packages "$platform" "pacman") ;;
+        "yay") packages=$(get_packages "$platform" "aur") ;;
+        "winget") packages=$(get_packages "$platform" "winget") ;;
+    esac
+    
+    [ -z "$packages" ] && return
+    
+    if [ "$dry_run" = true ]; then
+        local pkg_list=$(echo $packages | tr '\n' ' ' | sed 's/ *$//')
+        echo "Would install via $manager: ${pkg_list// /, }"
+    else
+        echo "Installing $manager packages: $(echo $packages | tr '\n' ' ')"
+        if [ "$manager" = "yay" ] && ! command -v yay >/dev/null 2>&1; then
+            echo "Warning: yay not found, skipping AUR packages"
+            return
+        fi
+        
+        if [ "$manager" = "winget" ]; then
+            for pkg in $packages; do
+                $cmd"$pkg" --silent --accept-package-agreements --accept-source-agreements || echo "Warning: Failed to install $pkg"
+            done
+        else
+            echo $packages | xargs $cmd || echo "Warning: Some $manager packages failed to install"
+        fi
+    fi
+}
+
+# Handle all package management
+handle_packages() {
+    local platform="$1" dry_run="$2"
+    local packages_file="$DOTFILES_DIR/packages.yml"
+    
+    if [ ! -f "$packages_file" ]; then
+        if [ "$dry_run" = true ]; then
+            echo "No packages.yml found - no packages would be installed"
+        else
+            echo "No packages.yml found - skipping package installation"
+        fi
+        return
+    fi
+    
+    if [ "$dry_run" = true ]; then
+        echo "PACKAGES ($platform):"
+    else
+        echo "Installing packages for $platform..."
+    fi
+    
+    case "$platform" in
+        "arch")
+            process_packages "pacman" "sudo pacman -S --needed --noconfirm" "$platform" "$dry_run"
+            process_packages "yay" "yay -S --needed --noconfirm" "$platform" "$dry_run"
+            ;;
+        "windows")
+            process_packages "winget" "winget install --id=" "$platform" "$dry_run"
+            ;;
+        *)
+            echo "Unknown platform: $platform - skipping package installation"
+            ;;
+    esac
+}
+
+# Show symlinks (dry-run mode)
+show_symlinks() {
+    local src_dir="$1" dest_dir="$2" relative_path="$3"
+    
+    shopt -s dotglob nullglob
+    for item in "$src_dir"/*; do
+        if [ -f "$item" ]; then
+            local filename=$(basename "$item")
+            [ "$filename" = "packages.yml" ] && continue
+            
+            local target="$dest_dir/$filename"
+            local action="create"
+            if [ -e "$target" ]; then
+                [ -L "$target" ] && action="update" || action="replace"
+            fi
+            
+            if [ -n "$relative_path" ]; then
+                echo "Would $action: ~/$relative_path$filename -> $item"
+            else
+                echo "Would $action: ~/$filename -> $item"
+            fi
+        elif [ -d "$item" ]; then
+            local dirname=$(basename "$item")
+            show_symlinks "$item" "$dest_dir/$dirname" "${relative_path}${dirname}/"
+        fi
+    done
+    shopt -u dotglob nullglob
+}
+
+# Create symlinks (normal mode)
+create_symlinks() {
+    local src_dir="$1" dest_dir="$2" relative_path="$3"
+    
+    shopt -s dotglob nullglob
+    for item in "$src_dir"/*; do
+        if [ -f "$item" ]; then
+            local filename=$(basename "$item")
+            [ "$filename" = "packages.yml" ] && continue
+            
+            local target="$dest_dir/$filename"
+            [ -e "$target" ] && rm -f "$target"
+            ln -s "$item" "$target"
+            
+            if [ -n "$relative_path" ]; then
+                echo "Linked: $relative_path$filename"
+            else
+                echo "Linked: $filename"
+            fi
+        elif [ -d "$item" ]; then
+            local dirname=$(basename "$item")
+            local target_dir="$dest_dir/$dirname"
+            mkdir -p "$target_dir"
+            create_symlinks "$item" "$target_dir" "${relative_path}${dirname}/"
+        fi
+    done
+    shopt -u dotglob nullglob
+}

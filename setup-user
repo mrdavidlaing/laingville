@@ -2,25 +2,43 @@
 
 set -e
 
-# Get the directory where this script is located
+# Source functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup-user.functions.bash"
+
+# Simple argument parsing
+DRY_RUN=false
+if [ "$1" = "--dry-run" ]; then
+    DRY_RUN=true
+elif [ -n "$1" ]; then
+    echo "Unknown option: $1"
+    echo "Usage: $0 [--dry-run]"
+    exit 1
+fi
 
 # Detect current user
 CURRENT_USER=$(whoami)
 
-# Map usernames to dotfiles folders
-case "$CURRENT_USER" in
-    "timmy")
-        DOTFILES_DIR="$SCRIPT_DIR/dotfiles/timmmmmmer"
-        ;;
-    "david")
-        DOTFILES_DIR="$SCRIPT_DIR/dotfiles/mrdavidlaing"
-        ;;
-    *)
-        DOTFILES_DIR="$SCRIPT_DIR/dotfiles/shared"
-        echo "Unknown user '$CURRENT_USER', using shared dotfiles"
-        ;;
-esac
+# Map usernames to dotfiles folders (unless DOTFILES_DIR already set)
+if [ -z "$DOTFILES_DIR" ]; then
+    case "$CURRENT_USER" in
+        "timmy")
+            DOTFILES_DIR="$SCRIPT_DIR/dotfiles/timmmmmmer"
+            ;;
+        "mrdavidlaing")
+            DOTFILES_DIR="$SCRIPT_DIR/dotfiles/mrdavidlaing"
+            ;;
+        *)
+            DOTFILES_DIR="$SCRIPT_DIR/dotfiles/shared"
+            echo "Unknown user '$CURRENT_USER', using shared dotfiles"
+            ;;
+    esac
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    echo "DRY RUN MODE - No changes will be made"
+    echo ""
+fi
 
 echo "Setting up dotfiles for user: $CURRENT_USER"
 echo "Using dotfiles from: $DOTFILES_DIR"
@@ -31,62 +49,38 @@ if [ ! -d "$DOTFILES_DIR" ]; then
     exit 1
 fi
 
-# Function to recursively link files, creating directory structure as needed
-link_files() {
-    local src_dir="$1"
-    local dest_dir="$2"
-    local relative_path="$3"
-    
-    # Enable dotglob to include hidden files in glob patterns
-    shopt -s dotglob nullglob
-    for item in "$src_dir"/*; do
-        if [ -f "$item" ]; then
-            # Handle files
-            filename=$(basename "$item")
-            target="$dest_dir/$filename"
-            
-            # Remove existing file/symlink if it exists
-            [ -e "$target" ] && rm -f "$target"
-            
-            # Create symbolic link
-            ln -s "$item" "$target"
-            if [ -n "$relative_path" ]; then
-                echo "Linked: $relative_path$filename"
-            else
-                echo "Linked: $filename"
-            fi
-        elif [ -d "$item" ]; then
-            # Handle directories - create directory structure and recurse
-            dirname=$(basename "$item")
-            target_dir="$dest_dir/$dirname"
-            
-            # Create directory if it doesn't exist
-            mkdir -p "$target_dir"
-            
-            # Recursively link files in subdirectory
-            if [ -n "$relative_path" ]; then
-                link_files "$item" "$target_dir" "$relative_path$dirname/"
-            else
-                link_files "$item" "$target_dir" "$dirname/"
-            fi
-        fi
-    done
-    shopt -u dotglob nullglob
-}
-
-# Create symbolic links for all files in the dotfiles directory
+# Handle dotfiles
 if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
-    link_files "$DOTFILES_DIR" "$HOME" ""
-    
-    # Reload Hyprland config if hyprland.conf was linked and Hyprland is running
-    if [ -f "$HOME/.config/hypr/hyprland.conf" ] && command -v hyprctl >/dev/null 2>&1; then
-        if hyprctl version >/dev/null 2>&1; then
-            echo "Reloading Hyprland configuration..."
-            hyprctl reload >/dev/null 2>&1 || echo "Warning: Could not reload Hyprland config"
+    if [ "$DRY_RUN" = true ]; then
+        echo "SYMLINKS:"
+        show_symlinks "$DOTFILES_DIR" "$HOME" ""
+    else
+        create_symlinks "$DOTFILES_DIR" "$HOME" ""
+        
+        # Reload Hyprland config if hyprland.conf was linked and Hyprland is running
+        if [ -f "$HOME/.config/hypr/hyprland.conf" ] && command -v hyprctl >/dev/null 2>&1; then
+            if hyprctl version >/dev/null 2>&1; then
+                echo "Reloading Hyprland configuration..."
+                hyprctl reload >/dev/null 2>&1 || echo "Warning: Could not reload Hyprland config"
+            fi
         fi
+        echo "Dotfiles setup complete!"
     fi
-    
-    echo "Dotfiles setup complete!"
 else
-    echo "No dotfiles found in $DOTFILES_DIR"
+    if [ "$DRY_RUN" = true ]; then
+        echo "SYMLINKS:"
+        echo "No dotfiles found - no symlinks would be created"
+    else
+        echo "No dotfiles found in $DOTFILES_DIR"
+    fi
 fi
+
+# Handle package management
+PLATFORM=$(detect_platform)
+echo ""
+handle_packages "$PLATFORM" "$DRY_RUN"
+
+[ "$DRY_RUN" = false ] && echo "Setup complete!"
+
+# Explicit exit for proper status
+exit 0
