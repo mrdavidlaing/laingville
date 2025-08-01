@@ -31,24 +31,61 @@ if [ ! -d "$DOTFILES_DIR" ]; then
     exit 1
 fi
 
-# Create symbolic links for all files in the dotfiles directory
-if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
+# Function to recursively link files, creating directory structure as needed
+link_files() {
+    local src_dir="$1"
+    local dest_dir="$2"
+    local relative_path="$3"
+    
     # Enable dotglob to include hidden files in glob patterns
-    shopt -s dotglob
-    for file in "$DOTFILES_DIR"/*; do
-        if [ -f "$file" ]; then
-            filename=$(basename "$file")
-            target="$HOME/$filename"
+    shopt -s dotglob nullglob
+    for item in "$src_dir"/*; do
+        if [ -f "$item" ]; then
+            # Handle files
+            filename=$(basename "$item")
+            target="$dest_dir/$filename"
             
             # Remove existing file/symlink if it exists
             [ -e "$target" ] && rm -f "$target"
             
             # Create symbolic link
-            ln -s "$file" "$target"
-            echo "Linked: $filename"
+            ln -s "$item" "$target"
+            if [ -n "$relative_path" ]; then
+                echo "Linked: $relative_path$filename"
+            else
+                echo "Linked: $filename"
+            fi
+        elif [ -d "$item" ]; then
+            # Handle directories - create directory structure and recurse
+            dirname=$(basename "$item")
+            target_dir="$dest_dir/$dirname"
+            
+            # Create directory if it doesn't exist
+            mkdir -p "$target_dir"
+            
+            # Recursively link files in subdirectory
+            if [ -n "$relative_path" ]; then
+                link_files "$item" "$target_dir" "$relative_path$dirname/"
+            else
+                link_files "$item" "$target_dir" "$dirname/"
+            fi
         fi
     done
-    shopt -u dotglob
+    shopt -u dotglob nullglob
+}
+
+# Create symbolic links for all files in the dotfiles directory
+if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
+    link_files "$DOTFILES_DIR" "$HOME" ""
+    
+    # Reload Hyprland config if hyprland.conf was linked and Hyprland is running
+    if [ -f "$HOME/.config/hypr/hyprland.conf" ] && command -v hyprctl >/dev/null 2>&1; then
+        if hyprctl version >/dev/null 2>&1; then
+            echo "Reloading Hyprland configuration..."
+            hyprctl reload >/dev/null 2>&1 || echo "Warning: Could not reload Hyprland config"
+        fi
+    fi
+    
     echo "Dotfiles setup complete!"
 else
     echo "No dotfiles found in $DOTFILES_DIR"
