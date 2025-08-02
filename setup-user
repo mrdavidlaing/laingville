@@ -80,6 +80,10 @@ PLATFORM=$(detect_platform)
 echo ""
 handle_packages "$PLATFORM" "$DRY_RUN"
 
+# Setup systemd user services (like dynamic wallpaper timer)
+echo ""
+setup_systemd_services "$DRY_RUN"
+
 [ "$DRY_RUN" = false ] && echo "Setup complete!"
 
 # Explicit exit for proper status

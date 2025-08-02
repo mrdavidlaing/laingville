@@ -149,3 +149,36 @@ create_symlinks() {
     done
     shopt -u dotglob nullglob
 }
+
+# Setup systemd user services
+setup_systemd_services() {
+    local dry_run="$1"
+    
+    # Check if we have systemd user services to enable
+    local systemd_dir="$HOME/.config/systemd/user"
+    if [ ! -d "$systemd_dir" ]; then
+        return
+    fi
+    
+    # Look for timer files to enable
+    local timers=($(find "$systemd_dir" -name "*.timer" -exec basename {} \; 2>/dev/null))
+    
+    if [ ${#timers[@]} -eq 0 ]; then
+        return
+    fi
+    
+    if [ "$dry_run" = true ]; then
+        echo "SYSTEMD SERVICES:"
+        for timer in "${timers[@]}"; do
+            echo "Would enable and start: $timer"
+        done
+    else
+        echo "Setting up systemd user services..."
+        systemctl --user daemon-reload
+        
+        for timer in "${timers[@]}"; do
+            echo "Enabling $timer..."
+            systemctl --user enable --now "$timer" || echo "Warning: Failed to enable $timer"
+        done
+    fi
+}

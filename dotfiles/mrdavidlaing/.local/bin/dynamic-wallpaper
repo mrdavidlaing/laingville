@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Dynamic Wallpaper Script for Hyprland
+# Downloads aerial photos from Unsplash and updates hyprpaper
+
+WALLPAPER_DIR="$HOME/.local/share/wallpapers"
+CURRENT_WALLPAPER="$WALLPAPER_DIR/current.jpg"
+HYPRPAPER_CONFIG="$HOME/.config/hypr/hyprpaper.conf"
+
+# Create wallpaper directory if it doesn't exist
+mkdir -p "$WALLPAPER_DIR"
+
+# Lorem Picsum API for random high-quality photos
+# Reliable alternative to Unsplash source API
+WALLPAPER_URL="https://picsum.photos/2560/1440"
+
+echo "Downloading new wallpaper..."
+if curl -L -o "$CURRENT_WALLPAPER" "$WALLPAPER_URL"; then
+    echo "Downloaded new wallpaper to $CURRENT_WALLPAPER"
+    
+    # Update hyprpaper config
+    cat > "$HYPRPAPER_CONFIG" << EOF
+preload = $CURRENT_WALLPAPER
+wallpaper = ,$CURRENT_WALLPAPER
+EOF
+    
+    # Reload hyprpaper if it's running
+    if pgrep hyprpaper > /dev/null; then
+        echo "Reloading hyprpaper..."
+        hyprctl hyprpaper preload "$CURRENT_WALLPAPER"
+        hyprctl hyprpaper wallpaper ",$CURRENT_WALLPAPER"
+    else
+        echo "hyprpaper not running, config updated for next start"
+    fi
+    
+    echo "Wallpaper updated successfully!"
+else
+    echo "Failed to download wallpaper"
+    exit 1
+fi

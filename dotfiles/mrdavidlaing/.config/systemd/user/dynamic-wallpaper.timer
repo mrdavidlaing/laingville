@@ -1,0 +1,10 @@
+[Unit]
+Description=Run dynamic wallpaper updater hourly
+Requires=dynamic-wallpaper.service
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
