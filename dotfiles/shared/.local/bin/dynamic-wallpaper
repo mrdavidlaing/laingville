@@ -1,0 +1,392 @@
+#!/bin/bash
+
+# Dynamic Wallpaper Script for Linux Desktop Environments
+# Downloads random photos and updates wallpaper for Hyprland, Plasma, or GNOME
+# Configurable image sources via config file or environment variables
+
+WALLPAPER_DIR="$HOME/.local/share/wallpapers"
+CURRENT_WALLPAPER="$WALLPAPER_DIR/current.jpg"
+HYPRPAPER_CONFIG="$HOME/.config/hypr/hyprpaper.conf"
+CONFIG_FILE="$HOME/.config/dynamic-wallpaper.yml"
+
+# Create wallpaper directory if it doesn't exist
+mkdir -p "$WALLPAPER_DIR"
+
+# Default configuration
+DEFAULT_SOURCES=(
+    "https://picsum.photos/2560/1440"                    # Random photos
+    "https://source.unsplash.com/featured/2560x1440"     # Unsplash featured (if working)
+)
+DEFAULT_TIMEOUT=30
+DEFAULT_MAX_SIZE="10MB"
+DEFAULT_RETRY_COUNT=3
+DEFAULT_USER_AGENT="dynamic-wallpaper/1.0"
+
+# Security and configuration variables
+WALLPAPER_SOURCES=()
+CURL_TIMEOUT="$DEFAULT_TIMEOUT"
+MAX_FILE_SIZE="$DEFAULT_MAX_SIZE"
+RETRY_COUNT="$DEFAULT_RETRY_COUNT"
+USER_AGENT="$DEFAULT_USER_AGENT"
+HTTPS_ONLY=true
+VALIDATE_CERTS=true
+BLOCK_PRIVATE_IPS=true
+ALLOWED_DOMAINS=()
+
+# Secure YAML configuration loading
+load_config() {
+    # Set defaults first
+    WALLPAPER_SOURCES=("${DEFAULT_SOURCES[@]}")
+    
+    # Check if config file exists
+    if [ ! -f "$CONFIG_FILE" ]; then
+        return 0
+    fi
+    
+    # Use go-yq if available (preferred)
+    if command -v yq >/dev/null 2>&1; then
+        load_config_with_yq
+    else
+        # Fallback to safe shell parsing
+        load_config_fallback
+    fi
+    
+    # Environment variable override (for backward compatibility)
+    if [ -n "$DYNAMIC_WALLPAPER_SOURCES" ]; then
+        IFS=',' read -ra WALLPAPER_SOURCES <<< "$DYNAMIC_WALLPAPER_SOURCES"
+    fi
+}
+
+# Load configuration using go-yq (secure)
+load_config_with_yq() {
+    local temp_sources
+    
+    # Parse wallpaper sources
+    if temp_sources=$(yq e '.wallpaper.sources[]' "$CONFIG_FILE" 2>/dev/null); then
+        mapfile -t WALLPAPER_SOURCES <<< "$temp_sources"
+    fi
+    
+    # Parse settings
+    CURL_TIMEOUT=$(yq e '.wallpaper.settings.timeout // 30' "$CONFIG_FILE" 2>/dev/null)
+    MAX_FILE_SIZE=$(yq e '.wallpaper.settings.max_file_size // "10MB"' "$CONFIG_FILE" 2>/dev/null)
+    RETRY_COUNT=$(yq e '.wallpaper.settings.retry_count // 3' "$CONFIG_FILE" 2>/dev/null)
+    USER_AGENT=$(yq e '.wallpaper.settings.user_agent // "dynamic-wallpaper/1.0"' "$CONFIG_FILE" 2>/dev/null)
+    
+    # Parse security settings
+    HTTPS_ONLY=$(yq e '.wallpaper.security.https_only // true' "$CONFIG_FILE" 2>/dev/null)
+    VALIDATE_CERTS=$(yq e '.wallpaper.security.validate_certs // true' "$CONFIG_FILE" 2>/dev/null)
+    BLOCK_PRIVATE_IPS=$(yq e '.wallpaper.security.block_private_ips // true' "$CONFIG_FILE" 2>/dev/null)
+    
+    # Parse allowed domains (if specified)
+    local temp_domains
+    if temp_domains=$(yq e '.wallpaper.security.allowed_domains[]?' "$CONFIG_FILE" 2>/dev/null); then
+        mapfile -t ALLOWED_DOMAINS <<< "$temp_domains"
+    fi
+}
+
+# Fallback configuration parser (when yq not available)
+load_config_fallback() {
+    echo "Warning: yq not found, using basic YAML parsing. Install go-yq for full functionality." >&2
+    
+    # Basic YAML parsing using grep/sed (limited but safe)
+    local in_sources=false
+    local line
+    
+    while IFS= read -r line; do
+        # Remove leading whitespace and comments
+        line=$(echo "$line" | sed 's/^[[:space:]]*//' | sed 's/#.*//')
+        [ -z "$line" ] && continue
+        
+        # Detect sources section
+        if [[ "$line" =~ ^sources: ]]; then
+            in_sources=true
+            WALLPAPER_SOURCES=()
+            continue
+        fi
+        
+        # End of sources section
+        if [[ "$line" =~ ^[a-zA-Z] ]] && [ "$in_sources" = true ]; then
+            in_sources=false
+        fi
+        
+        # Parse source URLs
+        if [ "$in_sources" = true ] && [[ "$line" =~ ^-[[:space:]]*\"(.*)\"$ ]]; then
+            local url="${BASH_REMATCH[1]}"
+            WALLPAPER_SOURCES+=("$url")
+        fi
+        
+        # Parse simple settings (basic support)
+        if [[ "$line" =~ ^timeout:[[:space:]]*([0-9]+) ]]; then
+            CURL_TIMEOUT="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^https_only:[[:space:]]*(true|false) ]]; then
+            HTTPS_ONLY="${BASH_REMATCH[1]}"
+        fi
+        
+    done < "$CONFIG_FILE"
+}
+
+# URL validation and security functions
+validate_url() {
+    local url="$1"
+    
+    # Check for empty URL
+    [ -z "$url" ] && return 1
+    
+    # HTTPS only check
+    if [ "$HTTPS_ONLY" = "true" ]; then
+        [[ "$url" =~ ^https:// ]] || {
+            echo "Error: Only HTTPS URLs allowed (found: $url)" >&2
+            return 1
+        }
+    else
+        [[ "$url" =~ ^https?:// ]] || {
+            echo "Error: Invalid URL scheme (found: $url)" >&2
+            return 1
+        }
+    fi
+    
+    # Extract hostname for validation
+    local hostname
+    hostname=$(echo "$url" | sed -n 's|^https\?://\([^/]*\).*|\1|p')
+    [ -z "$hostname" ] && return 1
+    
+    # Check against allowed domains (if specified)
+    if [ ${#ALLOWED_DOMAINS[@]} -gt 0 ]; then
+        local domain_allowed=false
+        for allowed in "${ALLOWED_DOMAINS[@]}"; do
+            if [[ "$hostname" == *"$allowed"* ]]; then
+                domain_allowed=true
+                break
+            fi
+        done
+        
+        if [ "$domain_allowed" = false ]; then
+            echo "Error: Domain not in allowed list: $hostname" >&2
+            return 1
+        fi
+    fi
+    
+    # Block private IP ranges (RFC 1918)
+    if [ "$BLOCK_PRIVATE_IPS" = "true" ]; then
+        if [[ "$hostname" =~ ^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]]; then
+            echo "Error: Private/local IP addresses blocked: $hostname" >&2
+            return 1
+        fi
+    fi
+    
+    # Basic hostname validation
+    [[ "$hostname" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]{0,253}[a-zA-Z0-9]$ ]] || {
+        echo "Error: Invalid hostname format: $hostname" >&2
+        return 1
+    }
+    
+    return 0
+}
+
+# Convert size string to bytes for validation
+size_to_bytes() {
+    local size="$1"
+    local number unit
+    
+    if [[ "$size" =~ ^([0-9]+)([KMGT]?B?)$ ]]; then
+        number="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+        
+        case "$unit" in
+            ""|"B") echo "$number" ;;
+            "KB"|"K") echo $((number * 1024)) ;;
+            "MB"|"M") echo $((number * 1024 * 1024)) ;;
+            "GB"|"G") echo $((number * 1024 * 1024 * 1024)) ;;
+            "TB"|"T") echo $((number * 1024 * 1024 * 1024 * 1024)) ;;
+            *) echo "0" ;;
+        esac
+    else
+        echo "0"
+    fi
+}
+
+# Secure download function with comprehensive validation
+download_wallpaper() {
+    local temp_file="$WALLPAPER_DIR/temp.jpg"
+    local max_bytes
+    max_bytes=$(size_to_bytes "$MAX_FILE_SIZE")
+    
+    # Validate configuration
+    if [ ${#WALLPAPER_SOURCES[@]} -eq 0 ]; then
+        echo "Error: No wallpaper sources configured" >&2
+        return 1
+    fi
+    
+    for attempt in $(seq 1 "$RETRY_COUNT"); do
+        for source in "${WALLPAPER_SOURCES[@]}"; do
+            echo "Trying source: $source (attempt $attempt/$RETRY_COUNT)"
+            
+            # Validate URL security
+            if ! validate_url "$source"; then
+                echo "Skipping invalid/unsafe URL: $source"
+                continue
+            fi
+            
+            # Build curl command with security options
+            local curl_cmd=(
+                "curl"
+                "--max-time" "$CURL_TIMEOUT"
+                "--max-filesize" "$max_bytes"
+                "--user-agent" "$USER_AGENT"
+                "--location"                    # Follow redirects
+                "--fail"                        # Fail on HTTP errors
+                "--silent"                      # Quiet output
+                "--show-error"                  # Show errors
+                "--proto" "=https"              # Force HTTPS only
+            )
+            
+            # Add certificate validation if enabled
+            if [ "$VALIDATE_CERTS" = "true" ]; then
+                curl_cmd+=("--cacert" "/etc/ssl/certs/ca-certificates.crt")
+            else
+                curl_cmd+=("--insecure")
+            fi
+            
+            # Add output file
+            curl_cmd+=("--output" "$temp_file" "$source")
+            
+            # Execute download
+            if "${curl_cmd[@]}" 2>/dev/null; then
+                # Validate file exists and has content
+                if [ ! -f "$temp_file" ] || [ ! -s "$temp_file" ]; then
+                    echo "Downloaded file is empty or missing"
+                    rm -f "$temp_file"
+                    continue
+                fi
+                
+                # Check file size
+                local file_size
+                file_size=$(stat -f%z "$temp_file" 2>/dev/null || stat -c%s "$temp_file" 2>/dev/null || echo "0")
+                if [ "$file_size" -gt "$max_bytes" ]; then
+                    echo "Downloaded file too large: $file_size bytes (max: $max_bytes)"
+                    rm -f "$temp_file"
+                    continue
+                fi
+                
+                # Verify it's actually an image with enhanced validation
+                local file_output
+                file_output=$(file "$temp_file" 2>/dev/null || echo "unknown")
+                if [[ "$file_output" =~ (JPEG|PNG|image) ]] && [ "$file_size" -gt 1024 ]; then
+                    # Success - move to final location
+                    mv "$temp_file" "$CURRENT_WALLPAPER"
+                    echo "Downloaded new wallpaper from: $source ($file_size bytes)"
+                    return 0
+                else
+                    echo "Downloaded file is not a valid image: $file_output"
+                    rm -f "$temp_file"
+                fi
+            else
+                echo "Download failed from: $source"
+            fi
+        done
+        
+        # Small delay between retry attempts
+        [ "$attempt" -lt "$RETRY_COUNT" ] && sleep 2
+    done
+    
+    rm -f "$temp_file"
+    echo "Failed to download wallpaper from any source after $RETRY_COUNT attempts" >&2
+    return 1
+}
+
+# Update all desktop environments
+update_wallpapers() {
+    # 1. Hyprland/hyprpaper
+    if [ -f "$HYPRPAPER_CONFIG" ] || command -v hyprctl >/dev/null 2>&1; then
+        cat > "$HYPRPAPER_CONFIG" << EOF
+preload = $CURRENT_WALLPAPER
+wallpaper = ,$CURRENT_WALLPAPER
+EOF
+        
+        if pgrep hyprpaper > /dev/null; then
+            echo "Updating Hyprland wallpaper..."
+            hyprctl hyprpaper preload "$CURRENT_WALLPAPER" 2>/dev/null || true
+            hyprctl hyprpaper wallpaper ",$CURRENT_WALLPAPER" 2>/dev/null || true
+        fi
+    fi
+    
+    # 2. KDE Plasma
+    if command -v plasma-apply-wallpaperimage >/dev/null 2>&1; then
+        echo "Updating Plasma wallpaper..."
+        plasma-apply-wallpaperimage "$CURRENT_WALLPAPER" 2>/dev/null || true
+    fi
+    
+    # 3. GNOME
+    if command -v gsettings >/dev/null 2>&1 && [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
+        echo "Updating GNOME wallpaper..."
+        gsettings set org.gnome.desktop.background picture-uri "file://$CURRENT_WALLPAPER" 2>/dev/null || true
+        gsettings set org.gnome.desktop.background picture-uri-dark "file://$CURRENT_WALLPAPER" 2>/dev/null || true
+    fi
+}
+
+# Main execution
+main() {
+    echo "Dynamic Wallpaper Updater"
+    
+    load_config
+    
+    echo "Downloading new wallpaper..."
+    if download_wallpaper; then
+        echo "Downloaded new wallpaper to $CURRENT_WALLPAPER"
+        update_wallpapers
+        echo "Wallpaper updated successfully!"
+    else
+        echo "Failed to download wallpaper from any source"
+        exit 1
+    fi
+}
+
+# Show help
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    cat << 'EOF'
+Dynamic Wallpaper Script - Secure YAML Configuration
+
+Usage: dynamic-wallpaper [--help]
+
+Configuration:
+  Create ~/.config/dynamic-wallpaper.yml with YAML format:
+
+  wallpaper:
+    sources:
+      - "https://picsum.photos/2560/1440"
+      - "https://source.unsplash.com/featured/2560x1440"
+    settings:
+      timeout: 30
+      max_file_size: "10MB"
+      retry_count: 3
+      user_agent: "dynamic-wallpaper/1.0"
+    security:
+      https_only: true
+      validate_certs: true
+      block_private_ips: true
+      allowed_domains:
+        - "picsum.photos"
+        - "source.unsplash.com"
+
+Environment Variable (backward compatibility):
+  DYNAMIC_WALLPAPER_SOURCES="url1,url2,url3"
+
+Features:
+  - Multi-desktop support (Hyprland, KDE Plasma, GNOME)
+  - Secure YAML configuration with go-yq
+  - URL validation and security controls
+  - Configurable timeouts and file size limits
+  - HTTPS enforcement and certificate validation
+  - Private IP blocking for security
+
+Dependencies:
+  - go-yq (recommended for full functionality)
+  - curl (required)
+  - file (required)
+
+Default sources: Lorem Picsum random photos (https_only: true)
+EOF
+    exit 0
+fi
+
+main "$@"

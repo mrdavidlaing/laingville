@@ -1,0 +1,25 @@
+# Dynamic Wallpaper Configuration for mrdavidlaing
+# This file configures the dynamic wallpaper system
+
+wallpaper:
+  # Image sources (tried in order until one succeeds)
+  sources:
+    - "https://picsum.photos/2560/1440"                    # Random photos (reliable)
+    - "https://source.unsplash.com/featured/2560x1440"     # Featured photos (if available)
+  
+  # Settings for downloads and security
+  settings:
+    timeout: 30              # Curl timeout in seconds
+    max_file_size: "10MB"    # Maximum download size
+    retry_count: 3           # Number of retries per source
+    user_agent: "dynamic-wallpaper/1.0"  # HTTP User-Agent header
+  
+  # Security settings
+  security:
+    https_only: true         # Only allow HTTPS URLs
+    validate_certs: true     # Verify SSL certificates
+    block_private_ips: true  # Block RFC 1918 private IP ranges
+    allowed_domains:         # Optional: restrict to specific domains
+      # - "picsum.photos"
+      # - "source.unsplash.com"
+      # - "images.unsplash.com"

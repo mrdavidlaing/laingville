@@ -49,12 +49,26 @@ if [ ! -d "$DOTFILES_DIR" ]; then
     exit 1
 fi
 
-# Handle dotfiles
+# Handle shared dotfiles first
+SHARED_DOTFILES_DIR="$SCRIPT_DIR/dotfiles/shared"
+if [ -d "$SHARED_DOTFILES_DIR" ] && [ "$(ls -A "$SHARED_DOTFILES_DIR" 2>/dev/null)" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo "SHARED SYMLINKS:"
+        show_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
+        echo ""
+    else
+        echo "Setting up shared dotfiles..."
+        create_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
+    fi
+fi
+
+# Handle user-specific dotfiles
 if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
     if [ "$DRY_RUN" = true ]; then
-        echo "SYMLINKS:"
+        echo "USER SYMLINKS:"
         show_symlinks "$DOTFILES_DIR" "$HOME" ""
     else
+        echo "Setting up user-specific dotfiles..."
         create_symlinks "$DOTFILES_DIR" "$HOME" ""
         
         # Reload Hyprland config if hyprland.conf was linked and Hyprland is running
@@ -68,10 +82,10 @@ if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
     fi
 else
     if [ "$DRY_RUN" = true ]; then
-        echo "SYMLINKS:"
-        echo "No dotfiles found - no symlinks would be created"
+        echo "USER SYMLINKS:"
+        echo "No user dotfiles found - no symlinks would be created"
     else
-        echo "No dotfiles found in $DOTFILES_DIR"
+        echo "No user dotfiles found in $DOTFILES_DIR"
     fi
 fi
 

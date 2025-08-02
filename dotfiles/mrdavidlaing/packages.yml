@@ -13,6 +13,7 @@ arch:
     - bats-support
     - bats-file
     - tig
+    - go-yq
   aur:
     - vivaldi
 
