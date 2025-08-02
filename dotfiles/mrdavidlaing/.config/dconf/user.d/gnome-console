@@ -3,5 +3,5 @@
 
 [/]
 custom-font='JetBrains Mono Nerd Font 12'
-use-custom-font=true
+use-system-font=false
 font-scale=1.0
