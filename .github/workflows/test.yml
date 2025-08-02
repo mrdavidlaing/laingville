@@ -30,5 +30,6 @@ jobs:
     - name: Test dry-run functionality
       run: |
         # Test that dry-run works without requiring sudo/pacman
+        export DOTFILES_DIR="./dotfiles/mrdavidlaing"
         ./setup-user --dry-run
         echo "✅ Dry-run test passed"

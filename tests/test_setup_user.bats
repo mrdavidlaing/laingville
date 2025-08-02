@@ -8,6 +8,9 @@ setup() {
 }
 
 @test "dry-run shows expected output format" {
+    # Set DOTFILES_DIR to a known good directory for CI compatibility
+    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    
     run ./setup-user --dry-run
     
     [ "$status" -eq 0 ] || {
