@@ -2,6 +2,6 @@
 # This file should be loaded with: dconf load /org/gnome/Console/ < gnome-console
 
 [/]
-custom-font='JetBrains Mono Nerd Font 12'
+custom-font='JetBrainsMono Nerd Font Mono 12'
 use-system-font=false
 font-scale=1.0
