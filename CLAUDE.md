@@ -22,6 +22,8 @@ The repository centers around a bash script (`setup-user`) that:
 - Creates symbolic links from home directory to dotfiles
 - Handles directory structure recursively
 - Automatically reloads Hyprland configuration if present
+- Installs packages defined in each user's `packages.yml` file
+- Supports `--dry-run` flag for previewing changes before execution
 
 ## Setup and Usage Commands
 
@@ -30,11 +32,59 @@ The repository centers around a bash script (`setup-user`) that:
 ./setup-user
 ```
 
-This script will automatically configure dotfiles for the current user by creating symbolic links.
+This script will automatically configure dotfiles for the current user by creating symbolic links and installing packages.
+
+### Preview Changes (Recommended)
+```bash
+./setup-user --dry-run
+```
+
+Use dry-run mode to preview what changes will be made before executing them.
+
+### Package Management
+Each user can define packages to install in their `packages.yml` file:
+- `arch.pacman` - Official Arch Linux packages
+- `arch.aur` - AUR packages (requires yay)
+- `windows.winget` - Windows packages via winget
 
 ## Development Notes
 
 - The project uses shell scripting for automation
 - Configuration files are primarily in dotfile format (hidden files starting with .)
-- No build/test/lint commands - this is a configuration management repository
-- Changes should be tested by running `./setup-user` and verifying symbolic links are created correctly
+- Functions are separated into `setup-user.functions.bash` for maintainability
+
+## Testing
+
+**IMPORTANT: Always run tests after making changes to scripts like setup-user**
+
+### Run All Tests
+```bash
+./tests/run_tests.sh
+```
+
+### Run Tests Manually
+```bash
+bats tests/test_setup_user.bats
+```
+
+### Test Coverage
+Tests cover essential functionality:
+- `--dry-run` mode works correctly
+- Error handling for invalid arguments
+- YAML parsing extracts packages from real configs  
+- Missing `packages.yml` handled gracefully
+
+### When to Run Tests
+- After modifying `setup-user` script
+- After changing `setup-user.functions.bash`
+- After updating package configurations
+- Before committing any script changes
+
+Tests use real dotfiles as fixtures and provide clear error messages when failures occur.
+
+### Continuous Integration
+Tests automatically run on:
+- All pull requests to main branch  
+- All pushes to main branch
+
+The GitHub Actions workflow ensures code quality and prevents regressions from being merged.

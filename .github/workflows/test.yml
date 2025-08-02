@@ -1,0 +1,34 @@
+name: Test setup-user script
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install BATS
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats
+        
+    - name: Make scripts executable
+      run: |
+        chmod +x setup-user
+        chmod +x tests/run_tests.sh
+        
+    - name: Run tests
+      run: ./tests/run_tests.sh
+      
+    - name: Test dry-run functionality
+      run: |
+        # Test that dry-run works without requiring sudo/pacman
+        ./setup-user --dry-run
+        echo "✅ Dry-run test passed"

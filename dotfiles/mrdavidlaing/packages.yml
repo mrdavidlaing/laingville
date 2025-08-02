@@ -12,6 +12,7 @@ arch:
     - bats-assert
     - bats-support
     - bats-file
+    - tig
   aur:
     - vivaldi
 
