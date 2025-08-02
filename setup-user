@@ -102,6 +102,10 @@ setup_systemd_services "$DRY_RUN"
 echo ""
 configure_terminal_font "$DRY_RUN"
 
+# Setup 1Password config on first run only
+echo ""
+setup_1password_config "$DRY_RUN"
+
 [ "$DRY_RUN" = false ] && echo "Setup complete!"
 
 # Explicit exit for proper status

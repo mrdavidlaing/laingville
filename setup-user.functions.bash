@@ -207,3 +207,34 @@ configure_terminal_font() {
         fi
     fi
 }
+
+# Setup 1Password config on first run only
+setup_1password_config() {
+    local dry_run="$1"
+    
+    # Check if 1Password settings template exists in dotfiles
+    local template_source="$DOTFILES_DIR/.config/1Password/settings/settings.json"
+    local settings_target="$HOME/.config/1Password/settings/settings.json"
+    
+    if [ ! -f "$template_source" ]; then
+        return
+    fi
+    
+    if [ "$dry_run" = true ]; then
+        echo "1PASSWORD CONFIG:"
+        if [ -f "$settings_target" ]; then
+            echo "Would skip 1Password config (already exists)"
+        else
+            echo "Would install 1Password settings template (first run only)"
+        fi
+    else
+        if [ -f "$settings_target" ]; then
+            echo "Skipping 1Password config (already exists)"
+        else
+            echo "Installing 1Password settings template..."
+            mkdir -p "$(dirname "$settings_target")"
+            cp "$template_source" "$settings_target"
+            echo "1Password settings template installed"
+        fi
+    fi
+}

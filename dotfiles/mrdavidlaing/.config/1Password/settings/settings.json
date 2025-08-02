@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "browsers.extension.enabled": true,
+  "security.autolock.minutes": 60,
+  "security.authenticatedUnlock.enabled": true,
+  "sshAgent.storeKeyTitles": true,
+  "sshAgent.storeSshKeyTitlesResponseGiven": true,
+  "sshAgent.enabled": true,
+  "sshAgent.sshSessionDuration": "12h",
+  "developers.cliSharedLockState.enabled": true,
+  "sshAgent.sshAuthorizatonModel": "application"
+}

@@ -21,6 +21,7 @@ arch:
   aur:
     - vivaldi
     - glow
+    - 1password
 
 windows:
   winget:
