@@ -182,3 +182,28 @@ setup_systemd_services() {
         done
     fi
 }
+
+# Configure terminal font
+configure_terminal_font() {
+    local dry_run="$1"
+    
+    # Check if the font configuration script exists in dotfiles
+    local font_script_source="$DOTFILES_DIR/.local/bin/configure-terminal-font"
+    local font_script_target="$HOME/.local/bin/configure-terminal-font"
+    
+    if [ ! -f "$font_script_source" ]; then
+        return
+    fi
+    
+    if [ "$dry_run" = true ]; then
+        echo "TERMINAL FONT:"
+        echo "Would configure terminal to use JetBrains Mono Nerd Font"
+    else
+        echo "Configuring terminal font..."
+        if command -v gsettings >/dev/null 2>&1; then
+            "$font_script_target" || echo "Warning: Failed to configure terminal font"
+        else
+            echo "Warning: gsettings not available, skipping terminal font configuration"
+        fi
+    fi
+}

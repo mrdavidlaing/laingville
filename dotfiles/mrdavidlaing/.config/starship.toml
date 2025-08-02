@@ -1,0 +1,42 @@
+# Multi-line prompt format
+format = """
+($status$cmd_duration ☁️  $gcloud$aws $line_break)\
+📂 $directory$git_branch$git_status\
+$line_break\
+$character"""
+
+[kubernetes]
+disabled = true
+
+[aws]
+format = ' | [$profile]($style)'
+style = 'bold blue'
+
+[gcloud]
+format = '[$account(@$domain)]($style)'
+style = 'bold yellow'
+
+[time]
+disabled = true
+
+[status]
+disabled = false
+format = "❌ [$status]($style) "
+style = "red"
+
+[cmd_duration]
+disabled = false
+min_time = 0
+show_milliseconds = true
+format = "⏱️  [$duration]($style)"
+style = "yellow"
+
+[directory]
+truncation_length = 0
+fish_style_pwd_dir_length = 1
+truncate_to_repo = false
+
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

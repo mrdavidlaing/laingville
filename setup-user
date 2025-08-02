@@ -98,6 +98,10 @@ handle_packages "$PLATFORM" "$DRY_RUN"
 echo ""
 setup_systemd_services "$DRY_RUN"
 
+# Configure terminal font
+echo ""
+configure_terminal_font "$DRY_RUN"
+
 [ "$DRY_RUN" = false ] && echo "Setup complete!"
 
 # Explicit exit for proper status

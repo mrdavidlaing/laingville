@@ -14,6 +14,10 @@ arch:
     - bats-file
     - tig
     - go-yq
+    - starship
+    - zoxide
+    - gimp
+    - ttf-jetbrains-mono-nerd
   aur:
     - vivaldi
 

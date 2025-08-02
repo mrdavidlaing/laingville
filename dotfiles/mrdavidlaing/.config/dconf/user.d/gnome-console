@@ -1,0 +1,7 @@
+# Gnome Console (kgx) configuration
+# This file should be loaded with: dconf load /org/gnome/Console/ < gnome-console
+
+[/]
+custom-font='JetBrains Mono Nerd Font 12'
+use-custom-font=true
+font-scale=1.0
