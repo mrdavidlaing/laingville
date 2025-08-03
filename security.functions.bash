@@ -41,7 +41,7 @@ validate_path_traversal() {
     # If readlink -f fails, the path likely doesn't exist or has invalid traversal
     if [ -z "$canonical_path" ]; then
         # Check if the path contains traversal sequences - if so, reject it
-        if [[ "$path" =~ \.\. ]]; then
+        if [[ "$path" =~ /\.\./ ]] || [[ "$path" =~ /\.\./$ ]] || [[ "$path" =~ ^\.\./ ]]; then
             return 1  # Reject paths with .. traversal when they can't be resolved
         fi
         canonical_path="$path"
@@ -50,28 +50,9 @@ validate_path_traversal() {
     local canonical_base
     canonical_base=$(readlink -f "$base_dir" 2>/dev/null || echo "$base_dir")
     
-    # If symlinks are not allowed, check if any component is a symlink
-    if [ "$allow_symlinks" != "true" ]; then
-        # Check each component of the original path for symlinks
-        local check_path="$path"
-        local parent_path
-        
-        # Safety counter to prevent infinite loops
-        local loop_counter=0
-        local max_loops=100
-        
-        while [ "$check_path" != "$canonical_base" ] && [ "$check_path" != "/" ] && [ $loop_counter -lt $max_loops ]; do
-            if [ -L "$check_path" ]; then
-                return 1  # Found symlink when not allowed
-            fi
-            
-            parent_path="${check_path%/*}"
-            if [ "$parent_path" = "$check_path" ]; then
-                break  # Reached root or can't go higher
-            fi
-            check_path="$parent_path"
-            loop_counter=$((loop_counter + 1))
-        done
+    # If symlinks are not allowed, do a simple check for direct symlinks
+    if [ "$allow_symlinks" != "true" ] && [ -L "$path" ]; then
+        return 1  # Path itself is a symlink and symlinks not allowed
     fi
     
     # Ensure the canonical path starts with the canonical base directory

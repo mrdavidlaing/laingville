@@ -114,7 +114,9 @@ configure_terminal_font "$DRY_RUN"
 echo ""
 setup_1password_config "$DRY_RUN"
 
-[ "$DRY_RUN" = false ] && echo "Setup complete!"
+if [ "$DRY_RUN" = false ]; then
+    echo "Setup complete!"
+fi
 
 # Explicit exit for proper status
 exit 0

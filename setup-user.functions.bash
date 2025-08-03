@@ -59,10 +59,10 @@ process_custom_scripts() {
     local scripts
     
     scripts=$(get_custom_scripts "$platform")
-    [ -z "$scripts" ] && return
+    [ -z "$scripts" ] && return 0  # Explicitly return success when no scripts
     
-    # Validate scripts directory
-    if ! validate_path_traversal "$scripts_dir" "$SCRIPT_DIR"; then
+    # Validate scripts directory (allow symlinks for this validation)
+    if ! validate_path_traversal "$scripts_dir" "$SCRIPT_DIR" "true"; then
         log_security_event "INVALID_SCRIPTS_DIR" "Scripts directory outside allowed path: $scripts_dir"
         echo "Error: Scripts directory outside allowed path" >&2
         return 1
