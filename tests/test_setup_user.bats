@@ -96,6 +96,7 @@ setup() {
     
     # The script should complete and show expected output even if exit status is non-zero
     # This test focuses on graceful handling rather than perfect exit status
+    # See TODO.md#setup-user-exit-status-1 for details on the exit status issue
     [[ "$output" =~ "No packages.yml found" ]] || {
         echo "FAILED: Missing expected message about missing packages.yml"
         echo "EXIT STATUS: $status"
