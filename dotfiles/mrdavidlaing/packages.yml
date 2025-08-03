@@ -24,6 +24,8 @@ arch:
     - glow
     - 1password
     - crush-bin
+  custom:
+    - install_claude_code
 
 windows:
   winget:
@@ -31,3 +33,5 @@ windows:
     - Mozilla.Firefox
     - Git.Git
     - Microsoft.PowerToys
+  custom:
+    - install_claude_code

@@ -416,3 +416,74 @@ EOF
     
     rm -rf "$temp_dir"
 }
+
+@test "get_custom_scripts extracts scripts from real config" {
+    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    
+    result=$(get_custom_scripts "arch")
+    
+    [ -n "$result" ] || {
+        echo "FAILED: No custom scripts extracted from real config"
+        echo "Expected custom scripts from: $DOTFILES_DIR/packages.yml"
+        return 1
+    }
+    
+    [[ "$result" =~ "install_claude_code" ]] || {
+        echo "FAILED: Missing expected custom script 'install_claude_code'"
+        echo "EXTRACTED: $result"
+        return 1
+    }
+}
+
+@test "dry-run shows custom scripts would be executed" {
+    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    
+    run ./setup-user --dry-run
+    
+    [ "$status" -eq 0 ] || {
+        echo "FAILED: setup-user --dry-run failed"
+        echo "OUTPUT: $output"
+        return 1
+    }
+    
+    [[ "$output" =~ "Would run custom script: install_claude_code" ]] || {
+        echo "FAILED: Missing custom script in dry-run output"
+        echo "OUTPUT: $output"
+        return 1
+    }
+}
+
+@test "missing custom script handled gracefully" {
+    temp_dir=$(mktemp -d)
+    mkdir -p "$temp_dir"
+    
+    # Create packages.yml with non-existent custom script
+    cat > "$temp_dir/packages.yml" << 'EOF'
+arch:
+  pacman:
+    - git
+  custom:
+    - nonexistent_script
+EOF
+    
+    export DOTFILES_DIR="$temp_dir"
+    
+    run ./setup-user --dry-run
+    
+    [ "$status" -eq 0 ] || {
+        echo "FAILED: Should handle missing custom script gracefully"
+        echo "EXIT STATUS: $status"
+        echo "OUTPUT: $output"
+        rm -rf "$temp_dir"
+        return 1
+    }
+    
+    [[ "$output" =~ "Warning: Script not found" ]] || {
+        echo "FAILED: Missing expected warning about missing script"
+        echo "OUTPUT: $output"
+        rm -rf "$temp_dir"
+        return 1
+    }
+    
+    rm -rf "$temp_dir"
+}

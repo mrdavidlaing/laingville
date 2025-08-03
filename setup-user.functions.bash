@@ -25,6 +25,17 @@ get_packages() {
     grep "^    - " | sed 's/^    - //'
 }
 
+# Get custom scripts from YAML
+get_custom_scripts() {
+    local platform="$1" file="$DOTFILES_DIR/packages.yml"
+    [ -f "$file" ] || return
+    
+    # Extract platform section, then custom section, then script list
+    sed -n "/${platform}:/,/^[a-z]/p" "$file" | \
+    sed -n "/custom:/,/^  [a-z]/p" | \
+    grep "^    - " | sed 's/^    - //'
+}
+
 # Process packages for a manager
 process_packages() {
     local manager="$1" cmd="$2" platform="$3" dry_run="$4"
@@ -58,6 +69,69 @@ process_packages() {
     fi
 }
 
+# Validate script name for security
+validate_script_name() {
+    local script="$1"
+    # Only allow alphanumeric, underscore, hyphen
+    if [[ ! "$script" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid script name contains illegal characters: $script"
+        return 1
+    fi
+    # Prevent path traversal
+    if [[ "$script" == *".."* ]] || [[ "$script" == *"/"* ]]; then
+        echo "Error: Script name contains path traversal characters: $script"
+        return 1
+    fi
+    # Reasonable length limit
+    if [ ${#script} -gt 50 ]; then
+        echo "Error: Script name too long: $script"
+        return 1
+    fi
+    return 0
+}
+
+# Process custom scripts
+process_custom_scripts() {
+    local platform="$1" dry_run="$2"
+    local scripts_dir="$SCRIPT_DIR/dotfiles/shared/scripts"
+    local scripts
+    
+    scripts=$(get_custom_scripts "$platform")
+    [ -z "$scripts" ] && return
+    
+    if [ "$dry_run" = true ]; then
+        echo "Would run custom scripts:"
+        for script in $scripts; do
+            if ! validate_script_name "$script"; then
+                continue
+            fi
+            if [ -f "$scripts_dir/${script}.bash" ]; then
+                echo "Would run custom script: $script"
+            else
+                echo "Warning: Script not found: $script"
+            fi
+        done
+    else
+        echo "Running custom scripts..."
+        for script in $scripts; do
+            if ! validate_script_name "$script"; then
+                continue
+            fi
+            local script_path="$scripts_dir/${script}.bash"
+            if [ -f "$script_path" ] && [ -x "$script_path" ]; then
+                echo "Running custom script: $script"
+                if "$script_path" "$dry_run"; then
+                    echo "Custom script $script completed successfully"
+                else
+                    echo "Warning: Custom script $script failed"
+                fi
+            else
+                echo "Warning: Script not found or not executable: $script"
+            fi
+        done
+    fi
+}
+
 # Handle all package management
 handle_packages() {
     local platform="$1" dry_run="$2"
@@ -82,12 +156,14 @@ handle_packages() {
         "arch")
             process_packages "pacman" "sudo pacman -S --needed --noconfirm" "$platform" "$dry_run"
             process_packages "yay" "yay -S --needed --noconfirm" "$platform" "$dry_run"
+            process_custom_scripts "$platform" "$dry_run"
             ;;
         "windows")
             process_packages "winget" "winget install --id=" "$platform" "$dry_run"
+            process_custom_scripts "$platform" "$dry_run"
             ;;
         *)
-            echo "Unknown platform: $platform - skipping package installation"
+            echo "Unrecognised platform: $platform. Not attempting to install packages or custom scripts."
             ;;
     esac
 }
