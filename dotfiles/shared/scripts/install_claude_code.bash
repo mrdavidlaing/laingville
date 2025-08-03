@@ -8,35 +8,46 @@ set -e
 
 DRY_RUN="${1:-false}"
 
-# Function to check if claude is installed via npm
-check_npm_installation() {
-    # Check global npm installation
-    if npm list -g @anthropic/claude-cli &>/dev/null || npm list -g claude-code &>/dev/null; then
-        echo "global"
-        return 0
+# Function to remove npm installations in user's home directory
+remove_npm_installations() {
+    echo "[Claude Code] Checking for npm installations in $HOME..."
+    
+    # List of possible package names to check
+    packages=("@anthropic/claude-cli" "claude-code" "@anthropic-ai/claude-code")
+    removed_any=false
+    
+    # Check global npm installations (user-level)
+    for package in "${packages[@]}"; do
+        if npm list -g "$package" &>/dev/null; then
+            echo "[Claude Code] Removing global npm package: $package"
+            npm uninstall -g "$package" 2>/dev/null || true
+            removed_any=true
+        fi
+    done
+    
+    # Check system-wide npm installations (requires sudo)
+    for package in "${packages[@]}"; do
+        if sudo npm list -g "$package" &>/dev/null; then
+            echo "[Claude Code] Removing system-wide npm package: $package"
+            sudo npm uninstall -g "$package" 2>/dev/null || true
+            removed_any=true
+        fi
+    done
+    
+    # Check for claude installations in $HOME (local npm packages)
+    if [ -f "$HOME/package.json" ]; then
+        cd "$HOME"
+        for package in "${packages[@]}"; do
+            if npm list "$package" &>/dev/null; then
+                echo "[Claude Code] Removing local npm package: $package from $HOME"
+                npm uninstall "$package" 2>/dev/null || true
+                removed_any=true
+            fi
+        done
     fi
     
-    # Check local npm installation (check if we're in a project with claude in package.json)
-    if [ -f "package.json" ] && (grep -q "@anthropic/claude-cli" package.json 2>/dev/null || grep -q "claude-code" package.json 2>/dev/null); then
-        echo "local"
-        return 0
-    fi
-    
-    return 1
-}
-
-# Function to remove npm installation
-remove_npm_installation() {
-    local install_type="$1"
-    
-    if [ "$install_type" = "global" ]; then
-        echo "[Claude Code] Removing global npm installation..."
-        npm uninstall -g @anthropic/claude-cli 2>/dev/null || true
-        npm uninstall -g claude-code 2>/dev/null || true
-    elif [ "$install_type" = "local" ]; then
-        echo "[Claude Code] Warning: Local npm installation detected in package.json"
-        echo "[Claude Code] Please manually remove claude from your project dependencies"
-        echo "[Claude Code] The binary installation will take precedence in PATH"
+    if [ "$removed_any" = false ]; then
+        echo "[Claude Code] No npm installations found to remove"
     fi
 }
 
@@ -48,10 +59,8 @@ fi
 
 echo -n "[Claude Code] "
 
-# Check for existing npm installations
-if npm_install_type=$(check_npm_installation 2>/dev/null); then
-    remove_npm_installation "$npm_install_type"
-fi
+# Remove any existing npm installations
+remove_npm_installations
 
 # Check if claude binary is already installed (and ensure it's the native version)
 if command -v claude &> /dev/null; then
