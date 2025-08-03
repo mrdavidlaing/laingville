@@ -89,7 +89,11 @@ else
 fi
 
 # Handle package management
-PLATFORM=$(detect_platform)
+if [ -n "${PLATFORM:-}" ]; then
+    PLATFORM="$PLATFORM"
+else
+    PLATFORM="$(detect_platform)"
+fi
 echo ""
 handle_packages "$PLATFORM" "$DRY_RUN"
 

@@ -488,22 +488,11 @@ EOF
 
 @test "dry-run shows correct behavior for unknown platform" {
     export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
-    
-    run ./setup-user --dry-run
-    
-    [ "$status" -eq 0 ] || {
-        echo "FAILED: setup-user --dry-run failed"
-        echo "OUTPUT: $output"
-        return 1
-    }
-    
-    # On unknown platforms (like macOS), should skip package installation and custom scripts
-    [[ "$output" =~ "Unknown platform: unknown - skipping package installation" ]] || {
-        echo "FAILED: Should show unknown platform message on macOS"
-        echo "OUTPUT: $output"
-        return 1
-    }
+    run bash -lc 'export PLATFORM=unknown; ./setup-user --dry-run'
+    [ "$status" -eq 0 ] || { echo "FAILED: setup-user --dry-run failed"; echo "OUTPUT: $output"; return 1; }
+    [[ "$output" =~ "Unknown platform: unknown - skipping package installation" ]] || { echo "FAILED: Should show unknown platform message on macOS"; echo "OUTPUT: $output"; return 1; }
 }
+
 
 @test "unknown platform skips custom scripts gracefully" {
     # Create temporary dotfiles directory within allowed path
@@ -519,25 +508,23 @@ arch:
     - nonexistent_script
 EOF
     
-    export DOTFILES_DIR="$temp_dir"
-    
-    run ./setup-user --dry-run
-    
-    [ "$status" -eq 0 ] || {
-        echo "FAILED: Should handle unknown platform gracefully"
-        echo "EXIT STATUS: $status"
-        echo "OUTPUT: $output"
-        rm -rf "$temp_dir"
-        return 1
-    }
-    
-    # On unknown platforms, should skip package installation (including custom scripts)
-    [[ "$output" =~ "Unknown platform: unknown - skipping package installation" ]] || {
-        echo "FAILED: Should show unknown platform skip message"
-        echo "OUTPUT: $output"
-        rm -rf "$temp_dir"
-        return 1
-    }
-    
-    rm -rf "$temp_dir"
+  export DOTFILES_DIR="$temp_dir"
+  run bash -lc 'export PLATFORM=unknown; ./setup-user --dry-run'
+  
+  [ "$status" -eq 0 ] || {
+      echo "FAILED: Should handle unknown platform gracefully"
+      echo "EXIT STATUS: $status"
+      echo "OUTPUT: $output"
+      rm -rf "$temp_dir"
+      return 1
+  }
+  
+  [[ "$output" =~ "Unknown platform: unknown - skipping package installation" ]] || {
+      echo "FAILED: Should show unknown platform skip message"
+      echo "OUTPUT: $output"
+      rm -rf "$temp_dir"
+      return 1
+  }
+  
+  rm -rf "$temp_dir"
 }

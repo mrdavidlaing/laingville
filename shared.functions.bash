@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/security.functions.bash"
 
 # Platform detection
 detect_platform() {
-    if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "$WINDIR" ]]; then
+    if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
         echo "windows"
     elif command -v pacman >/dev/null 2>&1; then
         echo "arch"
