@@ -1,0 +1,15 @@
+arch:
+  pacman:
+    - k3s
+    - htop
+    - curl
+    - wget
+    - git
+    - vim
+    - tmux
+  aur:
+    - k9s
+
+windows:
+  winget:
+    # No Windows packages for this Linux server

@@ -3,26 +3,15 @@
 # Functions for setup-user script
 # Note: Do not set -e here as functions need to handle their own error cases
 
-# Platform detection
-detect_platform() {
-    if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "$WINDIR" ]]; then
-        echo "windows"
-    elif command -v pacman >/dev/null 2>&1; then
-        echo "arch"
-    else
-        echo "unknown"
-    fi
-}
+# Source shared functions (which includes security functions)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/shared.functions.bash"
 
-# Simple YAML parsing using sed
+# Get user packages using shared function but with user-specific path
 get_packages() {
-    local platform="$1" manager="$2" file="$DOTFILES_DIR/packages.yml"
-    [ -f "$file" ] || return
-    
-    # Extract platform section, then manager section, then package list
-    sed -n "/${platform}:/,/^[a-z]/p" "$file" | \
-    sed -n "/${manager}:/,/^  [a-z]/p" | \
-    grep "^    - " | sed 's/^    - //'
+    local platform="$1" manager="$2" 
+    local packages_file="$DOTFILES_DIR/packages.yml"
+    get_packages_from_file "$platform" "$manager" "$packages_file"
 }
 
 # Get custom scripts from YAML
@@ -30,43 +19,16 @@ get_custom_scripts() {
     local platform="$1" file="$DOTFILES_DIR/packages.yml"
     [ -f "$file" ] || return
     
+    # Use secure YAML parsing
+    if ! validate_yaml_file "$file"; then
+        log_security_event "INVALID_YAML" "YAML validation failed for: $file"
+        return 1
+    fi
+    
     # Extract platform section, then custom section, then script list
     sed -n "/${platform}:/,/^[a-z]/p" "$file" | \
     sed -n "/custom:/,/^  [a-z]/p" | \
     grep "^    - " | sed 's/^    - //'
-}
-
-# Process packages for a manager
-process_packages() {
-    local manager="$1" cmd="$2" platform="$3" dry_run="$4"
-    local packages
-    
-    case "$manager" in
-        "pacman") packages=$(get_packages "$platform" "pacman") ;;
-        "yay") packages=$(get_packages "$platform" "aur") ;;
-        "winget") packages=$(get_packages "$platform" "winget") ;;
-    esac
-    
-    [ -z "$packages" ] && return
-    
-    if [ "$dry_run" = true ]; then
-        local pkg_list=$(echo $packages | tr '\n' ' ' | sed 's/ *$//')
-        echo "Would install via $manager: ${pkg_list// /, }"
-    else
-        echo "Installing $manager packages: $(echo $packages | tr '\n' ' ')"
-        if [ "$manager" = "yay" ] && ! command -v yay >/dev/null 2>&1; then
-            echo "Warning: yay not found, skipping AUR packages"
-            return
-        fi
-        
-        if [ "$manager" = "winget" ]; then
-            for pkg in $packages; do
-                $cmd"$pkg" --silent --accept-package-agreements --accept-source-agreements || echo "Warning: Failed to install $pkg"
-            done
-        else
-            echo $packages | xargs $cmd || echo "Warning: Some $manager packages failed to install"
-        fi
-    fi
 }
 
 # Validate script name for security
@@ -90,7 +52,7 @@ validate_script_name() {
     return 0
 }
 
-# Process custom scripts
+# Process custom scripts with security validation
 process_custom_scripts() {
     local platform="$1" dry_run="$2"
     local scripts_dir="$SCRIPT_DIR/dotfiles/shared/scripts"
@@ -98,6 +60,13 @@ process_custom_scripts() {
     
     scripts=$(get_custom_scripts "$platform")
     [ -z "$scripts" ] && return
+    
+    # Validate scripts directory
+    if ! validate_path_traversal "$scripts_dir" "$SCRIPT_DIR"; then
+        log_security_event "INVALID_SCRIPTS_DIR" "Scripts directory outside allowed path: $scripts_dir"
+        echo "Error: Scripts directory outside allowed path" >&2
+        return 1
+    fi
     
     if [ "$dry_run" = true ]; then
         echo "Would run custom scripts:"
@@ -118,6 +87,14 @@ process_custom_scripts() {
                 continue
             fi
             local script_path="$scripts_dir/${script}.bash"
+            
+            # Additional security validation for script path
+            if ! validate_path_traversal "$script_path" "$SCRIPT_DIR"; then
+                log_security_event "INVALID_SCRIPT_PATH" "Script path outside allowed area: $script_path"
+                echo "Warning: Script path outside allowed area: $script" >&2
+                continue
+            fi
+            
             if [ -f "$script_path" ] && [ -x "$script_path" ]; then
                 echo "Running custom script: $script"
                 if "$script_path" "$dry_run"; then
@@ -132,40 +109,16 @@ process_custom_scripts() {
     fi
 }
 
-# Handle all package management
+# Handle user package management with custom scripts  
 handle_packages() {
     local platform="$1" dry_run="$2"
     local packages_file="$DOTFILES_DIR/packages.yml"
     
-    if [ ! -f "$packages_file" ]; then
-        if [ "$dry_run" = true ]; then
-            echo "No packages.yml found - no packages would be installed"
-        else
-            echo "No packages.yml found - skipping package installation"
-        fi
-        return
-    fi
+    # Use secure package handling from shared functions
+    handle_packages_from_file "$platform" "$dry_run" "$packages_file" "USER"
     
-    if [ "$dry_run" = true ]; then
-        echo "PACKAGES ($platform):"
-    else
-        echo "Installing packages for $platform..."
-    fi
-    
-    case "$platform" in
-        "arch")
-            process_packages "pacman" "sudo pacman -S --needed --noconfirm" "$platform" "$dry_run"
-            process_packages "yay" "yay -S --needed --noconfirm" "$platform" "$dry_run"
-            process_custom_scripts "$platform" "$dry_run"
-            ;;
-        "windows")
-            process_packages "winget" "winget install --id=" "$platform" "$dry_run"
-            process_custom_scripts "$platform" "$dry_run"
-            ;;
-        *)
-            echo "Unrecognised platform: $platform. Not attempting to install packages or custom scripts."
-            ;;
-    esac
+    # Also process custom scripts for this platform
+    process_custom_scripts "$platform" "$dry_run"
 }
 
 # Show symlinks (dry-run mode)
@@ -197,9 +150,22 @@ show_symlinks() {
     shopt -u dotglob nullglob
 }
 
-# Create symlinks (normal mode)
+# Securely create symlinks with path validation
 create_symlinks() {
     local src_dir="$1" dest_dir="$2" relative_path="$3"
+    
+    # Validate source and destination directories
+    if ! validate_path_traversal "$src_dir" "$SCRIPT_DIR/dotfiles"; then
+        log_security_event "INVALID_SRC_DIR" "Source directory outside allowed path: $src_dir"
+        echo "Error: Source directory outside allowed dotfiles path" >&2
+        return 1
+    fi
+    
+    if ! validate_path_traversal "$dest_dir" "$HOME"; then
+        log_security_event "INVALID_DEST_DIR" "Destination directory outside home: $dest_dir"
+        echo "Error: Destination directory outside home directory" >&2
+        return 1
+    fi
     
     shopt -s dotglob nullglob
     for item in "$src_dir"/*; do
@@ -207,18 +173,61 @@ create_symlinks() {
             local filename=$(basename "$item")
             [ "$filename" = "packages.yml" ] && continue
             
-            local target="$dest_dir/$filename"
-            [ -e "$target" ] && rm -f "$target"
-            ln -s "$item" "$target"
+            # Sanitize filename for security
+            local safe_filename
+            safe_filename=$(sanitize_filename "$filename")
+            if [ $? -ne 0 ] || [ -z "$safe_filename" ]; then
+                log_security_event "UNSAFE_FILENAME" "Skipping unsafe filename: $filename"
+                echo "Warning: Skipping unsafe filename: $filename" >&2
+                continue
+            fi
             
-            if [ -n "$relative_path" ]; then
-                echo "Linked: $relative_path$filename"
+            # Use original filename for the actual link (after validation)
+            local target="$dest_dir/$filename"
+            
+            # Additional validation - ensure target is within home directory
+            if ! validate_path_traversal "$target" "$HOME"; then
+                log_security_event "INVALID_TARGET" "Target outside home directory: $target"
+                echo "Warning: Skipping link outside home directory: $target" >&2
+                continue
+            fi
+            
+            # Remove existing file/symlink safely
+            if [ -e "$target" ] || [ -L "$target" ]; then
+                rm -f "$target"
+            fi
+            
+            # Create symlink
+            if ln -s "$item" "$target" 2>/dev/null; then
+                if [ -n "$relative_path" ]; then
+                    echo "Linked: $relative_path$filename"
+                else
+                    echo "Linked: $filename"
+                fi
             else
-                echo "Linked: $filename"
+                echo "Warning: Failed to create symlink: $target" >&2
             fi
         elif [ -d "$item" ]; then
             local dirname=$(basename "$item")
+            
+            # Validate directory name
+            local safe_dirname
+            safe_dirname=$(sanitize_filename "$dirname")
+            if [ $? -ne 0 ] || [ -z "$safe_dirname" ]; then
+                log_security_event "UNSAFE_DIRNAME" "Skipping unsafe directory name: $dirname"
+                echo "Warning: Skipping unsafe directory name: $dirname" >&2
+                continue
+            fi
+            
             local target_dir="$dest_dir/$dirname"
+            
+            # Validate target directory
+            if ! validate_path_traversal "$target_dir" "$HOME"; then
+                log_security_event "INVALID_TARGET_DIR" "Target directory outside home: $target_dir"
+                echo "Warning: Skipping directory outside home: $target_dir" >&2
+                continue
+            fi
+            
             mkdir -p "$target_dir"
             create_symlinks "$item" "$target_dir" "${relative_path}${dirname}/"
         fi
@@ -226,18 +235,49 @@ create_symlinks() {
     shopt -u dotglob nullglob
 }
 
-# Setup systemd user services
+# Securely setup systemd user services with validation
 setup_systemd_services() {
     local dry_run="$1"
     
-    # Check if we have systemd user services to enable
-    local systemd_dir="$HOME/.config/systemd/user"
+    # In dry-run mode, check dotfiles directory; in normal mode, check HOME
+    local systemd_dir
+    if [ "$dry_run" = true ]; then
+        systemd_dir="$DOTFILES_DIR/.config/systemd/user"
+    else
+        systemd_dir="$HOME/.config/systemd/user"
+    fi
+    
     if [ ! -d "$systemd_dir" ]; then
         return
     fi
     
-    # Look for timer files to enable
-    local timers=($(find "$systemd_dir" -name "*.timer" -exec basename {} \; 2>/dev/null))
+    # Validate systemd directory
+    local expected_base
+    if [ "$dry_run" = true ]; then
+        expected_base="$DOTFILES_DIR"
+    else
+        expected_base="$HOME"
+        # Also validate directory is within home in normal mode
+        if ! validate_path_traversal "$systemd_dir" "$HOME"; then
+            log_security_event "INVALID_SYSTEMD_DIR" "Systemd directory outside home: $systemd_dir"
+            echo "Error: Systemd directory outside home directory" >&2
+            return 1
+        fi
+    fi
+    
+    # Safely find and validate timer files
+    local timers=()
+    while IFS= read -r -d '' timer_path; do
+        local timer_name=$(basename "$timer_path")
+        
+        # Validate systemd unit name format
+        if validate_systemd_unit_name "$timer_name"; then
+            timers+=("$timer_name")
+        else
+            log_security_event "INVALID_UNIT_NAME" "Skipping invalid systemd unit: $timer_name"
+            echo "Warning: Skipping invalid systemd unit name: $timer_name" >&2
+        fi
+    done < <(find "$systemd_dir" -maxdepth 1 -name "*.timer" -type f -print0 2>/dev/null)
     
     if [ ${#timers[@]} -eq 0 ]; then
         return
@@ -254,7 +294,10 @@ setup_systemd_services() {
         
         for timer in "${timers[@]}"; do
             echo "Enabling $timer..."
-            systemctl --user enable --now "$timer" || echo "Warning: Failed to enable $timer"
+            # Use quoted unit name for safety
+            if ! systemctl --user enable --now "$timer"; then
+                echo "Warning: Failed to enable $timer" >&2
+            fi
         done
     fi
 }

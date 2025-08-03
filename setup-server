@@ -1,0 +1,75 @@
+#!/bin/bash
+
+set -e
+
+# Source functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup-server.functions.bash"
+
+# Simple argument parsing
+DRY_RUN=false
+if [ "$1" = "--dry-run" ]; then
+    DRY_RUN=true
+elif [ -n "$1" ]; then
+    echo "Unknown option: $1"
+    echo "Usage: $0 [--dry-run]"
+    exit 1
+fi
+
+# Detect current hostname
+CURRENT_HOSTNAME=$(hostname)
+
+# Map hostname to server directory (unless SERVER_DIR already set)
+if [ -z "$SERVER_DIR" ]; then
+    # Validate hostname for security
+    if ! validate_hostname "$CURRENT_HOSTNAME"; then
+        echo "Error: Invalid hostname: $CURRENT_HOSTNAME" >&2
+        exit 1
+    fi
+    SERVER_DIR="$SCRIPT_DIR/$(map_hostname_to_server_dir "$CURRENT_HOSTNAME")"
+else
+    # Validate externally set SERVER_DIR for security
+    if ! validate_environment_variable "SERVER_DIR" "$SERVER_DIR" "$SCRIPT_DIR/servers"; then
+        echo "Error: Invalid SERVER_DIR environment variable: $SERVER_DIR" >&2
+        echo "SERVER_DIR must be within $SCRIPT_DIR/servers/" >&2
+        exit 1
+    fi
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    echo "DRY RUN MODE - No changes will be made"
+    echo ""
+fi
+
+echo "Setting up server configuration for hostname: $CURRENT_HOSTNAME"
+echo "Using server config from: $SERVER_DIR"
+
+# Check if server directory exists
+if [ ! -d "$SERVER_DIR" ]; then
+    echo "Error: Server directory $SERVER_DIR does not exist"
+    echo "Create the directory and add a packages.yml file to configure this server"
+    exit 1
+fi
+
+# Handle shared server configurations first
+SHARED_SERVER_DIR="$SCRIPT_DIR/servers/shared"
+if [ -d "$SHARED_SERVER_DIR" ] && [ "$(ls -A "$SHARED_SERVER_DIR" 2>/dev/null)" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo "SHARED SERVER CONFIG:"
+        echo "Would process shared server configurations from $SHARED_SERVER_DIR"
+        echo ""
+    else
+        echo "Processing shared server configurations..."
+        # Future: handle shared config files here
+    fi
+fi
+
+# Handle package management
+PLATFORM=$(detect_platform)
+echo ""
+handle_server_packages "$PLATFORM" "$DRY_RUN"
+
+[ "$DRY_RUN" = false ] && echo "Server setup complete!"
+
+# Explicit exit for proper status
+exit 0

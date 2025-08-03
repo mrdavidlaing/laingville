@@ -85,7 +85,8 @@ setup() {
 }
 
 @test "missing packages.yml handled gracefully" {
-    temp_dir=$(mktemp -d)
+    # Create temporary dotfiles directory within allowed path
+    temp_dir="$BATS_TEST_DIRNAME/../dotfiles/test_temp_user"
     mkdir -p "$temp_dir/.config"
     echo "test" > "$temp_dir/.config/test.conf"
     
@@ -152,7 +153,8 @@ setup() {
     mkdir -p "$temp_dir/.config/systemd/user"
     echo "[Timer]" > "$temp_dir/.config/systemd/user/test.timer"
     
-    export HOME="$temp_dir"
+    # For dry-run mode, set DOTFILES_DIR instead of HOME
+    export DOTFILES_DIR="$temp_dir"
     
     result=$(setup_systemd_services true 2>&1)
     

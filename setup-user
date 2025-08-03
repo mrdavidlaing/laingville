@@ -34,6 +34,13 @@ if [ -z "$DOTFILES_DIR" ]; then
             echo "Unknown user '$CURRENT_USER', using shared dotfiles"
             ;;
     esac
+else
+    # Validate externally set DOTFILES_DIR for security
+    if ! validate_environment_variable "DOTFILES_DIR" "$DOTFILES_DIR" "$SCRIPT_DIR/dotfiles"; then
+        echo "Error: Invalid DOTFILES_DIR environment variable: $DOTFILES_DIR" >&2
+        echo "DOTFILES_DIR must be within $SCRIPT_DIR/dotfiles/" >&2
+        exit 1
+    fi
 fi
 
 if [ "$DRY_RUN" = true ]; then
