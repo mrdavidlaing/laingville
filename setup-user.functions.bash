@@ -17,7 +17,7 @@ get_packages() {
 # Get custom scripts from YAML
 get_custom_scripts() {
     local platform="$1" file="$DOTFILES_DIR/packages.yml"
-    [ -f "$file" ] || return
+    [ -f "$file" ] || return 0
     
     # Use secure YAML parsing
     if ! validate_yaml_file "$file"; then

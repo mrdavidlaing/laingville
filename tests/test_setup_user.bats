@@ -94,9 +94,15 @@ setup() {
     
     run ./setup-user --dry-run
     
-    # The script should complete and show expected output even if exit status is non-zero
-    # This test focuses on graceful handling rather than perfect exit status
-    # See TODO.md#setup-user-exit-status-1 for details on the exit status issue
+    # Script should exit with status 0 and show expected output message
+    [ "$status" -eq 0 ] || {
+        echo "FAILED: Script should exit with status 0"
+        echo "EXIT STATUS: $status"
+        echo "OUTPUT: $output"
+        rm -rf "$temp_dir"
+        return 1
+    }
+    
     [[ "$output" =~ "No packages.yml found" ]] || {
         echo "FAILED: Missing expected message about missing packages.yml"
         echo "EXIT STATUS: $status"
