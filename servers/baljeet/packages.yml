@@ -1,6 +1,5 @@
 arch:
   pacman:
-    - k3s
     - htop
     - curl
     - wget
@@ -8,6 +7,7 @@ arch:
     - vim
     - tmux
   aur:
+    - k3s-bin
     - k9s
 
 windows:
