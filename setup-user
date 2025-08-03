@@ -66,6 +66,8 @@ if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
     if [ "$DRY_RUN" = true ]; then
         echo "USER SYMLINKS:"
         show_symlinks "$DOTFILES_DIR" "$HOME" ""
+        echo ""
+        run_user_setup_hook "$DRY_RUN"
     else
         echo "Setting up user-specific dotfiles..."
         create_symlinks "$DOTFILES_DIR" "$HOME" ""

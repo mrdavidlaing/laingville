@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-DRY=false
-if [ "${1-}" = "--dry-run" ]; then
-  DRY=true
-fi
-shell_bin=$(command -v bash || true)
-if [ -n "${shell_bin}" ]; then
-  if $DRY; then
-    echo "Would set login shell to: ${shell_bin}"
-  else
-    chsh -s "${shell_bin}" "$USER"
-  fi
-else
-  echo "Warning: bash not found in PATH" >&2
+
+# Check if current login shell contains bash
+current_shell=$(getent passwd "$USER" | cut -d: -f7)
+
+if [[ "$current_shell" != *"bash"* ]]; then
+  echo "Error: Your login shell is not bash" >&2
+  echo "Current shell: $current_shell" >&2
+  echo "To fix this, run: chsh -s $(command -v bash)" >&2
+  exit 1
 fi
