@@ -10,6 +10,7 @@ echo "🧪 Running setup-user tests..."
 echo
 
 bats tests/test_setup_user.bats
+bats tests/test_setup_user_dotfilter.bats
 
 echo
 echo "🧩 Running shared functions tests..."

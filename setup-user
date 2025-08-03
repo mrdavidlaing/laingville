@@ -78,6 +78,8 @@ if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
             fi
         fi
         echo "Dotfiles setup complete!"
+
+        run_user_setup_hook "$DRY_RUN"
     fi
 else
     if [ "$DRY_RUN" = true ]; then

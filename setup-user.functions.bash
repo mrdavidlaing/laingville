@@ -102,38 +102,135 @@ handle_packages() {
     process_custom_scripts "$platform" "$dry_run"
 }
 
-# Show symlinks (dry-run mode)
-show_symlinks() {
-    local src_dir="$1" dest_dir="$2" relative_path="$3"
+# Generic directory traversal with dotfile filtering
+traverse_dotfiles() {
+    local file_handler="$1"
+    local dir_handler="$2" 
+    local src_dir="$3"
+    local dest_dir="$4"
+    local relative_path="$5"
+    local filter_dotfiles="${6:-true}"
     
     shopt -s dotglob nullglob
     for item in "$src_dir"/*; do
+        local basename_item=$(basename "$item")
+        
+        # Only filter for dotfiles at the top level
+        if [[ "$filter_dotfiles" == "true" && ! "$basename_item" =~ ^\. ]]; then
+            continue
+        fi
+        
         if [ -f "$item" ]; then
-            local filename=$(basename "$item")
-            [ "$filename" = "packages.yml" ] && continue
-            
-            local target="$dest_dir/$filename"
-            local action="create"
-            if [ -e "$target" ]; then
-                [ -L "$target" ] && action="update" || action="replace"
-            fi
-            
-            if [ -n "$relative_path" ]; then
-                echo "Would $action: ~/$relative_path$filename -> $item"
-            else
-                echo "Would $action: ~/$filename -> $item"
-            fi
+            "$file_handler" "$item" "$dest_dir" "$relative_path"
         elif [ -d "$item" ]; then
-            local dirname=$(basename "$item")
-            show_symlinks "$item" "$dest_dir/$dirname" "${relative_path}${dirname}/"
+            "$dir_handler" "$item" "$dest_dir" "$relative_path"
         fi
     done
     shopt -u dotglob nullglob
 }
 
+# File handler for show mode
+show_file_item() {
+    local item="$1" dest_dir="$2" relative_path="$3"
+    local filename=$(basename "$item")
+    
+    local target="$dest_dir/$filename"
+    local action="create"
+    if [ -e "$target" ]; then
+        [ -L "$target" ] && action="update" || action="replace"
+    fi
+    
+    if [ -n "$relative_path" ]; then
+        echo "Would $action: ~/$relative_path$filename -> $item"
+    else
+        echo "Would $action: ~/$filename -> $item"
+    fi
+}
+
+# Directory handler for show mode
+show_directory_item() {
+    local item="$1" dest_dir="$2" relative_path="$3"
+    local dirname=$(basename "$item")
+    show_symlinks "$item" "$dest_dir/$dirname" "${relative_path}${dirname}/" "false"
+}
+
+# Show symlinks (dry-run mode)
+show_symlinks() {
+    local src_dir="$1" dest_dir="$2" relative_path="$3" filter_dotfiles="${4:-true}"
+    traverse_dotfiles "show_file_item" "show_directory_item" "$src_dir" "$dest_dir" "$relative_path" "$filter_dotfiles"
+}
+
+# File handler for create mode
+create_file_item() {
+    local item="$1" dest_dir="$2" relative_path="$3"
+    local filename=$(basename "$item")
+    
+    # Sanitize filename for security
+    local safe_filename
+    safe_filename=$(sanitize_filename "$filename")
+    if [ $? -ne 0 ] || [ -z "$safe_filename" ]; then
+        log_security_event "UNSAFE_FILENAME" "Skipping unsafe filename: $filename"
+        echo "Warning: Skipping unsafe filename: $filename" >&2
+        return 1
+    fi
+    
+    # Use original filename for the actual link (after validation)
+    local target="$dest_dir/$filename"
+    
+    # Additional validation - ensure target is within home directory
+    if ! validate_path_traversal "$target" "$HOME" "true"; then
+        log_security_event "INVALID_TARGET" "Target outside home directory: $target"
+        echo "Warning: Skipping link outside home directory: $target" >&2
+        return 1
+    fi
+    
+    # Remove existing file/symlink safely
+    if [ -e "$target" ] || [ -L "$target" ]; then
+        rm -f "$target"
+    fi
+    
+    # Create symlink
+    if ln -s "$item" "$target" 2>/dev/null; then
+        if [ -n "$relative_path" ]; then
+            echo "Linked: $relative_path$filename"
+        else
+            echo "Linked: $filename"
+        fi
+    else
+        echo "Warning: Failed to create symlink: $target" >&2
+    fi
+}
+
+# Directory handler for create mode
+create_directory_item() {
+    local item="$1" dest_dir="$2" relative_path="$3"
+    local dirname=$(basename "$item")
+    
+    # Validate directory name
+    local safe_dirname
+    safe_dirname=$(sanitize_filename "$dirname")
+    if [ $? -ne 0 ] || [ -z "$safe_dirname" ]; then
+        log_security_event "UNSAFE_DIRNAME" "Skipping unsafe directory name: $dirname"
+        echo "Warning: Skipping unsafe directory name: $dirname" >&2
+        return 1
+    fi
+    
+    local target_dir="$dest_dir/$dirname"
+    
+    # Validate target directory
+    if ! validate_path_traversal "$target_dir" "$HOME" "true"; then
+        log_security_event "INVALID_TARGET_DIR" "Target directory outside home: $target_dir"
+        echo "Warning: Skipping directory outside home: $target_dir" >&2
+        return 1
+    fi
+    
+    mkdir -p "$target_dir"
+    create_symlinks "$item" "$target_dir" "${relative_path}${dirname}/" "false"
+}
+
 # Securely create symlinks with path validation
 create_symlinks() {
-    local src_dir="$1" dest_dir="$2" relative_path="$3"
+    local src_dir="$1" dest_dir="$2" relative_path="$3" filter_dotfiles="${4:-true}"
     
     # Validate source and destination directories
     if ! validate_path_traversal "$src_dir" "$SCRIPT_DIR/dotfiles"; then
@@ -148,72 +245,7 @@ create_symlinks() {
         return 1
     fi
     
-    shopt -s dotglob nullglob
-    for item in "$src_dir"/*; do
-        if [ -f "$item" ]; then
-            local filename=$(basename "$item")
-            [ "$filename" = "packages.yml" ] && continue
-            
-            # Sanitize filename for security
-            local safe_filename
-            safe_filename=$(sanitize_filename "$filename")
-            if [ $? -ne 0 ] || [ -z "$safe_filename" ]; then
-                log_security_event "UNSAFE_FILENAME" "Skipping unsafe filename: $filename"
-                echo "Warning: Skipping unsafe filename: $filename" >&2
-                continue
-            fi
-            
-            # Use original filename for the actual link (after validation)
-            local target="$dest_dir/$filename"
-            
-            # Additional validation - ensure target is within home directory
-            if ! validate_path_traversal "$target" "$HOME" "true"; then
-                log_security_event "INVALID_TARGET" "Target outside home directory: $target"
-                echo "Warning: Skipping link outside home directory: $target" >&2
-                continue
-            fi
-            
-            # Remove existing file/symlink safely
-            if [ -e "$target" ] || [ -L "$target" ]; then
-                rm -f "$target"
-            fi
-            
-            # Create symlink
-            if ln -s "$item" "$target" 2>/dev/null; then
-                if [ -n "$relative_path" ]; then
-                    echo "Linked: $relative_path$filename"
-                else
-                    echo "Linked: $filename"
-                fi
-            else
-                echo "Warning: Failed to create symlink: $target" >&2
-            fi
-        elif [ -d "$item" ]; then
-            local dirname=$(basename "$item")
-            
-            # Validate directory name
-            local safe_dirname
-            safe_dirname=$(sanitize_filename "$dirname")
-            if [ $? -ne 0 ] || [ -z "$safe_dirname" ]; then
-                log_security_event "UNSAFE_DIRNAME" "Skipping unsafe directory name: $dirname"
-                echo "Warning: Skipping unsafe directory name: $dirname" >&2
-                continue
-            fi
-            
-            local target_dir="$dest_dir/$dirname"
-            
-            # Validate target directory
-            if ! validate_path_traversal "$target_dir" "$HOME" "true"; then
-                log_security_event "INVALID_TARGET_DIR" "Target directory outside home: $target_dir"
-                echo "Warning: Skipping directory outside home: $target_dir" >&2
-                continue
-            fi
-            
-            mkdir -p "$target_dir"
-            create_symlinks "$item" "$target_dir" "${relative_path}${dirname}/"
-        fi
-    done
-    shopt -u dotglob nullglob
+    traverse_dotfiles "create_file_item" "create_directory_item" "$src_dir" "$dest_dir" "$relative_path" "$filter_dotfiles"
 }
 
 # Securely setup systemd user services with validation
@@ -336,5 +368,42 @@ setup_1password_config() {
             cp "$template_source" "$settings_target"
             echo "1Password settings template installed"
         fi
+    fi
+}
+
+# Run per-user setup hook script if present
+run_user_setup_hook() {
+    local dry_run="$1"
+    local hook_path="$DOTFILES_DIR/setup-user-hook.sh"
+    if [ ! -e "$hook_path" ]; then
+        return 0
+    fi
+    if ! validate_path_traversal "$hook_path" "$SCRIPT_DIR/dotfiles"; then
+        log_security_event "INVALID_SCRIPT_PATH" "User hook outside allowed area: $hook_path"
+        echo "Warning: User hook outside allowed area" >&2
+        return 1
+    fi
+    if [ ! -x "$hook_path" ]; then
+        if [ "$dry_run" = true ]; then
+            echo "USER HOOK:"
+            echo "Would skip user hook (not executable): $hook_path"
+            return 0
+        fi
+        echo "Warning: User hook not executable: $hook_path" >&2
+        return 1
+    fi
+    if [ "$dry_run" = true ]; then
+        echo "USER HOOK:"
+        echo "Would run user setup hook"
+        echo "$hook_path --dry-run"
+        return 0
+    fi
+    echo "Running user setup hook..."
+    if "$hook_path"; then
+        echo "User setup hook completed successfully"
+        return 0
+    else
+        echo "Warning: User setup hook failed" >&2
+        return 1
     fi
 }
