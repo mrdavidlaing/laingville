@@ -12,5 +12,8 @@ PS1='[\u@\h \W]\$ '
 # Add ~/.local/bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
 
+# Load 1Password environment secrets if available
+[ -f "$HOME/.config/env.secrets.local" ] && source "$HOME/.config/env.secrets.local"
+
 eval "$(zoxide init bash)"
 eval "$(starship init bash)"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Shared functions for both setup-user and setup-server scripts
+# Shared functions for both setup-user, setup-secrets, and setup-server scripts
 # Note: Do not set -e here as functions need to handle their own error cases
 
 # Source security functions
@@ -16,6 +16,22 @@ detect_platform() {
     else
         echo "unknown"
     fi
+}
+
+# Detect username mapping from system username to dotfiles directory
+detect_username() {
+    local system_user=$(whoami)
+    case "$system_user" in
+        "david")
+            echo "mrdavidlaing"
+            ;;
+        "timmy")
+            echo "timmmmmmer"
+            ;;
+        *)
+            echo "shared"
+            ;;
+    esac
 }
 
 # Secure YAML parsing - works for both user and server configs

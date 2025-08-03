@@ -17,23 +17,14 @@ elif [ -n "$1" ]; then
     exit 1
 fi
 
-# Detect current user
-CURRENT_USER=$(whoami)
+# Detect current user using common function
+source "$SCRIPT_DIR/shared.functions.bash"
+CURRENT_USER=$(detect_username)
 
 # Map usernames to dotfiles folders (unless DOTFILES_DIR already set)
 if [ -z "$DOTFILES_DIR" ]; then
-    case "$CURRENT_USER" in
-        "timmy")
-            DOTFILES_DIR="$SCRIPT_DIR/dotfiles/timmmmmmer"
-            ;;
-        "mrdavidlaing")
-            DOTFILES_DIR="$SCRIPT_DIR/dotfiles/mrdavidlaing"
-            ;;
-        *)
-            DOTFILES_DIR="$SCRIPT_DIR/dotfiles/shared"
-            echo "Unknown user '$CURRENT_USER', using shared dotfiles"
-            ;;
-    esac
+    DOTFILES_DIR="$SCRIPT_DIR/dotfiles/$CURRENT_USER"
+    echo "Using dotfiles for user: $CURRENT_USER"
 else
     # Validate externally set DOTFILES_DIR for security
     if ! validate_environment_variable "DOTFILES_DIR" "$DOTFILES_DIR" "$SCRIPT_DIR/dotfiles"; then
