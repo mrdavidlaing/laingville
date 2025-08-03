@@ -22,7 +22,7 @@ detect_platform() {
 detect_username() {
     local system_user=$(whoami)
     case "$system_user" in
-        "david")
+        "david"|"mrdavidlaing")
             echo "mrdavidlaing"
             ;;
         "timmy")
@@ -120,7 +120,6 @@ process_packages() {
         # Validate sudo requirements for system package managers
         if [[ "$cmd" =~ sudo ]]; then
             validate_sudo_requirements "package installation" || {
-                echo "Error: Cannot install packages without proper sudo access" >&2
                 return 1
             }
         fi

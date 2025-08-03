@@ -34,11 +34,21 @@ validate_path_traversal() {
     
     [ -z "$path" ] || [ -z "$base_dir" ] && return 1
     
-    # Resolve canonical paths and compare
+    # For symlink validation, we want to validate the target path itself, not what it points to
     local canonical_path
-    canonical_path=$(readlink -f "$path" 2>/dev/null)
+    if [ -L "$path" ]; then
+        # For existing symlinks, validate the path itself without following it
+        canonical_path="$path"
+    else
+        # For non-symlinks, use normal canonicalization
+        if command -v realpath >/dev/null 2>&1; then
+            canonical_path=$(realpath -m "$path" 2>/dev/null)
+        else
+            canonical_path=$(readlink -f "$path" 2>/dev/null)
+        fi
+    fi
     
-    # If readlink -f fails, the path likely doesn't exist or has invalid traversal
+    # If canonicalization fails, try basic path validation
     if [ -z "$canonical_path" ]; then
         # Check if the path contains traversal sequences - if so, reject it
         if [[ "$path" =~ /\.\./ ]] || [[ "$path" =~ /\.\./$ ]] || [[ "$path" =~ ^\.\./ ]]; then

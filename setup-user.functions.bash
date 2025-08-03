@@ -161,7 +161,7 @@ create_symlinks() {
         return 1
     fi
     
-    if ! validate_path_traversal "$dest_dir" "$HOME"; then
+    if ! validate_path_traversal "$dest_dir" "$HOME" "true"; then
         log_security_event "INVALID_DEST_DIR" "Destination directory outside home: $dest_dir"
         echo "Error: Destination directory outside home directory" >&2
         return 1
@@ -186,7 +186,7 @@ create_symlinks() {
             local target="$dest_dir/$filename"
             
             # Additional validation - ensure target is within home directory
-            if ! validate_path_traversal "$target" "$HOME"; then
+            if ! validate_path_traversal "$target" "$HOME" "true"; then
                 log_security_event "INVALID_TARGET" "Target outside home directory: $target"
                 echo "Warning: Skipping link outside home directory: $target" >&2
                 continue
@@ -222,7 +222,7 @@ create_symlinks() {
             local target_dir="$dest_dir/$dirname"
             
             # Validate target directory
-            if ! validate_path_traversal "$target_dir" "$HOME"; then
+            if ! validate_path_traversal "$target_dir" "$HOME" "true"; then
                 log_security_event "INVALID_TARGET_DIR" "Target directory outside home: $target_dir"
                 echo "Warning: Skipping directory outside home: $target_dir" >&2
                 continue
@@ -258,7 +258,7 @@ setup_systemd_services() {
     else
         expected_base="$HOME"
         # Also validate directory is within home in normal mode
-        if ! validate_path_traversal "$systemd_dir" "$HOME"; then
+        if ! validate_path_traversal "$systemd_dir" "$HOME" "true"; then
             log_security_event "INVALID_SYSTEMD_DIR" "Systemd directory outside home: $systemd_dir"
             echo "Error: Systemd directory outside home directory" >&2
             return 1
