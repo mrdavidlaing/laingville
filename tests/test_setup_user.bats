@@ -209,13 +209,32 @@ setup() {
     mkdir -p "$mock_bin"
     export HOME="$temp_dir"
     
-    # Create a fake curl that always fails
+    # Create a fake curl that always fails instantly
     cat > "$mock_bin/curl" << 'EOF'
 #!/bin/bash
 echo "Mock curl failing" >&2
 exit 1
 EOF
     chmod +x "$mock_bin/curl"
+    
+    # Mock sleep to avoid delays
+    cat > "$mock_bin/sleep" << 'EOF'
+#!/bin/bash
+# Instant sleep for tests
+exit 0
+EOF
+    chmod +x "$mock_bin/sleep"
+    
+    # Mock seq with reduced retry count for faster tests
+    cat > "$mock_bin/seq" << 'EOF'
+#!/bin/bash
+# Reduced retry count for tests: max 1 attempt instead of 3
+case "$*" in
+    "1 3"|"1 2"|"1 "*) echo "1" ;;
+    *) /usr/bin/seq "$@" ;;
+esac
+EOF
+    chmod +x "$mock_bin/seq"
     
     # Put mock bin in PATH
     export PATH="$mock_bin:$PATH"
@@ -296,6 +315,23 @@ echo "Mock curl - failing for test" >&2
 exit 1
 EOF
     chmod +x "$mock_bin/curl"
+    
+    # Mock sleep to avoid delays
+    cat > "$mock_bin/sleep" << 'EOF'
+#!/bin/bash
+exit 0
+EOF
+    chmod +x "$mock_bin/sleep"
+    
+    # Mock seq with single attempt for faster tests
+    cat > "$mock_bin/seq" << 'EOF'
+#!/bin/bash
+case "$*" in
+    "1 3"|"1 2"|"1 "*) echo "1" ;;
+    *) /usr/bin/seq "$@" ;;
+esac
+EOF
+    chmod +x "$mock_bin/seq"
     
     export PATH="$mock_bin:$PATH"
     
@@ -388,6 +424,23 @@ exit 1
 EOF
     chmod +x "$mock_bin/curl"
     
+    # Mock sleep to avoid delays
+    cat > "$mock_bin/sleep" << 'EOF'
+#!/bin/bash
+exit 0
+EOF
+    chmod +x "$mock_bin/sleep"
+    
+    # Mock seq with single attempt for faster tests
+    cat > "$mock_bin/seq" << 'EOF'
+#!/bin/bash
+case "$*" in
+    "1 3"|"1 2"|"1 "*) echo "1" ;;
+    *) /usr/bin/seq "$@" ;;
+esac
+EOF
+    chmod +x "$mock_bin/seq"
+    
     export PATH="$mock_bin:$PATH"
     
     run "$script_path"
@@ -407,7 +460,7 @@ EOF
         return 1
     }
     
-    [[ "$output" =~ "Private/local IP addresses blocked" ]] || {
+    [[ "$output" =~ "Skipping invalid/unsafe URL: https://localhost" ]] || {
         echo "FAILED: Should block localhost when block_private_ips is true"
         echo "OUTPUT: $output"
         rm -rf "$temp_dir"

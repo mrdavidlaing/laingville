@@ -63,7 +63,11 @@ load_config_with_yq() {
     
     # Parse wallpaper sources
     if temp_sources=$(yq e '.wallpaper.sources[]' "$CONFIG_FILE" 2>/dev/null); then
-        mapfile -t WALLPAPER_SOURCES <<< "$temp_sources"
+        # Use read array for compatibility with older bash versions (macOS)
+        WALLPAPER_SOURCES=()
+        while IFS= read -r line; do
+            [ -n "$line" ] && WALLPAPER_SOURCES+=("$line")
+        done <<< "$temp_sources"
     fi
     
     # Parse settings
@@ -80,7 +84,11 @@ load_config_with_yq() {
     # Parse allowed domains (if specified)
     local temp_domains
     if temp_domains=$(yq e '.wallpaper.security.allowed_domains[]?' "$CONFIG_FILE" 2>/dev/null); then
-        mapfile -t ALLOWED_DOMAINS <<< "$temp_domains"
+        # Use read array for compatibility with older bash versions (macOS)
+        ALLOWED_DOMAINS=()
+        while IFS= read -r line; do
+            [ -n "$line" ] && ALLOWED_DOMAINS+=("$line")
+        done <<< "$temp_domains"
     fi
 }
 
