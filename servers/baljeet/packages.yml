@@ -9,6 +9,8 @@ arch:
   aur:
     - k3s-bin
     - k9s
+  custom:
+    - ensure_k3s_running
 
 windows:
   winget:

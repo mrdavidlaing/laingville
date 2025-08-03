@@ -183,3 +183,21 @@ handle_packages_from_file() {
             ;;
     esac
 }
+
+# Validate script name for security (shared)
+validate_script_name() {
+    local script="$1"
+    if [[ ! "$script" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid script name contains illegal characters: $script"
+        return 1
+    fi
+    if [[ "$script" == *".."* ]] || [[ "$script" == *"/"* ]]; then
+        echo "Error: Script name contains path traversal characters: $script"
+        return 1
+    fi
+    if [ ${#script} -gt 50 ]; then
+        echo "Error: Script name too long: $script"
+        return 1
+    fi
+    return 0
+}

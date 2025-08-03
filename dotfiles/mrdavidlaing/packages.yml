@@ -19,12 +19,14 @@ arch:
     - gimp
     - ttf-jetbrains-mono-nerd
     - tmux
+    - kubectl
   aur:
     - vivaldi
     - glow
     - 1password
     - crush-bin
     - opencode
+    - k9s-bin
   custom:
     - install_claude_code
 

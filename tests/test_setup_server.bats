@@ -72,7 +72,6 @@ setup() {
 
 @test "setup-server dry-run mode shows expected sections" {
     
-    # Set a test server directory for predictable testing
     export SERVER_DIR="$BATS_TEST_DIRNAME/../servers/baljeet"
     
     run ./setup-server --dry-run
@@ -94,48 +93,15 @@ setup() {
         echo "OUTPUT: $output"
         return 1
     }
-}
 
-@test "server packages.yml parsing extracts packages correctly" {
-    # Create a test server directory with packages.yml
-    temp_dir=$(mktemp -d)
-    server_dir="$temp_dir/servers/testhost"
-    mkdir -p "$server_dir"
-    
-    cat > "$server_dir/packages.yml" << 'EOF'
-arch:
-  pacman:
-    - k3s
-    - htop
-    - curl
-  aur:
-    - some-aur-package
-
-windows:
-  winget:
-    - SomeApp
-EOF
-    
-    # Set SERVER_DIR to our test directory for the function
-    export SERVER_DIR="$server_dir"
-    
-    result=$(get_server_packages "arch" "pacman")
-    [[ "$result" =~ "k3s" ]] || {
-        echo "FAILED: k3s package not found in parsed output"
-        echo "RESULT: $result"
-        rm -rf "$temp_dir"
+    [[ "$output" =~ "Would run custom server scripts" ]] || {
+        echo "FAILED: Missing custom scripts dry-run section"
+        echo "OUTPUT: $output"
         return 1
     }
-    
-    [[ "$result" =~ "htop" ]] || {
-        echo "FAILED: htop package not found in parsed output"  
-        echo "RESULT: $result"
-        rm -rf "$temp_dir"
-        return 1
-    }
-    
-    rm -rf "$temp_dir"
 }
+
+# moved to shared functions tests
 
 @test "k3s package specifically detected for baljeet server" {
     # This test ensures k3s is properly configured for baljeet

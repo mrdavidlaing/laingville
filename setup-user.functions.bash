@@ -31,26 +31,7 @@ get_custom_scripts() {
     grep "^    - " | sed 's/^    - //'
 }
 
-# Validate script name for security
-validate_script_name() {
-    local script="$1"
-    # Only allow alphanumeric, underscore, hyphen
-    if [[ ! "$script" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        echo "Error: Invalid script name contains illegal characters: $script"
-        return 1
-    fi
-    # Prevent path traversal
-    if [[ "$script" == *".."* ]] || [[ "$script" == *"/"* ]]; then
-        echo "Error: Script name contains path traversal characters: $script"
-        return 1
-    fi
-    # Reasonable length limit
-    if [ ${#script} -gt 50 ]; then
-        echo "Error: Script name too long: $script"
-        return 1
-    fi
-    return 0
-}
+
 
 # Process custom scripts with security validation
 process_custom_scripts() {

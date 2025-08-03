@@ -12,6 +12,12 @@ echo
 bats tests/test_setup_user.bats
 
 echo
+echo "🧩 Running shared functions tests..."
+echo
+
+bats tests/test_shared_functions.bats
+
+echo
 echo "🖥️  Running setup-server tests..."
 echo
 

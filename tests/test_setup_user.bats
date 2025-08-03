@@ -66,23 +66,7 @@ setup() {
     }
 }
 
-@test "get_packages extracts packages from real config" {
-    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
-    
-    result=$(get_packages "arch" "pacman")
-    
-    [ -n "$result" ] || {
-        echo "FAILED: No packages extracted from real config"
-        echo "Expected packages from: $DOTFILES_DIR/packages.yml"
-        return 1
-    }
-    
-    [[ "$result" =~ "hyprland" ]] || {
-        echo "FAILED: Missing expected package 'hyprland'"
-        echo "EXTRACTED: $result"
-        return 1
-    }
-}
+# moved to shared functions tests
 
 @test "missing packages.yml handled gracefully" {
     # Create temporary dotfiles directory within allowed path
