@@ -14,10 +14,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install BATS
+    - name: Setup BATS with caching
+      uses: bats-core/bats-action@3.0.0
+        
+    - name: Verify BATS installation
       run: |
-        sudo apt-get update
-        sudo apt-get install -y bats
+        bats --version
+        echo "✅ BATS is ready with caching"
         
     - name: Make scripts executable
       run: |
