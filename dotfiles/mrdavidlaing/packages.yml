@@ -23,6 +23,7 @@ arch:
     - vivaldi
     - glow
     - 1password
+    - crush-bin
 
 windows:
   winget:
