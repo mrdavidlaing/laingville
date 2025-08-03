@@ -24,6 +24,7 @@ arch:
     - glow
     - 1password
     - crush-bin
+    - opencode
   custom:
     - install_claude_code
 
