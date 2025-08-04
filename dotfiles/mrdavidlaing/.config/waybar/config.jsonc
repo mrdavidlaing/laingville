@@ -12,37 +12,38 @@
         "all-outputs": true,
         "format": "{icon}",
         "format-icons": {
-            "1": "1",
-            "2": "2", 
-            "3": "3",
-            "4": "4",
-            "5": "5",
-            "6": "6",
-            "7": "7",
-            "8": "8",
-            "9": "9",
-            "10": "10",
-            "urgent": "",
-            "focused": "",
-            "default": ""
+            "1": "●",
+            "2": "●", 
+            "3": "●",
+            "4": "●",
+            "5": "●",
+            "6": "●",
+            "7": "●",
+            "8": "●",
+            "9": "●",
+            "10": "●",
+            "urgent": "!",
+            "focused": "●",
+            "default": "○"
         }
     },
     
     "hyprland/window": {
-        "format": "{}",
+        "format": "▶ {}",
         "max-length": 50
     },
     
     "tray": {
         "icon-size": 16,
-        "spacing": 10
+        "spacing": 10,
+        "show-passive-items": true
     },
     
     "clock": {
         "timezone": "Europe/Dublin",
         "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
-        "format": "{:%a %d %b %H:%M}",
-        "format-alt": "{:%Y-%m-%d %H:%M:%S}"
+        "format": "🕐 {:%a %d %b %H:%M}",
+        "format-alt": "🕐 {:%Y-%m-%d %H:%M:%S}"
     },
     
     "battery": {
@@ -50,37 +51,37 @@
             "warning": 30,
             "critical": 15
         },
-        "format": "{capacity}% {icon}",
-        "format-charging": "{capacity}% ",
-        "format-plugged": "{capacity}% ",
-        "format-alt": "{time} {icon}",
-        "format-icons": ["", "", "", "", ""]
+        "format": "🔋 {capacity}%",
+        "format-charging": "🔌 {capacity}%",
+        "format-plugged": "🔌 {capacity}%",
+        "format-alt": "🔋 {time}",
+        "format-icons": ["▁", "▂", "▄", "▆", "█"]
     },
     
     "network": {
-        "format-wifi": "{essid} ({signalStrength}%) ",
-        "format-ethernet": "{ipaddr}/{cidr} ",
-        "tooltip-format": "{ifname} via {gwaddr} ",
-        "format-linked": "{ifname} (No IP) ",
-        "format-disconnected": "Disconnected ⚠",
-        "format-alt": "{ifname}: {ipaddr}/{cidr}"
+        "format-wifi": "🌐 {essid} ({signalStrength}%)",
+        "format-ethernet": "🌐 {ipaddr}/{cidr}",
+        "tooltip-format": "{ifname} via {gwaddr}",
+        "format-linked": "🔗 {ifname} (No IP)",
+        "format-disconnected": "❌ Disconnected",
+        "format-alt": "🌐 {ifname}: {ipaddr}/{cidr}"
     },
     
     "pulseaudio": {
-        "format": "{volume}% {icon} {format_source}",
-        "format-bluetooth": "{volume}% {icon} {format_source}",
-        "format-bluetooth-muted": " {icon} {format_source}",
-        "format-muted": " {format_source}",
-        "format-source": "{volume}% ",
-        "format-source-muted": "",
+        "format": "🔊 {volume}% {format_source}",
+        "format-bluetooth": "🎧 {volume}% {format_source}",
+        "format-bluetooth-muted": "🔇 {format_source}",
+        "format-muted": "🔇 {format_source}",
+        "format-source": "🎤 {volume}%",
+        "format-source-muted": "🎤",
         "format-icons": {
-            "headphone": "",
-            "hands-free": "",
-            "headset": "",
-            "phone": "",
-            "portable": "",
-            "car": "",
-            "default": ["", "", ""]
+            "headphone": "🎧",
+            "hands-free": "🎧",
+            "headset": "🎧",
+            "phone": "📱",
+            "portable": "🔊",
+            "car": "🚗",
+            "default": ["🔈", "🔉", "🔊"]
         },
         "on-click": "pavucontrol"
     }

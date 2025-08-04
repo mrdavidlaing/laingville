@@ -2,7 +2,7 @@
 * {
     border: none;
     border-radius: 0;
-    font-family: "Noto Sans", sans-serif;
+    font-family: "JetBrainsMono Nerd Font", "Noto Sans", sans-serif;
     font-size: 13px;
     min-height: 0;
 }
@@ -73,11 +73,12 @@ button:hover {
 #battery,
 #clock,
 #tray {
-    padding: 0 8px;
+    padding: 0 10px;
     margin: 3px 2px;
     background-color: rgba(49, 54, 59, 0.8);
     border-radius: 4px;
     border: 1px solid rgba(76, 79, 82, 0.8);
+    min-width: 24px;
 }
 
 #clock {
