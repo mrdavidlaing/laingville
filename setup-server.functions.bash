@@ -56,12 +56,12 @@ process_server_custom_scripts() {
     # Validate script directories
     if ! validate_path_traversal "$scripts_dir" "$SCRIPT_DIR" "true"; then
         log_security_event "INVALID_SCRIPTS_DIR" "Scripts directory outside allowed path: $scripts_dir"
-        echo "Error: Scripts directory outside allowed path" >&2
+        log_error "Scripts directory outside allowed path"
         return 1
     fi
     if ! validate_path_traversal "$host_scripts_dir" "$SCRIPT_DIR" "true"; then
         log_security_event "INVALID_SCRIPTS_DIR" "Host scripts directory outside allowed path: $host_scripts_dir"
-        echo "Error: Host scripts directory outside allowed path" >&2
+        log_error "Host scripts directory outside allowed path"
         return 1
     fi
 
@@ -72,15 +72,15 @@ process_server_custom_scripts() {
                 continue
             fi
             if [ -f "$host_scripts_dir/${script}.bash" ]; then
-                echo "Would run host script: $script"
+                log_dry_run "run host script: $script"
             elif [ -f "$scripts_dir/${script}.bash" ]; then
-                echo "Would run shared server script: $script"
+                log_dry_run "run shared server script: $script"
             else
-                echo "Warning: Server script not found: $script"
+                log_warning "Server script not found: $script"
             fi
         done
     else
-        echo "Running custom server scripts..."
+        log_info "Running custom server scripts..."
         for script in $scripts; do
             if ! validate_script_name "$script"; then
                 continue
@@ -92,14 +92,14 @@ process_server_custom_scripts() {
                 script_path="$scripts_dir/${script}.bash"
             fi
             if [ -f "$script_path" ] && [ -x "$script_path" ]; then
-                echo "Running server script: $script"
+                log_info "Running server script: $script"
                 if "$script_path" "$dry_run"; then
-                    echo "Server script $script completed successfully"
+                    log_success "Server script $script completed successfully"
                 else
-                    echo "Warning: Server script $script failed"
+                    log_warning "Server script $script failed"
                 fi
             else
-                echo "Warning: Server script not found or not executable: $script"
+                log_warning "Server script not found or not executable: $script"
             fi
         done
     fi

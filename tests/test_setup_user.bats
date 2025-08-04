@@ -127,7 +127,7 @@ setup() {
         return 1
     }
     
-    [[ "$output" =~ "Would enable and start: dynamic-wallpaper.timer" ]] || {
+    [[ "$output" =~ "• Would: enable and start: dynamic-wallpaper.timer" ]] || {
         echo "FAILED: Missing systemd timer detection"
         echo "OUTPUT: $output"
         return 1
@@ -142,9 +142,14 @@ setup() {
     # For dry-run mode, set DOTFILES_DIR instead of HOME
     export DOTFILES_DIR="$temp_dir"
     
+    # Source the functions to make setup_systemd_services available  
+    # Set SCRIPT_DIR properly for the functions to work - use BATS_TEST_DIRNAME
+    export SCRIPT_DIR="$BATS_TEST_DIRNAME/.."
+    source "$SCRIPT_DIR/logging.functions.bash"
+    source "$SCRIPT_DIR/setup-user.functions.bash"
     result=$(setup_systemd_services true 2>&1)
     
-    [[ "$result" =~ "Would enable and start: test.timer" ]] || {
+    [[ "$result" =~ "• Would: enable and start: test.timer" ]] || {
         echo "FAILED: setup_systemd_services didn't detect timer"
         echo "RESULT: $result"
         rm -rf "$temp_dir"

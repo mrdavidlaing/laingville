@@ -5,6 +5,7 @@ set -e
 # Source functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
+source "$SCRIPT_DIR/logging.functions.bash"
 source "$SCRIPT_DIR/setup-user.functions.bash"
 
 # Simple argument parsing
@@ -12,8 +13,8 @@ DRY_RUN=false
 if [ "$1" = "--dry-run" ]; then
     DRY_RUN=true
 elif [ -n "$1" ]; then
-    echo "Unknown option: $1"
-    echo "Usage: $0 [--dry-run]"
+    log_error "Unknown option: $1"
+    log_error "Usage: $0 [--dry-run]"
     exit 1
 fi
 
@@ -21,101 +22,99 @@ fi
 source "$SCRIPT_DIR/shared.functions.bash"
 CURRENT_USER=$(detect_username)
 
+# Initialize logging
+log_init
+
 # Map usernames to dotfiles folders (unless DOTFILES_DIR already set)
 if [ -z "$DOTFILES_DIR" ]; then
     DOTFILES_DIR="$SCRIPT_DIR/dotfiles/$CURRENT_USER"
-    echo "Using dotfiles for user: $CURRENT_USER"
+    log_info "Using dotfiles for user: $CURRENT_USER"
 else
     # Validate externally set DOTFILES_DIR for security
     if ! validate_environment_variable "DOTFILES_DIR" "$DOTFILES_DIR" "$SCRIPT_DIR/dotfiles"; then
-        echo "Error: Invalid DOTFILES_DIR environment variable: $DOTFILES_DIR" >&2
-        echo "DOTFILES_DIR must be within $SCRIPT_DIR/dotfiles/" >&2
+        log_error "Invalid DOTFILES_DIR environment variable: $DOTFILES_DIR"
+        log_error "DOTFILES_DIR must be within $SCRIPT_DIR/dotfiles/"
         exit 1
     fi
 fi
 
-if [ "$DRY_RUN" = true ]; then
-    echo "DRY RUN MODE - No changes will be made"
-    echo ""
-fi
-
-echo "Setting up dotfiles for user: $CURRENT_USER"
-echo "Using dotfiles from: $DOTFILES_DIR"
+log_section "User Setup for $CURRENT_USER"
+log_info "Using dotfiles from: $DOTFILES_DIR"
 
 # Check if dotfiles directory exists
+log_subsection "Validation"
 if [ ! -d "$DOTFILES_DIR" ]; then
-    echo "Error: Dotfiles directory $DOTFILES_DIR does not exist"
+    log_error "Dotfiles directory $DOTFILES_DIR does not exist"
     exit 1
+else
+    log_success "Dotfiles directory found"
 fi
 
 # Handle shared dotfiles first
+log_subsection "Shared Dotfiles"
 SHARED_DOTFILES_DIR="$SCRIPT_DIR/dotfiles/shared"
 if [ -d "$SHARED_DOTFILES_DIR" ] && [ "$(ls -A "$SHARED_DOTFILES_DIR" 2>/dev/null)" ]; then
     if [ "$DRY_RUN" = true ]; then
-        echo "SHARED SYMLINKS:"
         show_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
-        echo ""
     else
-        echo "Setting up shared dotfiles..."
+        log_info "Setting up shared dotfiles..."
         create_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
     fi
+else
+    log_info "No shared dotfiles found"
 fi
 
 # Handle user-specific dotfiles
+log_subsection "User-Specific Dotfiles"
 if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
     if [ "$DRY_RUN" = true ]; then
-        echo "USER SYMLINKS:"
         show_symlinks "$DOTFILES_DIR" "$HOME" ""
-        echo ""
         run_user_setup_hook "$DRY_RUN"
     else
-        echo "Setting up user-specific dotfiles..."
+        log_info "Setting up user-specific dotfiles..."
         create_symlinks "$DOTFILES_DIR" "$HOME" ""
         
         # Reload Hyprland config if hyprland.conf was linked and Hyprland is running
         if [ -f "$HOME/.config/hypr/hyprland.conf" ] && command -v hyprctl >/dev/null 2>&1; then
             if hyprctl version >/dev/null 2>&1; then
-                echo "Reloading Hyprland configuration..."
-                hyprctl reload >/dev/null 2>&1 || echo "Warning: Could not reload Hyprland config"
+                log_info "Reloading Hyprland configuration..."
+                hyprctl reload >/dev/null 2>&1 || log_warning "Could not reload Hyprland config"
             fi
         fi
-        echo "Dotfiles setup complete!"
+        log_success "Dotfiles setup complete!"
 
         run_user_setup_hook "$DRY_RUN"
     fi
 else
     if [ "$DRY_RUN" = true ]; then
-        echo "USER SYMLINKS:"
-        echo "No user dotfiles found - no symlinks would be created"
+        log_dry_run "No user dotfiles found - no symlinks would be created"
     else
-        echo "No user dotfiles found in $DOTFILES_DIR"
+        log_info "No user dotfiles found in $DOTFILES_DIR"
     fi
 fi
 
 # Handle package management
+log_subsection "Package Management"
 if [ -n "${PLATFORM:-}" ]; then
     PLATFORM="$PLATFORM"
 else
     PLATFORM="$(detect_platform)"
 fi
-echo ""
 handle_packages "$PLATFORM" "$DRY_RUN"
 
 # Setup systemd user services (like dynamic wallpaper timer)
-echo ""
+log_subsection "System Services"
 setup_systemd_services "$DRY_RUN"
 
 # Configure terminal font
-echo ""
+log_subsection "Terminal Font"
 configure_terminal_font "$DRY_RUN"
 
 # Setup 1Password config on first run only
-echo ""
+log_subsection "1Password Configuration"
 setup_1password_config "$DRY_RUN"
 
-if [ "$DRY_RUN" = false ]; then
-    echo "Setup complete!"
-fi
+# Final completion handled by log_init trap
 
 # Explicit exit for proper status
 exit 0

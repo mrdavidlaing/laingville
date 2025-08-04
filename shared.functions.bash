@@ -98,7 +98,7 @@ process_packages() {
             valid_packages+=("$pkg")
         else
             log_security_event "INVALID_PACKAGE" "Rejected invalid package name: $pkg"
-            echo "Warning: Skipping invalid package name: $pkg" >&2
+            log_warning "Skipping invalid package name: $pkg"
         fi
     done <<< "$packages"
     
@@ -107,13 +107,13 @@ process_packages() {
     if [ "$dry_run" = true ]; then
         local pkg_list=$(printf '%s, ' "${valid_packages[@]}")
         pkg_list=${pkg_list%, }  # Remove trailing comma
-        echo "Would install via $manager: $pkg_list"
+        log_dry_run "install via $manager: $pkg_list"
     else
-        echo "Installing $manager packages: ${valid_packages[*]}"
+        log_info "Installing $manager packages: ${valid_packages[*]}"
         
         # Check manager availability
         if [ "$manager" = "yay" ] && ! command -v yay >/dev/null 2>&1; then
-            echo "Warning: yay not found, skipping AUR packages"
+            log_warning "yay not found, skipping AUR packages"
             return
         fi
         
@@ -146,7 +146,7 @@ process_packages() {
         
         # Report any failures
         if [ ${#failed_packages[@]} -gt 0 ]; then
-            echo "Warning: Failed to install packages: ${failed_packages[*]}" >&2
+            log_warning "Failed to install packages: ${failed_packages[*]}"
         fi
     fi
 }
@@ -157,9 +157,9 @@ handle_packages_from_file() {
     
     if [ ! -f "$packages_file" ]; then
         if [ "$dry_run" = true ]; then
-            echo "No packages.yml found - no packages would be installed"
+            log_info "No packages.yml found - no packages would be installed"
         else
-            echo "No packages.yml found - skipping package installation"
+            log_info "No packages.yml found - skipping package installation"
         fi
         return
     fi
@@ -167,7 +167,7 @@ handle_packages_from_file() {
     if [ "$dry_run" = true ]; then
         echo "${context} PACKAGES ($platform):"
     else
-        echo "Installing ${context,,} packages for $platform..."
+        log_info "Installing ${context,,} packages for $platform..."
     fi
     
     case "$platform" in
@@ -179,7 +179,7 @@ handle_packages_from_file() {
             process_packages "winget" "winget install --id=" "$platform" "$dry_run" "$packages_file"
             ;;
         *)
-            echo "Unknown platform: $platform - skipping package installation"
+            log_warning "Unknown platform: $platform - skipping package installation"
             ;;
     esac
 }
@@ -188,15 +188,15 @@ handle_packages_from_file() {
 validate_script_name() {
     local script="$1"
     if [[ ! "$script" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        echo "Error: Invalid script name contains illegal characters: $script"
+        log_error "Invalid script name contains illegal characters: $script"
         return 1
     fi
     if [[ "$script" == *".."* ]] || [[ "$script" == *"/"* ]]; then
-        echo "Error: Script name contains path traversal characters: $script"
+        log_error "Script name contains path traversal characters: $script"
         return 1
     fi
     if [ ${#script} -gt 50 ]; then
-        echo "Error: Script name too long: $script"
+        log_error "Script name too long: $script"
         return 1
     fi
     return 0

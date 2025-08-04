@@ -56,13 +56,13 @@ process_custom_scripts() {
                 continue
             fi
             if [ -f "$scripts_dir/${script}.bash" ]; then
-                echo "Would run custom script: $script"
+                log_dry_run "run custom script: $script"
             else
-                echo "Warning: Script not found: $script"
+                log_warning "Script not found: $script"
             fi
         done
     else
-        echo "Running custom scripts..."
+        log_info "Running custom scripts..."
         for script in $scripts; do
             if ! validate_script_name "$script"; then
                 continue
@@ -72,19 +72,19 @@ process_custom_scripts() {
             # Additional security validation for script path
             if ! validate_path_traversal "$script_path" "$SCRIPT_DIR"; then
                 log_security_event "INVALID_SCRIPT_PATH" "Script path outside allowed area: $script_path"
-                echo "Warning: Script path outside allowed area: $script" >&2
+                log_warning "Script path outside allowed area: $script"
                 continue
             fi
             
             if [ -f "$script_path" ] && [ -x "$script_path" ]; then
-                echo "Running custom script: $script"
+                log_info "Running custom script: $script"
                 if "$script_path" "$dry_run"; then
-                    echo "Custom script $script completed successfully"
+                    log_success "Custom script $script completed successfully"
                 else
-                    echo "Warning: Custom script $script failed"
+                    log_warning "Custom script $script failed"
                 fi
             else
-                echo "Warning: Script not found or not executable: $script"
+                log_warning "Script not found or not executable: $script"
             fi
         done
     fi
@@ -140,10 +140,15 @@ show_file_item() {
         [ -L "$target" ] && action="update" || action="replace"
     fi
     
+    # Source logging functions if not already available
+    if ! command -v log_dry_run >/dev/null 2>&1; then
+        source "$SCRIPT_DIR/logging.functions.bash"
+    fi
+    
     if [ -n "$relative_path" ]; then
-        echo "Would $action: ~/$relative_path$filename -> $item"
+        log_dry_run "$action: ~/$relative_path$filename -> $item"
     else
-        echo "Would $action: ~/$filename -> $item"
+        log_dry_run "$action: ~/$filename -> $item"
     fi
 }
 
@@ -157,6 +162,16 @@ show_directory_item() {
 # Show symlinks (dry-run mode)
 show_symlinks() {
     local src_dir="$1" dest_dir="$2" relative_path="$3" filter_dotfiles="${4:-true}"
+    
+    # Output header for compatibility with tests
+    if [[ "$relative_path" == "" && "$filter_dotfiles" == "true" ]]; then
+        if [[ "$src_dir" == *"/shared" ]]; then
+            echo "SHARED SYMLINKS:"
+        else
+            echo "USER SYMLINKS:"
+        fi
+    fi
+    
     traverse_dotfiles "show_file_item" "show_directory_item" "$src_dir" "$dest_dir" "$relative_path" "$filter_dotfiles"
 }
 
@@ -180,7 +195,7 @@ create_file_item() {
     # Additional validation - ensure target is within home directory
     if ! validate_path_traversal "$target" "$HOME" "true"; then
         log_security_event "INVALID_TARGET" "Target outside home directory: $target"
-        echo "Warning: Skipping link outside home directory: $target" >&2
+        log_warning "Skipping link outside home directory: $target"
         return 1
     fi
     
@@ -192,12 +207,12 @@ create_file_item() {
     # Create symlink
     if ln -s "$item" "$target" 2>/dev/null; then
         if [ -n "$relative_path" ]; then
-            echo "Linked: $relative_path$filename"
+            log_success "Linked: $relative_path$filename"
         else
-            echo "Linked: $filename"
+            log_success "Linked: $filename"
         fi
     else
-        echo "Warning: Failed to create symlink: $target" >&2
+        log_warning "Failed to create symlink: $target"
     fi
 }
 
@@ -299,17 +314,17 @@ setup_systemd_services() {
     if [ "$dry_run" = true ]; then
         echo "SYSTEMD SERVICES:"
         for timer in "${timers[@]}"; do
-            echo "Would enable and start: $timer"
+            log_dry_run "enable and start: $timer"
         done
     else
-        echo "Setting up systemd user services..."
+        log_info "Setting up systemd user services..."
         systemctl --user daemon-reload
         
         for timer in "${timers[@]}"; do
-            echo "Enabling $timer..."
+            log_info "Enabling $timer..."
             # Use quoted unit name for safety
             if ! systemctl --user enable --now "$timer"; then
-                echo "Warning: Failed to enable $timer" >&2
+                log_warning "Failed to enable $timer"
             fi
         done
     fi
@@ -329,13 +344,13 @@ configure_terminal_font() {
     
     if [ "$dry_run" = true ]; then
         echo "TERMINAL FONT:"
-        echo "Would configure terminal to use JetBrains Mono Nerd Font"
+        log_dry_run "configure terminal to use JetBrains Mono Nerd Font"
     else
-        echo "Configuring terminal font..."
+        log_info "Configuring terminal font..."
         if command -v gsettings >/dev/null 2>&1; then
-            "$font_script_target" || echo "Warning: Failed to configure terminal font"
+            "$font_script_target" || log_warning "Failed to configure terminal font"
         else
-            echo "Warning: gsettings not available, skipping terminal font configuration"
+            log_warning "gsettings not available, skipping terminal font configuration"
         fi
     fi
 }
@@ -355,18 +370,18 @@ setup_1password_config() {
     if [ "$dry_run" = true ]; then
         echo "1PASSWORD CONFIG:"
         if [ -f "$settings_target" ]; then
-            echo "Would skip 1Password config (already exists)"
+            log_dry_run "skip 1Password config (already exists)"
         else
-            echo "Would install 1Password settings template (first run only)"
+            log_dry_run "install 1Password settings template (first run only)"
         fi
     else
         if [ -f "$settings_target" ]; then
-            echo "Skipping 1Password config (already exists)"
+            log_info "Skipping 1Password config (already exists)"
         else
-            echo "Installing 1Password settings template..."
+            log_info "Installing 1Password settings template..."
             mkdir -p "$(dirname "$settings_target")"
             cp "$template_source" "$settings_target"
-            echo "1Password settings template installed"
+            log_success "1Password settings template installed"
         fi
     fi
 }
@@ -380,30 +395,30 @@ run_user_setup_hook() {
     fi
     if ! validate_path_traversal "$hook_path" "$SCRIPT_DIR/dotfiles"; then
         log_security_event "INVALID_SCRIPT_PATH" "User hook outside allowed area: $hook_path"
-        echo "Warning: User hook outside allowed area" >&2
+        log_warning "User hook outside allowed area"
         return 1
     fi
     if [ ! -x "$hook_path" ]; then
         if [ "$dry_run" = true ]; then
             echo "USER HOOK:"
-            echo "Would skip user hook (not executable): $hook_path"
+            log_dry_run "skip user hook (not executable): $hook_path"
             return 0
         fi
-        echo "Warning: User hook not executable: $hook_path" >&2
+        log_warning "User hook not executable: $hook_path"
         return 1
     fi
     if [ "$dry_run" = true ]; then
         echo "USER HOOK:"
-        echo "Would run user setup hook"
+        log_dry_run "run user setup hook"
         echo "$hook_path --dry-run"
         return 0
     fi
-    echo "Running user setup hook..."
+    log_info "Running user setup hook..."
     if "$hook_path"; then
-        echo "User setup hook completed successfully"
+        log_success "User setup hook completed successfully"
         return 0
     else
-        echo "Warning: User setup hook failed" >&2
+        log_warning "User setup hook failed"
         return 1
     fi
 }
