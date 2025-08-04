@@ -1,0 +1,172 @@
+/* Plasma-style Waybar Theme */
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "Noto Sans", sans-serif;
+    font-size: 13px;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: rgba(35, 38, 41, 0.95);
+    color: #eff0f1;
+    transition-property: background-color;
+    transition-duration: 0.3s;
+    border-top: 2px solid #3daee9;
+}
+
+button {
+    box-shadow: inset 0 -3px transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0 8px;
+    margin: 0;
+}
+
+button:hover {
+    background: inherit;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#workspaces {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+#workspaces button {
+    padding: 0 8px;
+    background-color: transparent;
+    color: #bdc3c7;
+    border-bottom: 2px solid transparent;
+    min-width: 32px;
+}
+
+#workspaces button:hover {
+    background-color: rgba(61, 174, 233, 0.2);
+    color: #3daee9;
+    border-bottom: 2px solid #3daee9;
+}
+
+#workspaces button.active {
+    background-color: rgba(61, 174, 233, 0.3);
+    color: #3daee9;
+    border-bottom: 2px solid #3daee9;
+}
+
+#workspaces button.urgent {
+    background-color: rgba(218, 68, 83, 0.3);
+    color: #da4453;
+    border-bottom: 2px solid #da4453;
+}
+
+#window {
+    margin: 0 8px;
+    padding: 0 8px;
+    color: #eff0f1;
+    font-weight: bold;
+}
+
+/* System modules */
+#network,
+#pulseaudio, 
+#battery,
+#clock,
+#tray {
+    padding: 0 8px;
+    margin: 3px 2px;
+    background-color: rgba(49, 54, 59, 0.8);
+    border-radius: 4px;
+    border: 1px solid rgba(76, 79, 82, 0.8);
+}
+
+#clock {
+    background-color: rgba(61, 174, 233, 0.2);
+    color: #3daee9;
+    font-weight: bold;
+    border: 1px solid #3daee9;
+}
+
+#battery {
+    background-color: rgba(39, 174, 96, 0.3);
+    color: #27ae60;
+}
+
+#battery.charging,
+#battery.plugged {
+    background-color: rgba(243, 156, 18, 0.3);
+    color: #f39c12;
+}
+
+#battery.critical:not(.charging) {
+    background-color: rgba(218, 68, 83, 0.5);
+    color: #da4453;
+    animation-name: blink;
+    animation-duration: 0.5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes blink {
+    to {
+        background-color: rgba(218, 68, 83, 0.8);
+    }
+}
+
+#network.disconnected {
+    background-color: rgba(218, 68, 83, 0.3);
+    color: #da4453;
+}
+
+#network.wifi {
+    background-color: rgba(39, 174, 96, 0.3);
+    color: #27ae60;
+}
+
+#network.ethernet {
+    background-color: rgba(39, 174, 96, 0.3);
+    color: #27ae60;
+}
+
+#pulseaudio {
+    background-color: rgba(142, 68, 173, 0.3);
+    color: #8e44ad;
+}
+
+#pulseaudio.muted {
+    background-color: rgba(127, 140, 141, 0.3);
+    color: #7f8c8d;
+}
+
+#tray {
+    background-color: rgba(49, 54, 59, 0.9);
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+    background-color: rgba(218, 68, 83, 0.3);
+}
+
+.modules-left > widget:first-child > #workspaces {
+    margin-left: 5px;
+}
+
+.modules-right > widget:last-child {
+    margin-right: 5px;
+}
+
+tooltip {
+    background: rgba(35, 38, 41, 0.95);
+    border: 1px solid #3daee9;
+    border-radius: 4px;
+    color: #eff0f1;
+}
+
+tooltip label {
+    color: #eff0f1;
+}
