@@ -11,6 +11,7 @@ arch:
     # No AUR packages for this server
   custom:
     - ensure_sshd_running
+    - ensure_hosts_configured
 
 windows:
   winget:
