@@ -14,10 +14,10 @@ DNS: Auto-configured via DHCP
 
 | Server Name | Hostname | IP Discovery | IP Address | Services | Notes |
 |-------------|----------|--------------|------------|----------|-------|
-| [baljeet](./baljeet/) | baljeet | Static | 192.168.1.42 | k3s, k9s | Kubernetes cluster node |
-| [phineas](./phineas/) | phineas | Static | 192.168.1.43 | TBD | TBD |
-| [ferb](./ferb/) | ferb | Static | 192.168.1.44 | TBD | TBD |
-| [monogram](./monogram/) | monogram | Static | 192.168.1.45 | TBD | TBD |
+| [baljeet](./baljeet/) | baljeet | Static | 192.168.1.77 | k3s, k9s | Kubernetes cluster node |
+| [phineas](./phineas/) | phineas | Static | 192.168.1.70 | TBD | TBD |
+| [ferb](./ferb/) | ferb | Static | 192.168.1.67 | TBD | TBD |
+| [monogram](./monogram/) | monogram | Static | 192.168.1.26 | TBD | TBD |
 | [momac](./momac/) | momac | Static | 192.168.1.46 | TBD | TBD |
 
 ## Server Configuration
