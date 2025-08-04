@@ -10,7 +10,7 @@ arch:
   aur:
     # No AUR packages for this server
   custom:
-    # No custom packages for this server
+    - ensure_sshd_running
 
 windows:
   winget:

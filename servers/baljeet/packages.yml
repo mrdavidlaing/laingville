@@ -12,6 +12,7 @@ arch:
     - k9s
   custom:
     - ensure_k3s_running
+    - ensure_sshd_running
 
 windows:
   winget:
