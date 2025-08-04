@@ -1,7 +1,7 @@
 # Hyprland Keybinds Cheatsheet
 
 ## Window Management
-- `Super + C` - Close active window
+- `Super + Q` - Close active window
 - `Super + V` - Toggle floating window
 - `Super + F` - Toggle fullscreen
 - `Super + P` - Toggle pseudo-tiling
@@ -22,7 +22,7 @@
 
 ## Launchers
 - `Super + R` - Application launcher (rofi)
-- `Super + Q` - Terminal (gnome-console)
+- `Super + T` - Terminal (alacritty)
 - `Super + E` - File manager (thunar)
 - `Super + W` - Web browser (vivaldi)
 - `Super + G` - Image editor (gimp)
@@ -47,7 +47,6 @@
 - `Super + Shift + S` - Move window to special workspace
 
 ## Additional Apps
-- `Super + T` - Roblox emulator (Sober)
 - `Super + K` - Minecraft launcher
 
 ---
