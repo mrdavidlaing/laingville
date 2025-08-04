@@ -1,7 +1,7 @@
 # Multi-line prompt format
 format = """
 ($status$cmd_duration ☁️  $gcloud$aws $line_break)\
-📂 $directory$git_branch$git_status\
+$username@$hostname 📂 $directory$git_branch$git_status\
 $line_break\
 $character"""
 
@@ -36,6 +36,17 @@ truncation_length = 0
 fish_style_pwd_dir_length = 1
 truncate_to_repo = false
 
+
+[username]
+show_always = true
+style_user = "bold blue"
+style_root = "bold red"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style = "bold green"
+format = "[$hostname](bold green)"
 
 [character]
 success_symbol = "[❯](bold green)"
