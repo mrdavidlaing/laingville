@@ -16,4 +16,4 @@ export PATH="$HOME/.local/bin:$PATH"
 [ -f "$HOME/.config/env.secrets.local" ] && source "$HOME/.config/env.secrets.local"
 
 eval "$(zoxide init bash)"
-eval "$(starship init bash)"
+#eval "$(starship init bash)"
