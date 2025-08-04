@@ -8,10 +8,9 @@ arch:
     - tmux
     - openssh
   aur:
-    - k3s-bin
-    - k9s
+    # No AUR packages for this server
   custom:
-    - ensure_k3s_running
+    # No custom packages for this server
 
 windows:
   winget:
