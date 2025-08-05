@@ -24,7 +24,8 @@ windows:
 EOF
     
     # Create fake pacman to make platform detection return "arch"
-    fake_bin="$malicious_dir/../fake_bin"
+    fake_bin=$(mktemp -d)
+    fake_bin="$fake_bin/fake_bin"
     mkdir -p "$fake_bin"
     cat > "$fake_bin/pacman" << 'EOF'
 #!/bin/bash
@@ -35,6 +36,7 @@ EOF
     # Test setup-user rejects malicious packages
     export DOTFILES_DIR="$malicious_dir"
     export PATH="$fake_bin:$PATH"
+    export PLATFORM="arch"
     run ./bin/setup-user --dry-run
     
     # Should complete but warn about invalid packages
@@ -87,7 +89,8 @@ arch:
 EOF
     
     # Create fake pacman to make platform detection return "arch"
-    fake_bin="$test_dir/../fake_bin"
+    fake_bin=$(mktemp -d)
+    fake_bin="$fake_bin/fake_bin"
     mkdir -p "$fake_bin"
     cat > "$fake_bin/pacman" << 'EOF'
 #!/bin/bash
@@ -97,6 +100,7 @@ EOF
     
     export DOTFILES_DIR="$test_dir"
     export PATH="$fake_bin:$PATH"
+    export PLATFORM="arch"
     run ./bin/setup-user --dry-run
     
     [ "$status" -eq 0 ]
@@ -170,6 +174,96 @@ EOF
     [[ ! "$output" =~ "evil" ]]
     
     rm -rf "$temp_dir"
+}
+
+@test "macOS package management integration with security validation" {
+    # Create test directory for macOS packages
+    test_dir="$BATS_TEST_DIRNAME/../dotfiles/temp_macos_test"
+    mkdir -p "$test_dir"
+    
+    # Create packages.yml with macOS packages including taps
+    cat > "$test_dir/packages.yml" << 'EOF'
+macos:
+  homebrew:
+    - git
+    - node
+    - remotemobprogramming/brew/mob
+    - evil;rm -rf /tmp
+  cask:
+    - font-jetbrains-mono-nerd-font
+    - malicious&&command
+EOF
+    
+    # Create fake brew command to simulate macOS environment
+    fake_bin=$(mktemp -d)
+    fake_bin="$fake_bin/fake_bin_macos"
+    mkdir -p "$fake_bin"
+    cat > "$fake_bin/brew" << 'EOF'
+#!/bin/bash
+echo "fake brew for testing: $*"
+EOF
+    chmod +x "$fake_bin/brew"
+    
+    export DOTFILES_DIR="$test_dir"
+    export PATH="$fake_bin:$PATH"
+    export PLATFORM="macos"
+    run ./bin/setup-user --dry-run
+    
+    [ "$status" -eq 0 ]
+    
+    # Should show valid packages in install lists
+    [[ "$output" =~ "install via homebrew: git, node, remotemobprogramming/brew/mob" ]]
+    [[ "$output" =~ "install via cask: font-jetbrains-mono-nerd-font" ]]
+    
+    # Should warn about invalid packages
+    [[ "$output" =~ "Warning: Skipping invalid package" ]]
+    
+    # Should show Homebrew setup section
+    [[ "$output" =~ "HOMEBREW SETUP:" ]]
+    [[ "$output" =~ "update Homebrew" ]]
+    
+    # Should show macOS system configuration sections
+    [[ "$output" =~ "MACOS SYSTEM CONFIG:" ]]
+    
+    rm -rf "$test_dir" "$fake_bin"
+}
+
+@test "macOS platform detection works with package processing" {
+    # Test that macOS platform is correctly detected and processed
+    test_dir="$BATS_TEST_DIRNAME/../dotfiles/temp_macos_platform_test"
+    mkdir -p "$test_dir"
+    
+    # Create simple macOS packages config
+    cat > "$test_dir/packages.yml" << 'EOF'
+macos:
+  homebrew:
+    - curl
+    - wget
+  cask:
+    - firefox
+EOF
+    
+    # Create fake brew to simulate macOS
+    fake_bin=$(mktemp -d)
+    fake_bin="$fake_bin/fake_bin_platform"
+    mkdir -p "$fake_bin"
+    cat > "$fake_bin/brew" << 'EOF'
+#!/bin/bash
+echo "fake brew: $*"
+EOF
+    chmod +x "$fake_bin/brew"
+    
+    export DOTFILES_DIR="$test_dir"
+    export PATH="$fake_bin:$PATH"
+    export PLATFORM="macos"
+    run ./bin/setup-user --dry-run
+    
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "USER PACKAGES (macos):" ]]
+    [[ "$output" =~ "install via homebrew: curl, wget" ]]
+    [[ "$output" =~ "install via cask: firefox" ]]
+    
+    rm -rf "$test_dir" "$fake_bin"
 }
 
 @test "security logging captures events" {

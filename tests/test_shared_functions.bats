@@ -7,11 +7,51 @@ setup() {
   source ./lib/shared.functions.bash
 }
 
+@test "detect_platform returns macos on Darwin" {
+  # Mock OSTYPE for macOS
+  export OSTYPE="darwin21.6.0"
+  result=$(detect_platform)
+  [ "$result" = "macos" ]
+}
+
+@test "detect_platform prioritizes darwin over pacman" {
+  # Even if pacman exists, should return macos on Darwin
+  export OSTYPE="darwin21.6.0"
+  # Create fake pacman in PATH
+  temp_dir=$(mktemp -d)
+  echo '#!/bin/bash' > "$temp_dir/pacman"
+  chmod +x "$temp_dir/pacman"
+  export PATH="$temp_dir:$PATH"
+  
+  result=$(detect_platform)
+  [ "$result" = "macos" ]
+  
+  rm -rf "$temp_dir"
+}
+
 @test "get_packages extracts packages from real config" {
   export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
   result=$(get_packages_from_file "arch" "pacman" "$DOTFILES_DIR/packages.yml")
   [ -n "$result" ]
   [[ "$result" =~ "hyprland" ]]
+}
+
+@test "get_packages extracts macOS packages from real config" {
+  export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
+  
+  # Test homebrew packages
+  result=$(get_packages_from_file "macos" "homebrew" "$DOTFILES_DIR/packages.yml")
+  [ -n "$result" ]
+  [[ "$result" =~ "git" ]]
+  [[ "$result" =~ "starship" ]]
+  [[ "$result" =~ "ripgrep" ]]
+  
+  # Test cask packages
+  result=$(get_packages_from_file "macos" "cask" "$DOTFILES_DIR/packages.yml")
+  [ -n "$result" ]
+  [[ "$result" =~ "alacritty" ]]
+  [[ "$result" =~ "claude" ]]
+  [[ "$result" =~ "font-jetbrains-mono-nerd-font" ]]
 }
 
 @test "server packages.yml parsing extracts packages correctly" {

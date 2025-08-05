@@ -34,7 +34,7 @@ get_custom_scripts() {
 # Process custom scripts with security validation
 process_custom_scripts() {
     local platform="$1" dry_run="$2"
-    local scripts_dir="$SCRIPT_DIR/dotfiles/shared/scripts"
+    local scripts_dir="$PROJECT_ROOT/dotfiles/shared/scripts"
     local scripts
     
     scripts=$(get_custom_scripts "$platform")
@@ -420,3 +420,5 @@ run_user_setup_hook() {
         return 1
     fi
 }
+
+

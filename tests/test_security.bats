@@ -48,6 +48,45 @@ setup() {
     [ "$status" -eq 1 ]
 }
 
+@test "validate_package_name accepts Homebrew tap packages" {
+    # Standard Homebrew taps with slash notation
+    run validate_package_name "remotemobprogramming/brew/mob"
+    [ "$status" -eq 0 ]
+    
+    run validate_package_name "homebrew/cask/firefox"
+    [ "$status" -eq 0 ]
+    
+    run validate_package_name "homebrew/cask-fonts/font-jetbrains-mono-nerd-font"
+    [ "$status" -eq 0 ]
+    
+    # Third-party taps
+    run validate_package_name "user/repo/package"
+    [ "$status" -eq 0 ]
+    
+    # Complex package names with multiple hyphens and underscores
+    run validate_package_name "org/tap/package-name_with-underscores"
+    [ "$status" -eq 0 ]
+}
+
+@test "validate_package_name rejects malicious Homebrew-style packages" {
+    # Slashes but still malicious
+    run validate_package_name "user/repo/package;rm -rf /"
+    [ "$status" -eq 1 ]
+    
+    run validate_package_name "user/repo/package&&evil"
+    [ "$status" -eq 1 ]
+    
+    run validate_package_name "user/repo/package\`evil\`"
+    [ "$status" -eq 1 ]
+    
+    # Multiple slashes (path traversal attempts)
+    run validate_package_name "../../etc/passwd"
+    [ "$status" -eq 1 ]
+    
+    run validate_package_name "user/../../../etc/passwd"
+    [ "$status" -eq 1 ]
+}
+
 @test "validate_package_name rejects empty and invalid inputs" {
     run validate_package_name ""
     [ "$status" -eq 1 ]

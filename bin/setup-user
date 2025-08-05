@@ -25,7 +25,6 @@ elif [ -n "$1" ]; then
 fi
 
 # Detect current user using common function
-source "$LIB_DIR/shared.functions.bash"
 CURRENT_USER=$(detect_username)
 
 # Initialize logging
@@ -106,6 +105,14 @@ if [ -n "${PLATFORM:-}" ]; then
 else
     PLATFORM="$(detect_platform)"
 fi
+
+# macOS-specific setup (must happen before package installation)
+if [ "$PLATFORM" = "macos" ]; then
+    source "$LIB_DIR/macos.functions.bash"
+    log_subsection "Homebrew Setup"
+    install_homebrew "$DRY_RUN"
+fi
+
 handle_packages "$PLATFORM" "$DRY_RUN"
 
 # Setup systemd user services (like dynamic wallpaper timer)
@@ -119,6 +126,12 @@ configure_terminal_font "$DRY_RUN"
 # Setup 1Password config on first run only
 log_subsection "1Password Configuration"
 setup_1password_config "$DRY_RUN"
+
+# macOS-specific system configuration
+if [ "$PLATFORM" = "macos" ]; then
+    log_subsection "macOS System Configuration"
+    configure_macos_system "$DRY_RUN"
+fi
 
 # Final completion handled by log_init trap
 

@@ -39,3 +39,28 @@ windows:
     - Microsoft.PowerToys
   custom:
     - install_claude_code
+
+macos:
+  homebrew:
+    - direnv
+    - git
+    - tig
+    - gh
+    - jq
+    - tree
+    - zoxide
+    - bat
+    - starship
+    - fzf
+    - ripgrep
+    - tmux
+    - laio
+  cask:
+    - nikitabobko/tap/aerospace
+    - alacritty
+    - 1password-cli
+    - font-jetbrains-mono-nerd-font
+    - docker-desktop
+    - claude
+  custom:
+    - install_claude_code

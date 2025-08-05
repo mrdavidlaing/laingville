@@ -7,7 +7,9 @@
 
 # Platform detection
 detect_platform() {
-    if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
         echo "windows"
     elif command -v pacman >/dev/null 2>&1; then
         echo "arch"
@@ -80,6 +82,8 @@ process_packages() {
         "pacman") packages=$(get_packages_from_file "$platform" "pacman" "$packages_file") ;;
         "yay") packages=$(get_packages_from_file "$platform" "aur" "$packages_file") ;;
         "winget") packages=$(get_packages_from_file "$platform" "winget" "$packages_file") ;;
+        "homebrew") packages=$(get_packages_from_file "$platform" "homebrew" "$packages_file") ;;
+        "cask") packages=$(get_packages_from_file "$platform" "cask" "$packages_file") ;;
         *) 
             log_security_event "UNKNOWN_MANAGER" "Unknown package manager: $manager"
             return 1
@@ -112,6 +116,11 @@ process_packages() {
         # Check manager availability
         if [ "$manager" = "yay" ] && ! command -v yay >/dev/null 2>&1; then
             log_warning "yay not found, skipping AUR packages"
+            return
+        fi
+        
+        if [[ "$manager" =~ ^(homebrew|cask)$ ]] && ! command -v brew >/dev/null 2>&1; then
+            log_warning "homebrew not found, skipping $manager packages"
             return
         fi
         
@@ -175,6 +184,10 @@ handle_packages_from_file() {
             ;;
         "windows")
             process_packages "winget" "winget install --id=" "$platform" "$dry_run" "$packages_file"
+            ;;
+        "macos")
+            process_packages "homebrew" "brew install" "$platform" "$dry_run" "$packages_file"
+            process_packages "cask" "brew install --cask" "$platform" "$dry_run" "$packages_file"
             ;;
         *)
             log_warning "Unknown platform: $platform - skipping package installation"
