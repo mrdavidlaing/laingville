@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Enable and start SSH daemon
 # This script ensures sshd is enabled at boot and started immediately

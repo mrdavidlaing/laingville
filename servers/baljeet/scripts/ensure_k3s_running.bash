@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 DRY_RUN="${1:-false}"
 if [ "$DRY_RUN" = true ]; then

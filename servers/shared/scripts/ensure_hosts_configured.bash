@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Configure /etc/hosts with Laingville server hostnames and IPs
 # This script ensures all servers can resolve each other by hostname

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Functions for setup-user script
 # Note: Do not set -e here as functions need to handle their own error cases

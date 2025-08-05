@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Shared functions for both setup-user, setup-secrets, and setup-server scripts
 # Note: Do not set -e here as functions need to handle their own error cases

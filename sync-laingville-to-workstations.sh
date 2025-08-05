@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Source shared functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/logging.functions.bash"
+source "$SCRIPT_DIR/shared.functions.bash"
+
+# Configuration
+LAINGVILLE_PATH="$SCRIPT_DIR"
+WORKSTATIONS_PATH="/Users/mrdavidlaing/workspace/workstations/home/mrdavidlaing"
+
+# Files to sync (source:destination pairs)
+SYNC_FILES=(
+    "setup-user:setup-user"
+    "shared.functions.bash:shared.functions.bash"
+    "setup-user.functions.bash:setup-user.functions.bash"
+    "security.functions.bash:security.functions.bash"
+    "logging.functions.bash:logging.functions.bash"
+)
+
+# Directories to sync (source:destination pairs)
+SYNC_DIRS=(
+    "dotfiles/shared:dotfiles/shared"
+    "dotfiles/mrdavidlaing:dotfiles/mrdavidlaing"
+)
+
+
+# Check if repositories exist
+check_prerequisites() {
+    if [[ ! -d "$LAINGVILLE_PATH" ]]; then
+        log_error "Laingville repository not found at $LAINGVILLE_PATH"
+        exit 1
+    fi
+    
+    if [[ ! -d "$WORKSTATIONS_PATH" ]]; then
+        log_error "Workstations path not found at $WORKSTATIONS_PATH"
+        exit 1
+    fi
+    
+    # Check if workstations is a git repo
+    if [[ ! -d "$WORKSTATIONS_PATH/../../.git" ]]; then
+        log_error "Workstations is not a git repository"
+        exit 1
+    fi
+}
+
+# Check workstations repository status
+check_workstations_repo() {
+    cd "$WORKSTATIONS_PATH/../.."
+    if ! git diff-index --quiet HEAD --; then
+        log_warning "Workstations repository has uncommitted changes"
+        log_info "This sync will add/modify files alongside your existing changes"
+    fi
+}
+
+# Sync individual files
+sync_files() {
+    log_subsection "Individual Files"
+    
+    for file_mapping in "${SYNC_FILES[@]}"; do
+        src_file="${file_mapping%%:*}"
+        dest_file="${file_mapping##*:}"
+        src_path="$LAINGVILLE_PATH/$src_file"
+        dest_path="$WORKSTATIONS_PATH/$dest_file"
+        
+        if [[ ! -f "$src_path" ]]; then
+            log_warning "Source file not found: $src_path"
+            continue
+        fi
+        
+        # Create destination directory if needed
+        dest_dir=$(dirname "$dest_path")
+        mkdir -p "$dest_dir"
+        
+        # Copy file
+        cp "$src_path" "$dest_path"
+        log_success "Synced: $src_file → $dest_file"
+    done
+}
+
+# Sync directories
+sync_directories() {
+    log_subsection "Directories"
+    
+    for dir_mapping in "${SYNC_DIRS[@]}"; do
+        src_dir="${dir_mapping%%:*}"
+        dest_dir="${dir_mapping##*:}"
+        src_path="$LAINGVILLE_PATH/$src_dir"
+        dest_path="$WORKSTATIONS_PATH/$dest_dir"
+        
+        if [[ ! -d "$src_path" ]]; then
+            log_warning "Source directory not found: $src_path"
+            continue
+        fi
+        
+        # Remove destination directory if it exists, then copy
+        if [[ -d "$dest_path" ]]; then
+            rm -rf "$dest_path"
+        fi
+        
+        # Create parent directory if needed
+        parent_dir=$(dirname "$dest_path")
+        mkdir -p "$parent_dir"
+        
+        # Copy directory
+        cp -r "$src_path" "$dest_path"
+        log_success "Synced: $src_dir → $dest_dir"
+    done
+}
+
+# Show git status for manual review
+show_git_status() {
+    cd "$WORKSTATIONS_PATH/../.."
+    
+    log_subsection "Git Status"
+    
+    # Check if there are any changes
+    if git diff-index --quiet HEAD -- && [ -z "$(git ls-files --others --exclude-standard home/mrdavidlaing/)" ]; then
+        log_info "No changes detected in workstations repository"
+        return
+    fi
+    
+    log_info "Changes detected in workstations repository:"
+    echo
+    git status --porcelain home/mrdavidlaing/ | while read -r status file; do
+        case "$status" in
+            "??") log_info "NEW: $file" ;;
+            " M") log_info "MODIFIED: $file" ;;
+            " D") log_info "DELETED: $file" ;;
+            *) log_info "$status: $file" ;;
+        esac
+    done
+    echo
+    log_info "To commit these changes, run:"
+    echo "  cd $(pwd)"
+    echo "  git add home/mrdavidlaing/"
+    echo "  git commit -m 'Sync from laingville: $(date '+%Y-%m-%d %H:%M:%S')'"
+}
+
+# Main execution
+main() {
+    # Initialize logging system
+    log_init
+    
+    check_prerequisites
+    check_workstations_repo
+    sync_files
+    sync_directories
+    show_git_status
+}
+
+# Parse command line arguments
+case "${1:-}" in
+    --help|-h)
+        echo "Usage: $0 [--help]"
+        echo "  --help     Show this help message"
+        echo ""
+        echo "Syncs specific files from laingville to workstations repository."
+        echo "Files are copied as regular files with no git history links."
+        exit 0
+        ;;
+    "")
+        main
+        ;;
+    *)
+        log_error "Unknown option: $1"
+        echo "Use --help for usage information"
+        exit 1
+        ;;
+esac

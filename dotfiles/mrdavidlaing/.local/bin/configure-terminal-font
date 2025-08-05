@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Configure Gnome Console (kgx) to use JetBrains Mono Nerd Font
 
 # Set font configuration for Gnome Console

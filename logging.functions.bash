@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Comprehensive logging system for setup scripts
 # Provides consistent, scannable output with clear visual hierarchy

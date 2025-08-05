@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Claude Code Installation Script
 # Installs Claude Code native binary using official installer

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Dynamic Wallpaper Script for Linux Desktop Environments
 # Downloads random photos and updates wallpaper for Hyprland, Plasma, or GNOME

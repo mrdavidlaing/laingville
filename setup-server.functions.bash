@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Functions specific to setup-server script
 # Note: Do not set -e here as functions need to handle their own error cases

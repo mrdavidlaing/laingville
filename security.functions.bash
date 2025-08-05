@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Security validation functions for setup scripts
 # These functions provide input validation and sanitization to prevent
