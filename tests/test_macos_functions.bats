@@ -110,3 +110,22 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ "is a function" ]]
 }
+
+@test "setup_systemd_services skips systemd on macOS" {
+  # Mock detect_platform to return macos
+  detect_platform() {
+    echo "macos"
+  }
+  export -f detect_platform
+  
+  # Test dry-run mode
+  run setup_systemd_services true
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "SYSTEM SERVICES:" ]]
+  [[ "$output" =~ "skip systemd services (not supported on macos)" ]]
+  
+  # Test normal mode
+  run setup_systemd_services false
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "Skipping systemd services (not supported on macos)" ]]
+}

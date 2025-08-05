@@ -265,6 +265,18 @@ create_symlinks() {
 setup_systemd_services() {
     local dry_run="$1"
     
+    # Skip systemd on non-Linux platforms
+    local platform="${PLATFORM:-$(detect_platform)}"
+    if [ "$platform" != "arch" ]; then
+        if [ "$dry_run" = true ]; then
+            echo "SYSTEM SERVICES:"
+            log_dry_run "skip systemd services (not supported on $platform)"
+        else
+            log_info "Skipping systemd services (not supported on $platform)"
+        fi
+        return
+    fi
+    
     # In dry-run mode, check dotfiles directory; in normal mode, check HOME
     local systemd_dir
     if [ "$dry_run" = true ]; then
