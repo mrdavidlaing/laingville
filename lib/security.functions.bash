@@ -20,7 +20,11 @@ validate_package_name() {
     [[ "$pkg" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+-]*$ ]] || return 1
     
     # Reject obviously malicious patterns
-    [[ "$pkg" =~ (\;|\&|\||\$|\`|\\) ]] && return 1
+    case "$pkg" in
+        *";"* | *"&"* | *"|"* | *'$'* | *'`'* | *'\'*) 
+            return 1 
+            ;;
+    esac
     
     return 0
 }
@@ -40,12 +44,8 @@ validate_path_traversal() {
         # For existing symlinks, validate the path itself without following it
         canonical_path="$path"
     else
-        # For non-symlinks, use normal canonicalization
-        if command -v realpath >/dev/null 2>&1; then
-            canonical_path=$(realpath -m "$path" 2>/dev/null)
-        else
-            canonical_path=$(readlink -f "$path" 2>/dev/null)
-        fi
+        # For non-symlinks, use polyfill canonicalization
+        canonical_path=$(canonicalize_path "$path")
     fi
     
     # If canonicalization fails, try basic path validation
@@ -58,7 +58,7 @@ validate_path_traversal() {
     fi
     
     local canonical_base
-    canonical_base=$(readlink -f "$base_dir" 2>/dev/null || echo "$base_dir")
+    canonical_base=$(canonicalize_path "$base_dir" || echo "$base_dir")
     
     # If symlinks are not allowed, do a simple check for direct symlinks
     if [ "$allow_symlinks" != "true" ] && [ -L "$path" ]; then
@@ -111,8 +111,9 @@ validate_yaml_file() {
     [ -f "$file" ] || return 1
     [ -r "$file" ] || return 1
     
-    # Check file size to prevent DoS attacks
-    local file_size=$(stat -c%s "$file" 2>/dev/null || echo "0")
+    # Check file size to prevent DoS attacks (cross-platform)
+    local file_size
+    file_size=$(get_file_size "$file")
     [ "$file_size" -le "$max_size" ] || {
         echo "Error: Configuration file too large (${file_size} bytes > ${max_size} bytes)" >&2
         return 1
@@ -222,12 +223,12 @@ validate_environment_variable() {
     
     # Resolve canonical path first to handle relative paths correctly
     local canonical_path
-    canonical_path=$(readlink -f "$var_value" 2>/dev/null || echo "$var_value")
+    canonical_path=$(canonicalize_path "$var_value" || echo "$var_value")
     
     # Also resolve the expected prefix to handle relative paths  
     local canonical_prefix
     if [ -n "$expected_prefix" ]; then
-        canonical_prefix=$(readlink -f "$expected_prefix" 2>/dev/null || echo "$expected_prefix")
+        canonical_prefix=$(canonicalize_path "$expected_prefix" || echo "$expected_prefix")
         
         # Ensure canonical path is within canonical prefix
         case "$canonical_path" in

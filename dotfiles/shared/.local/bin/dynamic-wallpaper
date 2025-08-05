@@ -4,6 +4,31 @@
 # Downloads random photos and updates wallpaper for Hyprland, Plasma, or GNOME
 # Configurable image sources via config file or environment variables
 
+# Cross-platform file size function (embedded polyfill)
+get_file_size() {
+    local file="$1"
+    [ -z "$file" ] || [ ! -f "$file" ] && { echo "0"; return 1; }
+    
+    if command -v stat >/dev/null 2>&1; then
+        case "$(uname -s)" in
+            "Linux")
+                # Linux format
+                stat -c%s "$file" 2>/dev/null || echo "0"
+                ;;
+            "Darwin")
+                # macOS/BSD format
+                stat -f%z "$file" 2>/dev/null || echo "0"
+                ;;
+            *)
+                # Unknown platform - try both formats
+                stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0"
+                ;;
+        esac
+    else
+        echo "0"
+    fi
+}
+
 WALLPAPER_DIR="$HOME/.local/share/wallpapers"
 CURRENT_WALLPAPER="$WALLPAPER_DIR/current.jpg"
 HYPRPAPER_CONFIG="$HOME/.config/hypr/hyprpaper.conf"
@@ -269,7 +294,7 @@ download_wallpaper() {
                 
                 # Check file size
                 local file_size
-                file_size=$(stat -f%z "$temp_file" 2>/dev/null || stat -c%s "$temp_file" 2>/dev/null || echo "0")
+                file_size=$(get_file_size "$temp_file")
                 if [ "$file_size" -gt "$max_bytes" ]; then
                     echo "Downloaded file too large: $file_size bytes (max: $max_bytes)"
                     rm -f "$temp_file"

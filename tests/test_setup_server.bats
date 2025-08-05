@@ -4,10 +4,13 @@
 
 setup() {
     cd "$BATS_TEST_DIRNAME/.."
-    # Source functions when they exist (don't fail if they don't)
-    if [ -f ./setup-server.functions.bash ]; then
-        source ./setup-server.functions.bash
-    fi
+    # Source all required functions
+    source ./lib/polyfill.functions.bash
+    source ./lib/logging.functions.bash
+    source ./lib/security.functions.bash
+    source ./lib/shared.functions.bash
+    source ./lib/setup-user.functions.bash
+    source ./lib/setup-server.functions.bash
 }
 
 @test "hostname detection works correctly" {
@@ -42,12 +45,12 @@ setup() {
 
 @test "setup-server script exists and is executable" {
     
-    [ -f "./setup-server" ] || {
+    [ -f "./bin/setup-server" ] || {
         echo "FAILED: setup-server script does not exist"
         return 1
     }
     
-    [ -x "./setup-server" ] || {
+    [ -x "./bin/setup-server" ] || {
         echo "FAILED: setup-server script is not executable"
         return 1
     }
@@ -55,7 +58,7 @@ setup() {
 
 @test "setup-server shows help with invalid arguments" {
     
-    run ./setup-server --invalid
+    run ./bin/setup-server --invalid
     
     [ "$status" -eq 1 ] || {
         echo "FAILED: Expected exit status 1 for invalid arguments"
@@ -72,9 +75,10 @@ setup() {
 
 @test "setup-server dry-run mode shows expected sections" {
     
-    export SERVER_DIR="$BATS_TEST_DIRNAME/../servers/baljeet"
+    export SERVER_DIR="$(cd "$BATS_TEST_DIRNAME/../servers/baljeet" && pwd)"
+    export PLATFORM="arch"
     
-    run ./setup-server --dry-run
+    run ./bin/setup-server --dry-run
     
     [ "$status" -eq 0 ] || {
         echo "FAILED: setup-server --dry-run failed with status $status"
@@ -129,7 +133,7 @@ setup() {
     
     export SERVER_DIR="$temp_dir"
     
-    run ./setup-server --dry-run
+    run ./bin/setup-server --dry-run
     
     [ "$status" -eq 0 ] || {
         echo "FAILED: Should handle missing server config gracefully"

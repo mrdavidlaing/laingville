@@ -2,12 +2,12 @@
 
 setup() {
   cd "$BATS_TEST_DIRNAME/.."
-  source ./setup-user.functions.bash
+  source ./lib/setup-user.functions.bash
 }
 
 @test "user symlinks only include dot-prefixed files and dirs" {
-  export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
-  run ./setup-user --dry-run
+  export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
+  run ./bin/setup-user --dry-run
   [ "$status" -eq 0 ]
 
   # Extract all symlink lines and check each target starts with a dot

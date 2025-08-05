@@ -1,34 +1,14 @@
 #!/usr/bin/env bash
 
-# Test runner for setup-user and setup-server scripts
-
-set -e
+# Test runner for all Laingville tests
 
 cd "$(dirname "$0")/.."
 
-echo "🧪 Running setup-user tests..."
+echo "🧪 Running all Laingville tests..."
 echo
 
-bats tests/test_setup_user.bats
-bats tests/test_setup_user_dotfilter.bats
+# Run all .bats files in the tests directory
+bats tests/
 
 echo
-echo "🧩 Running shared functions tests..."
-echo
-
-bats tests/test_shared_functions.bats
-
-echo
-echo "🖥️  Running setup-server tests..."
-echo
-
-bats tests/test_setup_server.bats
-
-echo
-echo "🔒 Running security tests..."
-echo
-
-bats tests/test_security.bats
-
-echo
-echo "✅ All tests completed successfully!"
+echo "✅ All tests completed!"

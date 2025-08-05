@@ -6,8 +6,16 @@ trap 'echo "An unexpected error occurred. Re-run with --dry-run for a preview." 
 
 # Source functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/logging.functions.bash"
-source "$SCRIPT_DIR/setup-server.functions.bash"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export SCRIPT_DIR
+export PROJECT_ROOT
+LIB_DIR="$PROJECT_ROOT/lib"
+source "$LIB_DIR/polyfill.functions.bash"
+source "$LIB_DIR/logging.functions.bash"
+source "$LIB_DIR/security.functions.bash"
+source "$LIB_DIR/shared.functions.bash"
+source "$LIB_DIR/setup-user.functions.bash"
+source "$LIB_DIR/setup-server.functions.bash"
 
 # Argument parsing
 usage() { echo "Usage: $0 [--dry-run] [-h|--help]"; }
@@ -32,7 +40,7 @@ CURRENT_HOSTNAME="$(hostname)"
 
 # Ensure servers root exists
 log_subsection "Validation"
-SERVERS_ROOT="$SCRIPT_DIR/servers"
+SERVERS_ROOT="$PROJECT_ROOT/servers"
 if [ ! -d "$SERVERS_ROOT" ]; then
     log_error "Servers directory not found: $SERVERS_ROOT"
     exit 1
@@ -47,7 +55,7 @@ if [ -z "${SERVER_DIR:-}" ]; then
         exit 1
     fi
     MAPPED_DIR="$(map_hostname_to_server_dir "$CURRENT_HOSTNAME")"
-    SERVER_DIR="$SCRIPT_DIR/$MAPPED_DIR"
+    SERVER_DIR="$PROJECT_ROOT/$MAPPED_DIR"
     log_info "Mapped hostname '$CURRENT_HOSTNAME' to server dir: $MAPPED_DIR"
 else
     if ! validate_environment_variable "SERVER_DIR" "$SERVER_DIR" "$SERVERS_ROOT"; then
@@ -105,7 +113,11 @@ fi
 
 # Handle package management
 log_subsection "Package Management"
-PLATFORM=$(detect_platform)
+if [ -n "${PLATFORM:-}" ]; then
+    PLATFORM="$PLATFORM"
+else
+    PLATFORM="$(detect_platform)"
+fi
 handle_server_packages "$PLATFORM" "$DRY_RUN"
 
 # Final completion handled by log_init trap

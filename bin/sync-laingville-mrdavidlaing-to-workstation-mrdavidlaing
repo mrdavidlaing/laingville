@@ -4,24 +4,24 @@ set -e
 
 # Source shared functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/logging.functions.bash"
-source "$SCRIPT_DIR/shared.functions.bash"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export SCRIPT_DIR
+export PROJECT_ROOT
+source "$PROJECT_ROOT/lib/logging.functions.bash"
+source "$PROJECT_ROOT/lib/shared.functions.bash"
 
 # Configuration
-LAINGVILLE_PATH="$SCRIPT_DIR"
+LAINGVILLE_PATH="$PROJECT_ROOT"
 WORKSTATIONS_PATH="/Users/mrdavidlaing/workspace/workstations/home/mrdavidlaing"
 
-# Files to sync (source:destination pairs)
+# Files to sync individually (source:destination pairs)
 SYNC_FILES=(
-    "setup-user:setup-user"
-    "shared.functions.bash:shared.functions.bash"
-    "setup-user.functions.bash:setup-user.functions.bash"
-    "security.functions.bash:security.functions.bash"
-    "logging.functions.bash:logging.functions.bash"
+    "bin/setup-user:bin/setup-user"
 )
 
 # Directories to sync (source:destination pairs)
 SYNC_DIRS=(
+    "lib:lib"
     "dotfiles/shared:dotfiles/shared"
     "dotfiles/mrdavidlaing:dotfiles/mrdavidlaing"
 )

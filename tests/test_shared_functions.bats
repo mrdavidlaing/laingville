@@ -2,11 +2,13 @@
 
 setup() {
   cd "$BATS_TEST_DIRNAME/.."
-  source ./shared.functions.bash
+  source ./lib/polyfill.functions.bash
+  source ./lib/security.functions.bash
+  source ./lib/shared.functions.bash
 }
 
 @test "get_packages extracts packages from real config" {
-  export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+  export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
   result=$(get_packages_from_file "arch" "pacman" "$DOTFILES_DIR/packages.yml")
   [ -n "$result" ]
   [[ "$result" =~ "hyprland" ]]

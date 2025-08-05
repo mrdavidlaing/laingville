@@ -4,7 +4,9 @@
 
 setup() {
     cd "$BATS_TEST_DIRNAME/.."
-    source ./security.functions.bash
+    source ./lib/polyfill.functions.bash
+    source ./lib/shared.functions.bash
+    source ./lib/security.functions.bash
 }
 
 # Package name validation tests

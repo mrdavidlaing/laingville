@@ -3,10 +3,7 @@
 # Functions specific to setup-server script
 # Note: Do not set -e here as functions need to handle their own error cases
 
-# Source shared and user functions for script helpers
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/shared.functions.bash"
-source "$SCRIPT_DIR/setup-user.functions.bash"
+# Functions assume all required lib functions are already sourced by calling script
 
 # Map hostname to server directory
 map_hostname_to_server_dir() {
@@ -40,13 +37,13 @@ get_server_custom_scripts() {
     fi
     sed -n "/${platform}:/,/^[a-z]/p" "$file" | \
     sed -n "/custom:/,/^  [a-z]/p" | \
-    grep "^    - " | sed 's/^    - //'
+    grep "^    - " | sed 's/^    - //' || true
 }
 
 # Process server custom scripts
 process_server_custom_scripts() {
     local platform="$1" dry_run="$2"
-    local scripts_dir="$SCRIPT_DIR/servers/shared/scripts"
+    local scripts_dir="$PROJECT_ROOT/servers/shared/scripts"
     local host_scripts_dir="$SERVER_DIR/scripts"
     local scripts
 
@@ -54,12 +51,12 @@ process_server_custom_scripts() {
     [ -z "$scripts" ] && return 0
 
     # Validate script directories
-    if ! validate_path_traversal "$scripts_dir" "$SCRIPT_DIR" "true"; then
+    if ! validate_path_traversal "$scripts_dir" "$PROJECT_ROOT" "true"; then
         log_security_event "INVALID_SCRIPTS_DIR" "Scripts directory outside allowed path: $scripts_dir"
         log_error "Scripts directory outside allowed path"
         return 1
     fi
-    if ! validate_path_traversal "$host_scripts_dir" "$SCRIPT_DIR" "true"; then
+    if ! validate_path_traversal "$host_scripts_dir" "$PROJECT_ROOT" "true"; then
         log_security_event "INVALID_SCRIPTS_DIR" "Host scripts directory outside allowed path: $host_scripts_dir"
         log_error "Host scripts directory outside allowed path"
         return 1

@@ -4,9 +4,15 @@ set -e
 
 # Source functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 export SCRIPT_DIR
-source "$SCRIPT_DIR/logging.functions.bash"
-source "$SCRIPT_DIR/setup-user.functions.bash"
+export PROJECT_ROOT
+LIB_DIR="$PROJECT_ROOT/lib"
+source "$LIB_DIR/polyfill.functions.bash"
+source "$LIB_DIR/logging.functions.bash"
+source "$LIB_DIR/security.functions.bash"
+source "$LIB_DIR/shared.functions.bash"
+source "$LIB_DIR/setup-user.functions.bash"
 
 # Simple argument parsing
 DRY_RUN=false
@@ -19,7 +25,7 @@ elif [ -n "$1" ]; then
 fi
 
 # Detect current user using common function
-source "$SCRIPT_DIR/shared.functions.bash"
+source "$LIB_DIR/shared.functions.bash"
 CURRENT_USER=$(detect_username)
 
 # Initialize logging
@@ -27,13 +33,13 @@ log_init
 
 # Map usernames to dotfiles folders (unless DOTFILES_DIR already set)
 if [ -z "$DOTFILES_DIR" ]; then
-    DOTFILES_DIR="$SCRIPT_DIR/dotfiles/$CURRENT_USER"
+    DOTFILES_DIR="$PROJECT_ROOT/dotfiles/$CURRENT_USER"
     log_info "Using dotfiles for user: $CURRENT_USER"
 else
     # Validate externally set DOTFILES_DIR for security
-    if ! validate_environment_variable "DOTFILES_DIR" "$DOTFILES_DIR" "$SCRIPT_DIR/dotfiles"; then
+    if ! validate_environment_variable "DOTFILES_DIR" "$DOTFILES_DIR" "$PROJECT_ROOT/dotfiles"; then
         log_error "Invalid DOTFILES_DIR environment variable: $DOTFILES_DIR"
-        log_error "DOTFILES_DIR must be within $SCRIPT_DIR/dotfiles/"
+        log_error "DOTFILES_DIR must be within $PROJECT_ROOT/dotfiles/"
         exit 1
     fi
 fi
@@ -52,7 +58,7 @@ fi
 
 # Handle shared dotfiles first
 log_subsection "Shared Dotfiles"
-SHARED_DOTFILES_DIR="$SCRIPT_DIR/dotfiles/shared"
+SHARED_DOTFILES_DIR="$PROJECT_ROOT/dotfiles/shared"
 if [ -d "$SHARED_DOTFILES_DIR" ] && [ "$(ls -A "$SHARED_DOTFILES_DIR" 2>/dev/null)" ]; then
     if [ "$DRY_RUN" = true ]; then
         show_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""

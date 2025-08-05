@@ -3,9 +3,7 @@
 # Functions for setup-user script
 # Note: Do not set -e here as functions need to handle their own error cases
 
-# Source shared functions (which includes security functions)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/shared.functions.bash"
+# Functions assume shared and security functions are already sourced by calling script
 
 # Get user packages using shared function but with user-specific path
 get_packages() {
@@ -43,7 +41,7 @@ process_custom_scripts() {
     [ -z "$scripts" ] && return 0  # Explicitly return success when no scripts
     
     # Validate scripts directory (allow symlinks for this validation)
-    if ! validate_path_traversal "$scripts_dir" "$SCRIPT_DIR" "true"; then
+    if ! validate_path_traversal "$scripts_dir" "$PROJECT_ROOT" "true"; then
         log_security_event "INVALID_SCRIPTS_DIR" "Scripts directory outside allowed path: $scripts_dir"
         echo "Error: Scripts directory outside allowed path" >&2
         return 1
@@ -70,7 +68,7 @@ process_custom_scripts() {
             local script_path="$scripts_dir/${script}.bash"
             
             # Additional security validation for script path
-            if ! validate_path_traversal "$script_path" "$SCRIPT_DIR"; then
+            if ! validate_path_traversal "$script_path" "$PROJECT_ROOT"; then
                 log_security_event "INVALID_SCRIPT_PATH" "Script path outside allowed area: $script_path"
                 log_warning "Script path outside allowed area: $script"
                 continue
@@ -248,7 +246,7 @@ create_symlinks() {
     local src_dir="$1" dest_dir="$2" relative_path="$3" filter_dotfiles="${4:-true}"
     
     # Validate source and destination directories
-    if ! validate_path_traversal "$src_dir" "$SCRIPT_DIR/dotfiles"; then
+    if ! validate_path_traversal "$src_dir" "$PROJECT_ROOT/dotfiles"; then
         log_security_event "INVALID_SRC_DIR" "Source directory outside allowed path: $src_dir"
         echo "Error: Source directory outside allowed dotfiles path" >&2
         return 1
@@ -393,7 +391,7 @@ run_user_setup_hook() {
     if [ ! -e "$hook_path" ]; then
         return 0
     fi
-    if ! validate_path_traversal "$hook_path" "$SCRIPT_DIR/dotfiles"; then
+    if ! validate_path_traversal "$hook_path" "$PROJECT_ROOT/dotfiles"; then
         log_security_event "INVALID_SCRIPT_PATH" "User hook outside allowed area: $hook_path"
         log_warning "User hook outside allowed area"
         return 1

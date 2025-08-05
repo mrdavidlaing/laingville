@@ -4,14 +4,18 @@
 
 setup() {
     cd "$BATS_TEST_DIRNAME/.."
-    source ./setup-user.functions.bash
+    source ./lib/polyfill.functions.bash
+    source ./lib/logging.functions.bash
+    source ./lib/security.functions.bash
+    source ./lib/shared.functions.bash
+    source ./lib/setup-user.functions.bash
 }
 
 @test "dry-run shows expected output format" {
     # Set DOTFILES_DIR to a known good directory for CI compatibility
-    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
     
-    run ./setup-user --dry-run
+    run ./bin/setup-user --dry-run
     
     [ "$status" -eq 0 ] || {
         echo "FAILED: Exit status was $status, expected 0"
@@ -51,7 +55,7 @@ setup() {
 }
 
 @test "invalid arguments show proper error" {
-    run ./setup-user --invalid
+    run ./bin/setup-user --invalid
     
     [ "$status" -eq 1 ] || {
         echo "FAILED: Exit status was $status, expected 1"
@@ -76,7 +80,7 @@ setup() {
     
     export DOTFILES_DIR="$temp_dir"
     
-    run ./setup-user --dry-run
+    run ./bin/setup-user --dry-run
     
     # Script should exit with status 0 and show expected output message
     [ "$status" -eq 0 ] || {
@@ -99,9 +103,9 @@ setup() {
 }
 
 @test "shared dotfiles are processed correctly" {
-    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
     
-    run ./setup-user --dry-run
+    run ./bin/setup-user --dry-run
     
     [ "$status" -eq 0 ] || {
         echo "FAILED: setup-user --dry-run failed"
@@ -117,9 +121,9 @@ setup() {
 }
 
 @test "systemd services are detected" {
-    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
     
-    run ./setup-user --dry-run
+    run ./bin/setup-user --dry-run
     
     [ "$status" -eq 0 ] || {
         echo "FAILED: setup-user --dry-run failed"
@@ -145,8 +149,8 @@ setup() {
     # Source the functions to make setup_systemd_services available  
     # Set SCRIPT_DIR properly for the functions to work - use BATS_TEST_DIRNAME
     export SCRIPT_DIR="$BATS_TEST_DIRNAME/.."
-    source "$SCRIPT_DIR/logging.functions.bash"
-    source "$SCRIPT_DIR/setup-user.functions.bash"
+    source "$SCRIPT_DIR/lib/logging.functions.bash"
+    source "$SCRIPT_DIR/lib/setup-user.functions.bash"
     result=$(setup_systemd_services true 2>&1)
     
     [[ "$result" =~ "• Would: enable and start: test.timer" ]] || {
@@ -464,7 +468,7 @@ EOF
 }
 
 @test "get_custom_scripts extracts scripts from real config" {
-    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
+    export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
     
     result=$(get_custom_scripts "arch")
     
@@ -482,8 +486,8 @@ EOF
 }
 
 @test "dry-run shows correct behavior for unknown platform" {
-    export DOTFILES_DIR="$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing"
-    run bash -lc 'export PLATFORM=unknown; ./setup-user --dry-run'
+    export DOTFILES_DIR="$(cd "$BATS_TEST_DIRNAME/../dotfiles/mrdavidlaing" && pwd)"
+    run bash -lc 'export PLATFORM=unknown; ./bin/setup-user --dry-run'
     [ "$status" -eq 0 ] || { echo "FAILED: setup-user --dry-run failed"; echo "OUTPUT: $output"; return 1; }
     [[ "$output" =~ "Unknown platform: unknown - skipping package installation" ]] || { echo "FAILED: Should show unknown platform message on macOS"; echo "OUTPUT: $output"; return 1; }
 }
@@ -504,7 +508,7 @@ arch:
 EOF
     
   export DOTFILES_DIR="$temp_dir"
-  run bash -lc 'export PLATFORM=unknown; ./setup-user --dry-run'
+  run bash -lc 'export PLATFORM=unknown; ./bin/setup-user --dry-run'
   
   [ "$status" -eq 0 ] || {
       echo "FAILED: Should handle unknown platform gracefully"

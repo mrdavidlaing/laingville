@@ -3,9 +3,7 @@
 # Shared functions for both setup-user, setup-secrets, and setup-server scripts
 # Note: Do not set -e here as functions need to handle their own error cases
 
-# Source security functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/security.functions.bash"
+# Security functions are sourced independently by calling scripts
 
 # Platform detection
 detect_platform() {

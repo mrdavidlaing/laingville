@@ -199,28 +199,56 @@ log_summary_end() {
 }
 
 # Timer functions for performance tracking
-declare -A LOG_TIMERS
+# Only declare associative array if bash supports it (version 4+)
+if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+    declare -A LOG_TIMERS
+else
+    # For bash 3.x, we'll use a simple approach without associative arrays
+    LOG_TIMERS=""
+fi
 
 log_timer_start() {
     local name="$1"
-    LOG_TIMERS["$name"]=$(date +%s)
+    if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+        LOG_TIMERS["$name"]=$(date +%s)
+    else
+        # For bash 3.x, just store in a simple variable (limited functionality)
+        eval "LOG_TIMER_${name}=$(date +%s)"
+    fi
 }
 
 log_timer_end() {
     local name="$1"
     local message="$2"
     
-    if [[ -n "${LOG_TIMERS[$name]}" ]]; then
-        local start_time="${LOG_TIMERS[$name]}"
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
-        
-        unset LOG_TIMERS["$name"]
-        
-        if [[ -n "$message" ]]; then
-            log_info "${message} (${duration}s)"
-        else
-            log_info "Completed ${name} in ${duration}s"
+    if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+        if [[ -n "${LOG_TIMERS[$name]}" ]]; then
+            local start_time="${LOG_TIMERS[$name]}"
+            local end_time=$(date +%s)
+            local duration=$((end_time - start_time))
+            
+            unset LOG_TIMERS["$name"]
+            
+            if [[ -n "$message" ]]; then
+                log_info "${message} (${duration}s)"
+            else
+                log_info "Completed ${name} in ${duration}s"
+            fi
+        fi
+    else
+        # For bash 3.x, try to get the stored value
+        local timer_var="LOG_TIMER_${name}"
+        if [[ -n "${!timer_var:-}" ]]; then
+            local start_time="${!timer_var}"
+            local end_time=$(date +%s)
+            local duration=$((end_time - start_time))
+            unset "$timer_var"
+            
+            if [[ -n "$message" ]]; then
+                log_info "${message} (${duration}s)"
+            else
+                log_info "Completed ${name} in ${duration}s"
+            fi
         fi
     fi
 }
@@ -289,9 +317,12 @@ log_finish() {
     fi
     
     # Clean up any remaining timers
-    for timer in "${!LOG_TIMERS[@]}"; do
-        log_timer_end "$timer"
-    done
+    if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
+        for timer in "${!LOG_TIMERS[@]}"; do
+            log_timer_end "$timer"
+        done
+    fi
+    # For bash 3.x, we don't have a way to iterate over dynamic variables
 }
 
 # Trap to ensure cleanup happens
