@@ -25,6 +25,7 @@ arch:
     - vivaldi
     - glow
     - 1password
+    - 1password-cli
     - crush-bin
     - opencode
     - k9s-bin
