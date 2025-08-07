@@ -27,9 +27,11 @@ jobs:
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
     - name: Run shellspec tests
-      run: $HOME/.local/bin/shellspec
+      shell: bash
+      run: $HOME/.local/bin/shellspec --shell bash
       
     - name: Test dry-run functionality
+      shell: bash
       run: |
         # Test that dry-run works without requiring sudo/pacman
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
