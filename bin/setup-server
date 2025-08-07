@@ -35,8 +35,8 @@ done
 # Initialize logging
 log_init
 
-# Detect current hostname
-CURRENT_HOSTNAME="$(hostname)"
+# Detect current hostname using polyfill function
+CURRENT_HOSTNAME="$(get_hostname)"
 
 # Ensure servers root exists
 log_subsection "Validation"

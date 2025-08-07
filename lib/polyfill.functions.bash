@@ -129,6 +129,42 @@ command_supports_flag() {
     "$cmd" --help 2>&1 | grep -q -- "$flag" 2>/dev/null
 }
 
+# Cross-platform hostname function that works on systems without hostname command
+# Returns: system hostname or "unknown" on failure
+get_hostname() {
+    # Try the standard hostname command first
+    if command -v hostname >/dev/null 2>&1; then
+        hostname 2>/dev/null && return 0
+    fi
+    
+    # Fallback methods for systems without hostname command
+    # Try reading from /proc/sys/kernel/hostname (Linux)
+    if [ -r "/proc/sys/kernel/hostname" ]; then
+        cat /proc/sys/kernel/hostname 2>/dev/null && return 0
+    fi
+    
+    # Try reading from /etc/hostname (common on Linux)
+    if [ -r "/etc/hostname" ]; then
+        # Read first line using shell built-ins to avoid command dependencies
+        {
+            read -r hostname_line < /etc/hostname 2>/dev/null || return 1
+            # Trim whitespace using parameter expansion
+            hostname_line="${hostname_line#"${hostname_line%%[![:space:]]*}"}"
+            hostname_line="${hostname_line%"${hostname_line##*[![:space:]]}"}"
+            [ -n "$hostname_line" ] && echo "$hostname_line" && return 0
+        }
+    fi
+    
+    # Try using uname -n (POSIX compliant)
+    if command -v uname >/dev/null 2>&1; then
+        uname -n 2>/dev/null && return 0
+    fi
+    
+    # Final fallback
+    echo "unknown"
+    return 1
+}
+
 # Cross-platform realpath-like function that works everywhere
 # This is the main function to use for path canonicalization
 # Args: $1 - path to resolve

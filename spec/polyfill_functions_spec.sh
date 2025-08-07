@@ -191,6 +191,32 @@ Describe "polyfill.functions.bash"
     End
   End
 
+  Describe "get_hostname function"
+    It "returns a non-empty hostname"
+      When call get_hostname
+      
+      The status should be success
+      The output should not be blank
+    End
+
+    It "returns a valid hostname format"
+      When call get_hostname
+      
+      The status should be success
+      # Check that hostname does not contain invalid characters
+      The output should not match pattern "[^a-zA-Z0-9.-]"
+    End
+
+    It "always returns some hostname value"
+      # This mainly tests that the function doesn't crash
+      When call get_hostname
+      
+      The status should be success
+      # Should return either a real hostname or "unknown"
+      The output should not be blank
+    End
+  End
+
   Describe "resolve_path function"
     It "fails with empty input"
       When call resolve_path ""
