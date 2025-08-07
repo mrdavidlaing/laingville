@@ -26,11 +26,6 @@ jobs:
       run: |
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
-    - name: Make scripts executable
-      run: |
-        chmod +x setup-user
-        chmod +x setup-server
-        
     - name: Run shellspec tests
       run: $HOME/.local/bin/shellspec
       
@@ -38,6 +33,6 @@ jobs:
       run: |
         # Test that dry-run works without requiring sudo/pacman
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
-        ./setup-user --dry-run
-        ./setup-server --dry-run
+        ./setup.sh user --dry-run
+        ./setup.sh server --dry-run
         echo "✅ Dry-run tests passed"
