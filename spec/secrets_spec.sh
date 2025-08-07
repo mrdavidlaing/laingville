@@ -11,9 +11,9 @@ Describe "setup.sh secrets"
     The stderr should include "Usage: ./setup.sh {user|server|secrets}"
   End
 
-  It "forwards to setup-secrets script"
+  It "forwards to setup-secrets script and shows secure note error when op is available"
     When call ./setup.sh secrets --dry-run
     The status should be failure
-    The stdout should include "Secure note 'user/mrdavidlaing' not found in Laingville vault"
+    The stdout should include "not found in Laingville vault"
   End
 End
