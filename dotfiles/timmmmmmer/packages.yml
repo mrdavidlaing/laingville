@@ -9,11 +9,8 @@ arch:
     - hyprpaper
     - gnome-console
     - gimp
-    - bats
-    - bats-assert
-    - bats-support
-    - bats-file
   aur:
+    - shellspec
     - vivaldi
 
 windows:

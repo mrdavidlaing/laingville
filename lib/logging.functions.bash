@@ -309,6 +309,11 @@ log_finish() {
     local exit_code="${1:-0}"
     local script_name=$(basename "${0}")
     
+    # Skip logging during shellspec tests
+    if [[ -n "${SHELLSPEC_PROJECT_ROOT:-}" || -n "${SHELLSPEC_RUNNING:-}" ]]; then
+        return
+    fi
+    
     echo
     if [[ "$exit_code" -eq 0 ]]; then
         log_success "Completed ${script_name} successfully"

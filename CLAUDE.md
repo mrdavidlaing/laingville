@@ -86,13 +86,14 @@ Server package configurations follow the same format but are located in `servers
 
 ### Run All Tests
 ```bash
-./tests/run_tests.sh
+shellspec
 ```
 
-### Run Tests Manually
+### Run Specific Test Files
 ```bash
-bats tests/test_setup_user.bats
-bats tests/test_setup_server.bats
+shellspec spec/setup_user_spec.sh
+shellspec spec/setup_server_spec.sh
+shellspec spec/security_spec.sh
 ```
 
 ### Test Coverage
@@ -103,6 +104,9 @@ Tests cover essential functionality:
 - Missing `packages.yml` handled gracefully
 - Hostname detection and server directory mapping
 - Package extraction from server configurations
+- Security validation and sanitization functions
+- Cross-platform polyfill functions
+- macOS-specific functionality
 
 ### When to Run Tests
 - After modifying `setup-user` or `setup-server` scripts
@@ -110,7 +114,7 @@ Tests cover essential functionality:
 - After updating package configurations
 - Before committing any script changes
 
-Tests use real dotfiles as fixtures and provide clear error messages when failures occur.
+Tests use shellspec framework and provide comprehensive coverage of all functionality.
 
 ### Continuous Integration
 Tests automatically run on:

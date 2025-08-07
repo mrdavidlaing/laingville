@@ -9,10 +9,6 @@ arch:
     - playerctl
     - hyprpaper
     - alacritty
-    - bats
-    - bats-assert
-    - bats-support
-    - bats-file
     - tig
     - go-yq
     - starship
@@ -22,6 +18,7 @@ arch:
     - tmux
     - kubectl
   aur:
+    - shellspec
     - vivaldi
     - glow
     - 1password

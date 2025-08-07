@@ -1,4 +1,4 @@
-name: Test setup-user script
+name: Test Laingville Scripts
 
 on:
   push:
@@ -13,26 +13,31 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Setup BATS with caching
-      uses: bats-core/bats-action@3.0.0
-        
-    - name: Verify BATS installation
+
+    - name: Cache shellspec
+      id: cache-shellspec
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/bin/shellspec
+        key: shellspec-${{ runner.os }}-v1
+
+    - name: Install shellspec
+      if: steps.cache-shellspec.outputs.cache-hit != 'true'
       run: |
-        bats --version
-        echo "✅ BATS is ready with caching"
+        curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
     - name: Make scripts executable
       run: |
         chmod +x setup-user
-        chmod +x tests/run_tests.sh
+        chmod +x setup-server
         
-    - name: Run tests
-      run: ./tests/run_tests.sh
+    - name: Run shellspec tests
+      run: $HOME/.local/bin/shellspec
       
     - name: Test dry-run functionality
       run: |
         # Test that dry-run works without requiring sudo/pacman
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
         ./setup-user --dry-run
-        echo "✅ Dry-run test passed"
+        ./setup-server --dry-run
+        echo "✅ Dry-run tests passed"
