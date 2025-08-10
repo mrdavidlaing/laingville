@@ -157,26 +157,6 @@ validate_yaml_key() {
     return 0
 }
 
-# Validate sudo requirements and permissions
-# Ensures safe privilege escalation
-validate_sudo_requirements() {
-    local operation="$1"
-    
-    # Check if sudo is available
-    if ! command -v sudo >/dev/null 2>&1; then
-        echo "Error: sudo not available for $operation" >&2
-        return 1
-    fi
-    
-    # Check if user can sudo without password (for automated operations)
-    if ! sudo -n true 2>/dev/null; then
-        echo "Error: sudo requires password for $operation" >&2
-        echo "Please run: sudo -v" >&2
-        return 1
-    fi
-    
-    return 0
-}
 
 # Validate systemd unit names
 # Ensures systemd unit names are safe to use

@@ -139,17 +139,13 @@ function Run-Setup {
     # Change to repo directory and run setup.sh with arguments
     $bashCommand = "cd '$unixPath' && ./setup.sh$argsString"
     
-    Write-Host "Executing: $bashCommand" -ForegroundColor DarkGray
+    Write-Host "Git Bash is ready. For the best interactive experience, please run:" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "    & `"$GitBash`" -c `"$bashCommand`"" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "This ensures you can interact with sudo prompts and see full streaming output." -ForegroundColor Gray
     
-    # Run Git Bash with the setup script
-    & $GitBash -c $bashCommand
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "`nSetup completed successfully!" -ForegroundColor Green
-    }
-    else {
-        Write-Warning "Setup exited with code: $LASTEXITCODE"
-    }
+    return 0
 }
 
 # Main execution
@@ -173,19 +169,8 @@ function Main {
         }
     }
     
-    # Step 2: Run setup.sh in Git Bash
+    # Step 2: Provide setup instructions
     Run-Setup -GitBash $gitBash
-    
-    Write-Host @"
-
-================================================================
-                      Setup Complete!                         
-                                                              
-  Your environment has been configured successfully.          
-  You may need to restart your terminal for all changes      
-  to take effect.                                            
-================================================================
-"@ -ForegroundColor Green
 }
 
 # Run the main function

@@ -56,13 +56,15 @@ get_packages_from_file() {
     
     # Use yq if available for safer parsing, fallback to sed
     if command -v yq >/dev/null 2>&1; then
-        yq e ".${platform}.${manager}[]" "$packages_file" 2>/dev/null | grep -v '^null$' || true
+        yq e ".${platform}.${manager}[]" "$packages_file" 2>/dev/null | grep -v '^null$' | \
+        sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' || true
     else
         # Safer sed parsing with limits
         head -n 1000 "$packages_file" | \
         sed -n "/^${platform}:/,/^[a-z]/p" | \
         sed -n "/^  ${manager}:/,/^  [a-z]/p" | \
         grep "^    - " | sed 's/^    - //' | \
+        sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' | \
         head -n 100  # Limit number of packages
     fi
 }
@@ -124,12 +126,6 @@ process_packages() {
             return
         fi
         
-        # Validate sudo requirements for system package managers
-        if [[ "$cmd" =~ sudo ]]; then
-            validate_sudo_requirements "package installation" || {
-                return 1
-            }
-        fi
         
         # Install packages securely - one by one to prevent injection
         local failed_packages=()
@@ -232,6 +228,23 @@ setup_wsl2_arch() {
             log_info ""
         fi
         return
+    fi
+    
+    # Check if Arch Linux is running and start it if needed
+    local arch_status=$(wsl --list --verbose 2>/dev/null | tr -d ' \0' | grep -i arch | awk '{print $3}' || echo "Stopped")
+    if [[ "$arch_status" != *"Running"* ]]; then
+        if [ "$dry_run" = true ]; then
+            log_dry_run "WSL2 Arch not running - would start it automatically"
+        else
+            log_info "Starting WSL2 Arch Linux distribution..."
+            # Start the distribution by running a simple command
+            if wsl -d archlinux -- echo "WSL2 Arch started" >/dev/null 2>&1; then
+                log_info "WSL2 Arch Linux started successfully"
+            else
+                log_error "Failed to start WSL2 Arch Linux"
+                return 1
+            fi
+        fi
     fi
     
     if [ "$dry_run" = true ]; then

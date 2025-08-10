@@ -26,7 +26,8 @@ get_custom_scripts() {
     # Extract platform section, then custom section, then script list
     sed -n "/${platform}:/,/^[a-z]/p" "$file" | \
     sed -n "/custom:/,/^  [a-z]/p" | \
-    grep "^    - " | sed 's/^    - //'
+    grep "^    - " | sed 's/^    - //' | \
+    sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//'
 }
 
 
