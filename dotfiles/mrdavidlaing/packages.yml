@@ -1,5 +1,6 @@
 arch:
   pacman:
+    - base-devel  # Essential development tools
     - bash
     - hyprland
     - waybar
@@ -9,14 +10,26 @@ arch:
     - playerctl
     - hyprpaper
     - alacritty
+    - neovim
+    - git
+    - github-cli
     - tig
     - go-yq
     - starship
     - zoxide
+    - ripgrep
+    - bat
+    - fzf
+    - jq
     - gimp
     - ttf-jetbrains-mono-nerd
     - tmux
     - kubectl
+    - go
+    - nodejs
+    - pnpm
+    - uv
+    - openssh
   aur:
     - shellspec
     - vivaldi
@@ -31,12 +44,14 @@ arch:
 
 windows:
   winget:
-    - Microsoft.WindowsTerminal
+    # Windows-native GUI applications and system tools
+    - Alacritty.Alacritty
     - Mozilla.Firefox
-    - Git.Git
     - Microsoft.PowerToys
-  custom:
-    - install_claude_code
+    - AgileBits.1Password
+    - VivaldiTechnologies.Vivaldi
+    - Docker.DockerDesktop
+    - DEVCOM.JetBrainsMonoNerdFont
 
 macos:
   homebrew:
