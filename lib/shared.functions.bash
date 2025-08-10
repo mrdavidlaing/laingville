@@ -22,7 +22,7 @@ detect_platform() {
 detect_username() {
     local system_user=$(whoami)
     case "$system_user" in
-        "david"|"mrdavidlaing")
+        "david"|"mrdavidlaing"|*"DavidLaing"*)
             echo "mrdavidlaing"
             ;;
         "timmy")
@@ -184,6 +184,8 @@ handle_packages_from_file() {
             ;;
         "windows")
             process_packages "winget" "winget install --id=" "$platform" "$dry_run" "$packages_file"
+            # Handle WSL2 Arch setup if WSL2 is available
+            setup_wsl2_arch "$dry_run" "$packages_file"
             ;;
         "macos")
             process_packages "homebrew" "brew install" "$platform" "$dry_run" "$packages_file"
@@ -193,6 +195,70 @@ handle_packages_from_file() {
             log_warning "Unknown platform: $platform - skipping package installation"
             ;;
     esac
+}
+
+# Setup WSL2 Arch environment - uses existing arch packages
+setup_wsl2_arch() {
+    local dry_run="$1" packages_file="$2"
+    
+    # Check if WSL2 is available
+    if ! command -v wsl >/dev/null 2>&1; then
+        if [ "$dry_run" = true ]; then
+            log_dry_run "WSL2 not available - would skip WSL2 setup"
+        else
+            log_info "WSL2 not available - skipping WSL2 setup"
+        fi
+        return
+    fi
+    
+    # Check if Arch Linux is installed in WSL2 (handle spaced output from WSL)
+    if ! wsl --list --quiet 2>/dev/null | tr -d ' \0' | grep -i arch >/dev/null 2>&1; then
+        if [ "$dry_run" = true ]; then
+            log_dry_run "WSL2 Arch not installed - would run Arch setup if available"
+            log_dry_run "To install WSL2 Arch:"
+            log_dry_run "  1. wsl --install archlinux"
+            log_dry_run "  2. wsl -d archlinux -- useradd -m -G wheel -s /bin/bash mrdavidlaing"
+            log_dry_run "  3. wsl -d archlinux -- passwd mrdavidlaing"
+            log_dry_run "  4. wsl --manage archlinux --set-default-user mrdavidlaing"
+        else
+            log_warning "WSL2 Arch not installed - skipping WSL2 setup"
+            log_info ""
+            log_info "To install WSL2 Arch with mrdavidlaing user:"
+            log_info "  1. Install: wsl --install archlinux"
+            log_info "  2. Create user: wsl -d archlinux -- useradd -m -G wheel -s /bin/bash mrdavidlaing"
+            log_info "  3. Set password: wsl -d archlinux -- passwd mrdavidlaing"
+            log_info "  4. Set default: wsl --manage archlinux --set-default-user mrdavidlaing"
+            log_info "  5. Re-run setup: ./setup.sh user"
+            log_info ""
+        fi
+        return
+    fi
+    
+    if [ "$dry_run" = true ]; then
+        log_dry_run "WSL2 Arch found - would run Arch setup inside WSL2"
+    else
+        log_info "Setting up WSL2 Arch environment..."
+        
+        # Convert Windows path to WSL2 format for the project root
+        local wsl_project_path
+        wsl_project_path=$(wsl -d archlinux -- wslpath "$(cd "$PROJECT_ROOT" && pwd -W)")
+        
+        # Run setup-user inside WSL2 Arch - it will use the arch: packages section
+        wsl -d archlinux -- bash -c "
+            # Set up environment - WSL2 Arch uses same dotfiles via /mnt/c
+            export PROJECT_ROOT='$wsl_project_path'
+            export DOTFILES_DIR='$wsl_project_path/dotfiles/mrdavidlaing'
+            
+            # Run the normal Arch setup (will process arch: packages section)
+            ./setup.sh user
+        "
+        
+        if [ $? -eq 0 ]; then
+            log_success "WSL2 Arch setup completed successfully"
+        else
+            log_warning "WSL2 Arch setup encountered some issues"
+        fi
+    fi
 }
 
 # Validate script name for security (shared)
