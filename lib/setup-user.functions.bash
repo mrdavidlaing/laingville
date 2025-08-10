@@ -132,7 +132,9 @@ show_file_item() {
     local item="$1" dest_dir="$2" relative_path="$3"
     local filename=$(basename "$item")
     
-    local target="$dest_dir/$filename"
+    # Use platform-aware path for display
+    local target
+    target=$(get_platform_config_path "$relative_path" "$filename")
     local action="create"
     if [ -e "$target" ]; then
         [ -L "$target" ] && action="update" || action="replace"
@@ -143,11 +145,8 @@ show_file_item() {
         source "$SCRIPT_DIR/logging.functions.bash"
     fi
     
-    if [ -n "$relative_path" ]; then
-        log_dry_run "$action: ~/$relative_path$filename -> $item"
-    else
-        log_dry_run "$action: ~/$filename -> $item"
-    fi
+    # Display the actual target path that will be used
+    log_dry_run "$action: $target -> $item"
 }
 
 # Directory handler for show mode
@@ -173,6 +172,38 @@ show_symlinks() {
     traverse_dotfiles "show_file_item" "show_directory_item" "$src_dir" "$dest_dir" "$relative_path" "$filter_dotfiles"
 }
 
+# Get Windows-specific config path for cross-platform compatibility
+get_platform_config_path() {
+    local relative_path="$1"
+    local filename="$2"
+    local full_path="${relative_path}${filename}"
+    
+    # Only apply Windows-specific mapping when on Windows
+    if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
+        case "$full_path" in
+            # Alacritty config mapping
+            ".config/alacritty/"*)
+                # Normalize Windows path separators to forward slashes
+                local appdata_path="${APPDATA//\\//}/alacritty"
+                mkdir -p "$appdata_path" 2>/dev/null
+                echo "$appdata_path/$filename"
+                return 0
+                ;;
+            # 1Password config mapping (if needed in future)  
+            ".config/1Password/"*)
+                # Normalize Windows path separators to forward slashes
+                local localappdata_path="${LOCALAPPDATA//\\//}/1Password"
+                mkdir -p "$localappdata_path" 2>/dev/null
+                echo "$localappdata_path/$filename"
+                return 0
+                ;;
+        esac
+    fi
+    
+    # Default: use HOME directory with standard Unix paths
+    echo "$HOME/${full_path}"
+}
+
 # File handler for create mode
 create_file_item() {
     local item="$1" dest_dir="$2" relative_path="$3"
@@ -187,13 +218,28 @@ create_file_item() {
         return 1
     fi
     
-    # Use original filename for the actual link (after validation)
-    local target="$dest_dir/$filename"
+    # Use platform-aware path for the actual link (after validation)
+    local target
+    target=$(get_platform_config_path "$relative_path" "$filename")
     
-    # Additional validation - ensure target is within home directory
-    if ! validate_path_traversal "$target" "$HOME" "true"; then
-        log_security_event "INVALID_TARGET" "Target outside home directory: $target"
-        log_warning "Skipping link outside home directory: $target"
+    # Additional validation - ensure target is within allowed directories
+    # On Windows, allow AppData directories in addition to HOME
+    local validation_passed=false
+    
+    if validate_path_traversal "$target" "$HOME" "true"; then
+        validation_passed=true
+    elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
+        # On Windows, also allow AppData directories (normalize paths for comparison)
+        local normalized_appdata="${APPDATA//\\//}"
+        local normalized_localappdata="${LOCALAPPDATA//\\//}"
+        if [[ "$target" == "$normalized_appdata"* ]] || [[ "$target" == "$normalized_localappdata"* ]]; then
+            validation_passed=true
+        fi
+    fi
+    
+    if [ "$validation_passed" = false ]; then
+        log_security_event "INVALID_TARGET" "Target outside allowed directories: $target"
+        log_warning "Skipping link outside allowed directories: $target"
         return 1
     fi
     
@@ -204,11 +250,8 @@ create_file_item() {
     
     # Create symlink
     if ln -s "$item" "$target" 2>/dev/null; then
-        if [ -n "$relative_path" ]; then
-            log_success "Linked: $relative_path$filename"
-        else
-            log_success "Linked: $filename"
-        fi
+        # Show detailed linking info like in dry-run mode
+        log_success "Linked: $target -> $item"
     else
         log_warning "Failed to create symlink: $target"
     fi
