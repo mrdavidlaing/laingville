@@ -36,7 +36,7 @@ Describe "shared.functions.bash"
     It "extracts packages from real config"
       export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
       
-      When call get_packages_from_file "arch" "pacman" "$DOTFILES_DIR/packages.yml"
+      When call get_packages_from_file "arch" "yay" "$DOTFILES_DIR/packages.yml"
       
       The output should not be blank
       The output should include "hyprland"

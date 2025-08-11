@@ -10,6 +10,8 @@ Describe "setup-user script"
     It "shows expected output format"
       # Set DOTFILES_DIR to a known good directory for CI compatibility
       export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+      # Mock platform to ensure consistent systemd behavior across environments
+      export PLATFORM="arch"
       
       When call ./bin/setup-user --dry-run
       
@@ -65,6 +67,8 @@ Describe "setup-user script"
   Describe "systemd services"
     It "detects systemd services"
       export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+      # Mock platform to ensure systemd services are detected consistently
+      export PLATFORM="arch"
       
       When call ./bin/setup-user --dry-run
       

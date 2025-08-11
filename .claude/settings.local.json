@@ -3,7 +3,10 @@
     "allow": [
       "WebFetch(domain:github.com)",
       "Bash(grep:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(shellspec:*)"
     ],
     "deny": []
   }

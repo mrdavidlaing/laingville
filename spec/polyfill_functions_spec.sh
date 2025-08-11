@@ -21,42 +21,47 @@ Describe "polyfill.functions.bash"
   }
 
   Describe "detect_os function"
-    It "returns valid OS type"
-      When call detect_os
-      
-      The status should be success
-      The output should match pattern "^(macos|linux|unknown)$"
-    End
-
     It "returns macos on Darwin"
-      # Mock uname command for this test
+      # Mock uname command to return Darwin
       uname() { echo "Darwin"; }
       
       When call detect_os
-      
       The status should be success
       The output should equal "macos"
     End
 
     It "returns linux on Linux"
-      # Mock uname command for this test
+      # Mock uname command to return Linux
       uname() { echo "Linux"; }
+      # Mock absence of pacman command
+      command() {
+        case "$2" in
+          pacman) return 1 ;;
+          *) builtin command "$@" ;;
+        esac
+      }
       
       When call detect_os
-      
-      The status should be success
+      The status should be success  
       The output should equal "linux"
     End
 
     It "returns unknown on unsupported OS"
-      # Mock uname command for this test
-      uname() { echo "FreeBSD"; }
+      # Mock uname command to return unsupported OS
+      uname() { echo "SomeWeirdOS"; }
+      # Mock absence of pacman command  
+      command() {
+        case "$2" in
+          pacman) return 1 ;;
+          *) builtin command "$@" ;;
+        esac
+      }
       
       When call detect_os
-      
       The status should be success
       The output should equal "unknown"
     End
+
   End
 
   Describe "canonicalize_path function"

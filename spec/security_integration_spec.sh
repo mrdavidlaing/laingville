@@ -10,7 +10,7 @@ Describe "security integration tests"
       # Create malicious packages.yml with command injection
       cat > "$malicious_dir/packages.yml" << 'EOF'
 arch:
-  pacman:
+  yay:
     - "htop; rm -rf /tmp/test_malicious"
     - "curl && evil-command"
     - "vim"
@@ -83,13 +83,12 @@ EOF
       # Create packages.yml with mixed valid and invalid packages
       cat > "$test_dir/packages.yml" << 'EOF'
 arch:
-  pacman:
+  yay:
     - vim
     - curl
     - evil;rm -rf /
     - htop
     - test`malware`
-  aur:
     - yay
     - bad&&command
 EOF
@@ -113,8 +112,7 @@ EOF
       The status should be success
       
       # Should show valid packages in install list
-      The output should include "install via pacman: vim, curl, htop"
-      The output should include "install via yay: yay"
+      The output should include "install via yay: vim, curl, htop, yay"
       
       # Should warn about invalid packages
       The output should include "Warning: Skipping invalid package"
