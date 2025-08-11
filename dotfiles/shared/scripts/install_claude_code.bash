@@ -62,14 +62,22 @@ echo -n "[Claude Code] "
 # Remove any existing npm installations
 remove_npm_installations
 
-# Check if claude binary is already installed (and ensure it's the native version)
-if command -v claude &> /dev/null; then
-    # Check if it's the native binary (native binary is installed to ~/.local/bin)
-    claude_path=$(which claude)
-    if [[ "$claude_path" == *"/.local/bin/claude" ]]; then
-        echo "✅ Native binary already installed"
+# Check if claude binary is already installed and working
+claude_binary_path="$HOME/.local/bin/claude"
+
+if [ -f "$claude_binary_path" ] && [ -x "$claude_binary_path" ]; then
+    # Verify it's actually working by checking version
+    if "$claude_binary_path" --version &> /dev/null; then
+        version_output=$("$claude_binary_path" --version 2>&1)
+        echo "✅ Native binary already installed and working: $version_output"
         exit 0
-    else
+    fi
+fi
+
+# Also check if claude is available in PATH (in case it's installed elsewhere)
+if command -v claude &> /dev/null; then
+    claude_path=$(which claude)
+    if [[ "$claude_path" != "$claude_binary_path" ]]; then
         echo "Found claude at $claude_path, will install native binary to take precedence..."
     fi
 fi
