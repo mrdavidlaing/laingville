@@ -90,7 +90,7 @@ log_section() {
 
   echo
   _log_color "${LOG_BOLD}${LOG_BLUE}" "$(_log_indent)${message}"
-  _log_color "${LOG_BLUE}" "$(_log_indent)$(printf '─%.0s' {1..20})"
+  _log_color "${LOG_BLUE}" "$(_log_indent)$(printf '-%.0s' {1..20})"
 }
 
 # Subsection header - secondary level grouping
@@ -174,7 +174,7 @@ log_with_indent() {
 log_summary_start() {
   local title="$1"
   echo
-  _log_color "${LOG_BOLD}${LOG_WHITE}" "┌─ ${title} Summary"
+  _log_color "${LOG_BOLD}${LOG_WHITE}" "[${title} Summary]"
 }
 
 log_summary_item() {
@@ -190,11 +190,11 @@ log_summary_item() {
     *) icon="•" color="${LOG_WHITE}" ;;
   esac
 
-  _log_color "${color}" "├─ ${icon} ${message}"
+  _log_color "${color}" "- ${icon} ${message}"
 }
 
 log_summary_end() {
-  _log_color "${LOG_GRAY}" "└─"
+  _log_color "${LOG_GRAY}" "[END]"
   echo
 }
 

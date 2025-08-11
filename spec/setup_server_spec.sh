@@ -14,7 +14,7 @@ It "works correctly"
 if command -v hostname > /dev/null 2>&1; then
   current_hostname=$(hostname)
 else
-  current_hostname=$(cat /proc/sys/kernel/hostname 2>/dev/null || echo "$HOSTNAME")
+  current_hostname=$(cat /proc/sys/kernel/hostname 2> /dev/null || echo "$HOSTNAME")
 fi
 
 The value "$current_hostname" should not be blank
