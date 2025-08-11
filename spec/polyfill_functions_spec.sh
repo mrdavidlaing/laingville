@@ -1,5 +1,6 @@
 Describe "polyfill.functions.bash"
   Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+  Before "source ./lib/shared.functions.bash"
   Before "source ./lib/polyfill.functions.bash"
 
   setup_test_files() {

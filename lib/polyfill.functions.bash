@@ -3,17 +3,6 @@
 # Platform polyfill functions for cross-platform compatibility
 # These functions abstract platform-specific command differences
 
-# Detect the current operating system
-# Returns: "macos", "linux", "windows", or "unknown"
-detect_os() {
-    case "$(uname -s)" in
-        "Darwin") echo "macos" ;;
-        "Linux") echo "linux" ;;
-        CYGWIN*|MINGW32*|MSYS*|MINGW*) echo "windows" ;;
-        *) echo "unknown" ;;
-    esac
-}
-
 # Cross-platform canonicalize path function
 # On macOS, prefer realpath; on Linux, use readlink -f
 # Args: $1 - path to canonicalize

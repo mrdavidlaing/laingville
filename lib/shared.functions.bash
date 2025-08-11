@@ -5,22 +5,40 @@
 
 # Security functions are sourced independently by calling scripts
 
-# Platform detection
+# Detect the current operating system
+# Returns: "macos", "linux", "windows", or "unknown"
+detect_os() {
+    case "$(uname -s)" in
+        "Darwin") echo "macos" ;;
+        "Linux") echo "linux" ;;
+        CYGWIN*|MINGW32*|MSYS*|MINGW*) echo "windows" ;;
+        *) echo "unknown" ;;
+    esac
+}
+
+# Platform detection (builds on detect_os for sub-platform identification)
 detect_platform() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "macos"
-    elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
-        echo "windows"
-    elif command -v pacman >/dev/null 2>&1; then
-        # Check if we're in WSL (Windows Subsystem for Linux)
-        if grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
-            echo "wsl"
-        else
-            echo "arch"
-        fi
-    else
-        echo "unknown"
-    fi
+    local base_os=$(detect_os)
+    
+    case "$base_os" in
+        "macos"|"windows")
+            # For macOS/Windows, platform equals OS
+            echo "$base_os"
+            ;;
+        "linux")
+            # For Linux, detect the specific distribution/environment
+            if grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+                echo "wsl"
+            elif command -v pacman >/dev/null 2>&1; then
+                echo "arch"
+            else
+                echo "linux"  # Generic Linux
+            fi
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
 }
 
 # Detect username mapping from system username to dotfiles directory
