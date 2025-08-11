@@ -428,29 +428,72 @@ setup_systemd_services() {
     fi
 }
 
-# Configure terminal font
-configure_terminal_font() {
+
+# Configure sudo timeout to 12 hours (720 minutes)
+configure_sudo_timeout() {
     local dry_run="$1"
+    local timeout_minutes=720  # 12 hours
+    local sudoers_dir="/etc/sudoers.d"
+    local sudoers_file="99-${CURRENT_USER}-timeout"
+    local sudoers_path="$sudoers_dir/$sudoers_file"
     
-    # Check if the font configuration script exists in dotfiles
-    local font_script_source="$DOTFILES_DIR/.local/bin/configure-terminal-font"
-    local font_script_target="$HOME/.local/bin/configure-terminal-font"
-    
-    if [ ! -f "$font_script_source" ]; then
+    # Check if we need sudo access (only on Linux-based systems)
+    local platform="${PLATFORM:-$(detect_platform)}"
+    if [ "$platform" != "arch" ] && [ "$platform" != "wsl" ]; then
+        if [ "$dry_run" = true ]; then
+            log_dry_run "skip sudo timeout config (not needed on $platform)"
+        fi
         return
     fi
     
+    # Content for the sudoers file
+    local sudoers_content="# Allow $CURRENT_USER to use sudo with 12-hour password caching
+Defaults:$CURRENT_USER timestamp_timeout=$timeout_minutes"
+    
     if [ "$dry_run" = true ]; then
-        echo "TERMINAL FONT:"
-        log_dry_run "configure terminal to use JetBrains Mono Nerd Font"
-    else
-        log_info "Configuring terminal font..."
-        if command -v gsettings >/dev/null 2>&1; then
-            "$font_script_target" || log_warning "Failed to configure terminal font"
+        echo "SUDO CONFIGURATION:"
+        if [ -f "$sudoers_path" ]; then
+            log_dry_run "update sudo timeout to 12 hours (file exists)"
         else
-            log_warning "gsettings not available, skipping terminal font configuration"
+            log_dry_run "configure sudo timeout to 12 hours"
         fi
+        log_dry_run "sudoers file: $sudoers_path"
+        return
     fi
+    
+    # Check if sudoers.d directory exists
+    if [ ! -d "$sudoers_dir" ]; then
+        log_warning "Directory $sudoers_dir does not exist, skipping sudo configuration"
+        return
+    fi
+    
+    # Check if we can write to sudoers.d (need sudo)
+    if ! sudo -n true 2>/dev/null; then
+        log_info "Configuring sudo timeout (requires password)..."
+    else
+        log_info "Configuring sudo timeout..."
+    fi
+    
+    # Create temporary file with proper permissions
+    local temp_file=$(mktemp)
+    echo "$sudoers_content" > "$temp_file"
+    
+    # Validate the sudoers file syntax
+    if ! sudo visudo -c -f "$temp_file" >/dev/null 2>&1; then
+        log_error "Invalid sudoers syntax, skipping configuration"
+        rm -f "$temp_file"
+        return 1
+    fi
+    
+    # Install the sudoers file with proper permissions
+    if sudo install -m 0440 -o root -g root "$temp_file" "$sudoers_path"; then
+        log_success "Sudo timeout configured to 12 hours"
+    else
+        log_warning "Failed to configure sudo timeout"
+    fi
+    
+    # Clean up temp file
+    rm -f "$temp_file"
 }
 
 # Setup 1Password config on first run only

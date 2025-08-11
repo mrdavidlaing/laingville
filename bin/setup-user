@@ -119,9 +119,9 @@ handle_packages "$PLATFORM" "$DRY_RUN"
 log_subsection "System Services"
 setup_systemd_services "$DRY_RUN"
 
-# Configure terminal font
-log_subsection "Terminal Font"
-configure_terminal_font "$DRY_RUN"
+# Configure sudo timeout to 12 hours
+log_subsection "Sudo Configuration"
+configure_sudo_timeout "$DRY_RUN"
 
 # Setup 1Password config on first run only
 log_subsection "1Password Configuration"
