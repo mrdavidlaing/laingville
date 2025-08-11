@@ -1,7 +1,32 @@
 arch:
-  pacman:
+  yay:
+    # Development tools
     - base-devel  # Essential development tools
     - bash
+    - git
+    - github-cli
+    - tig
+    - neovim
+    - go-yq
+    - starship
+    - zoxide
+    - ripgrep
+    - bat
+    - fzf
+    - jq
+    - tmux
+    - kubectl
+    - go
+    - nodejs
+    - pnpm
+    - uv
+    - openssh
+    - shellspec  # AUR: Testing framework
+    - glow        # AUR: Markdown viewer
+    - crush-bin   # AUR: Shell
+    - opencode    # AUR: VSCode launcher
+    - k9s         # Kubernetes TUI
+    # Desktop environment (Linux only)
     - hyprland
     - waybar
     - rofi
@@ -10,35 +35,43 @@ arch:
     - playerctl
     - hyprpaper
     - alacritty
-    - neovim
+    - gimp
+    - ttf-jetbrains-mono-nerd
+    - vivaldi     # AUR: Browser
+    - 1password   # AUR: Password manager
+    - 1password-cli  # AUR: CLI tool
+  custom:
+    - install_claude_code
+
+# WSL2-specific packages (headless, CLI-focused)
+wsl:
+  yay:
+    # Essential development tools
+    - base-devel
+    - bash
     - git
     - github-cli
     - tig
-    - go-yq
+    - neovim
     - starship
     - zoxide
     - ripgrep
     - bat
     - fzf
     - jq
-    - gimp
-    - ttf-jetbrains-mono-nerd
     - tmux
-    - kubectl
     - go
     - nodejs
     - pnpm
     - uv
     - openssh
-  aur:
-    - shellspec
-    - vivaldi
-    - glow
-    - 1password
-    - 1password-cli
-    - crush-bin
-    - opencode
-    - k9s-bin
+    - kubectl
+    - shellspec  # AUR: Testing framework
+    - glow        # AUR: Markdown viewer  
+    - crush-bin   # AUR: Shell
+    - k9s         # Kubernetes TUI
+    # Skip GUI packages: hyprland, waybar, rofi, thunar, alacritty, gimp, etc.
+    # Skip redundant packages: vivaldi, 1password, 1password-cli (use Windows versions)
   custom:
     - install_claude_code
 
