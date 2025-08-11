@@ -12,7 +12,12 @@ detect_platform() {
     elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
         echo "windows"
     elif command -v pacman >/dev/null 2>&1; then
-        echo "arch"
+        # Check if we're in WSL (Windows Subsystem for Linux)
+        if grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+            echo "wsl"
+        else
+            echo "arch"
+        fi
     else
         echo "unknown"
     fi
@@ -82,7 +87,7 @@ process_packages() {
     
     case "$manager" in
         "pacman") packages=$(get_packages_from_file "$platform" "pacman" "$packages_file") ;;
-        "yay") packages=$(get_packages_from_file "$platform" "aur" "$packages_file") ;;
+        "yay") packages=$(get_packages_from_file "$platform" "yay" "$packages_file") ;;
         "winget") packages=$(get_packages_from_file "$platform" "winget" "$packages_file") ;;
         "homebrew") packages=$(get_packages_from_file "$platform" "homebrew" "$packages_file") ;;
         "cask") packages=$(get_packages_from_file "$platform" "cask" "$packages_file") ;;
@@ -154,6 +159,50 @@ process_packages() {
     fi
 }
 
+# Install yay AUR helper from ArchLinuxCN repository
+install_yay() {
+    local dry_run="$1"
+    
+    if [ "$dry_run" = true ]; then
+        log_dry_run "Would install yay AUR helper from ArchLinuxCN repository"
+        return 0
+    fi
+    
+    # Check if yay is already installed
+    if command -v yay >/dev/null 2>&1; then
+        log_info "yay is already installed"
+        return 0
+    fi
+    
+    log_info "Installing yay AUR helper from ArchLinuxCN repository..."
+    
+    # Check if ArchLinuxCN repository is configured
+    if ! grep -q "\[archlinuxcn\]" /etc/pacman.conf; then
+        log_info "Adding ArchLinuxCN repository to pacman.conf..."
+        
+        # Add ArchLinuxCN repository
+        echo '[archlinuxcn]' | sudo tee -a /etc/pacman.conf >/dev/null
+        echo 'Server = https://repo.archlinuxcn.org/$arch' | sudo tee -a /etc/pacman.conf >/dev/null
+        
+        # Refresh package databases
+        sudo pacman -Sy
+        
+        # Install keyring
+        if ! sudo pacman -S --needed --noconfirm archlinuxcn-keyring; then
+            log_warning "Failed to install archlinuxcn-keyring, but continuing..."
+        fi
+    fi
+    
+    # Install yay
+    if sudo pacman -S --needed --noconfirm yay; then
+        log_success "yay installed successfully from ArchLinuxCN"
+        return 0
+    else
+        log_error "Failed to install yay from ArchLinuxCN"
+        return 1
+    fi
+}
+
 # Handle all package management - takes packages file as parameter
 handle_packages_from_file() {
     local platform="$1" dry_run="$2" packages_file="$3" context="$4"
@@ -174,8 +223,11 @@ handle_packages_from_file() {
     fi
     
     case "$platform" in
-        "arch")
-            process_packages "pacman" "sudo pacman -S --needed --noconfirm" "$platform" "$dry_run" "$packages_file"
+        "arch"|"wsl")
+            # Install yay first for unified package management
+            install_yay "$dry_run"
+            
+            # Use yay for all packages (official + AUR combined)
             process_packages "yay" "yay -S --needed --noconfirm" "$platform" "$dry_run" "$packages_file"
             ;;
         "windows")
@@ -213,18 +265,22 @@ setup_wsl2_arch() {
             log_dry_run "WSL2 Arch not installed - would run Arch setup if available"
             log_dry_run "To install WSL2 Arch:"
             log_dry_run "  1. wsl --install archlinux"
-            log_dry_run "  2. wsl -d archlinux -- useradd -m -G wheel -s /bin/bash mrdavidlaing"
-            log_dry_run "  3. wsl -d archlinux -- passwd mrdavidlaing"
-            log_dry_run "  4. wsl --manage archlinux --set-default-user mrdavidlaing"
+            log_dry_run "  2. wsl -d archlinux -- pacman -Sy sudo git base-devel"
+            log_dry_run "  3. wsl -d archlinux -- useradd -m -G wheel -s /bin/bash mrdavidlaing"
+            log_dry_run "  4. wsl -d archlinux -- passwd mrdavidlaing"
+            log_dry_run "  5. wsl -d archlinux -- sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers"
+            log_dry_run "  6. wsl --manage archlinux --set-default-user mrdavidlaing"
         else
             log_warning "WSL2 Arch not installed - skipping WSL2 setup"
             log_info ""
             log_info "To install WSL2 Arch with mrdavidlaing user:"
             log_info "  1. Install: wsl --install archlinux"
-            log_info "  2. Create user: wsl -d archlinux -- useradd -m -G wheel -s /bin/bash mrdavidlaing"
-            log_info "  3. Set password: wsl -d archlinux -- passwd mrdavidlaing"
-            log_info "  4. Set default: wsl --manage archlinux --set-default-user mrdavidlaing"
-            log_info "  5. Re-run setup: ./setup.sh user"
+            log_info "  2. Install essentials: wsl -d archlinux -- pacman -Sy sudo git base-devel"
+            log_info "  3. Create user: wsl -d archlinux -- useradd -m -G wheel -s /bin/bash mrdavidlaing"
+            log_info "  4. Set password: wsl -d archlinux -- passwd mrdavidlaing"
+            log_info "  5. Enable sudo: wsl -d archlinux -- sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers"
+            log_info "  6. Set default: wsl --manage archlinux --set-default-user mrdavidlaing"
+            log_info "  7. Re-run setup: ./setup.sh user"
             log_info ""
         fi
         return
