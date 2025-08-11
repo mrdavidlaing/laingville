@@ -64,7 +64,12 @@ process_server_custom_scripts() {
 
     if [ "$dry_run" = true ]; then
         echo "Would run custom server scripts:"
+        # Process each script using oldIFS technique to avoid subshells
+        local oldIFS="$IFS"
+        IFS='
+'  # Set IFS to newline only
         for script in $scripts; do
+            [ -z "$script" ] && continue
             if ! validate_script_name "$script"; then
                 continue
             fi
@@ -76,9 +81,15 @@ process_server_custom_scripts() {
                 log_warning "Server script not found: $script"
             fi
         done
+        IFS="$oldIFS"
     else
         log_info "Running custom server scripts..."
+        # Process each script using oldIFS technique to avoid subshells
+        local oldIFS="$IFS"
+        IFS='
+'  # Set IFS to newline only
         for script in $scripts; do
+            [ -z "$script" ] && continue
             if ! validate_script_name "$script"; then
                 continue
             fi
@@ -99,5 +110,6 @@ process_server_custom_scripts() {
                 log_warning "Server script not found or not executable: $script"
             fi
         done
+        IFS="$oldIFS"
     fi
 }

@@ -8,7 +8,20 @@
 # Detect the current operating system
 # Returns: "macos", "linux", "windows", or "unknown"
 detect_os() {
-    case "$(uname -s)" in
+    # Use full path to uname for reliability in restricted environments
+    local uname_cmd
+    if command -v uname >/dev/null 2>&1; then
+        uname_cmd="uname"
+    elif [ -x "/usr/bin/uname" ]; then
+        uname_cmd="/usr/bin/uname"
+    elif [ -x "/bin/uname" ]; then
+        uname_cmd="/bin/uname"
+    else
+        echo "unknown"
+        return
+    fi
+    
+    case "$($uname_cmd -s)" in
         "Darwin") echo "macos" ;;
         "Linux") echo "linux" ;;
         CYGWIN*|MINGW32*|MSYS*|MINGW*) echo "windows" ;;
@@ -77,19 +90,15 @@ get_packages_from_file() {
         return 1
     }
     
-    # Use yq if available for safer parsing, fallback to sed
-    if command -v yq >/dev/null 2>&1; then
-        yq e ".${platform}.${manager}[]" "$packages_file" 2>/dev/null | grep -v '^null$' | \
-        sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' || true
-    else
-        # Safer sed parsing with limits
-        head -n 1000 "$packages_file" | \
-        sed -n "/^${platform}:/,/^[a-z]/p" | \
-        sed -n "/^  ${manager}:/,/^  [a-z]/p" | \
-        grep "^    - " | sed 's/^    - //' | \
-        sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' | \
-        head -n 100  # Limit number of packages
-    fi
+    # Use sed for reliable YAML parsing (no external dependencies)
+    local result
+    result=$(head -n 1000 "$packages_file" | \
+    sed -n "/^${platform}:/,/^[a-z]/p" | \
+    sed -n "/^  ${manager}:/,/^  [a-z]/p" | \
+    grep "^    - " | sed 's/^    - //' | \
+    sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' | \
+    head -n 100 || true)  # Limit number of packages
+    echo "$result"
 }
 
 # Secure package processing with validation
