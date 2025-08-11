@@ -228,10 +228,18 @@ get_platform_config_path() {
         case "$full_path" in
             # Alacritty config mapping
             ".config/alacritty/"*)
+                # Extract the subpath after .config/alacritty/
+                local subpath="${full_path#.config/alacritty/}"
                 # Normalize Windows path separators to forward slashes
                 local appdata_path="${APPDATA//\\//}/alacritty"
-                mkdir -p "$appdata_path" 2>/dev/null
-                echo "$appdata_path/$filename"
+                # Create directory structure if it contains subdirectories
+                local subdir=$(dirname "$subpath")
+                if [ "$subdir" != "." ]; then
+                    mkdir -p "$appdata_path/$subdir" 2>/dev/null
+                else
+                    mkdir -p "$appdata_path" 2>/dev/null
+                fi
+                echo "$appdata_path/$subpath"
                 return 0
                 ;;
             # 1Password config mapping (if needed in future)  
