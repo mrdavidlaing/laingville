@@ -10,7 +10,12 @@ Before "source ./lib/setup-server.functions.bash"
 Describe "hostname detection"
 It "works correctly"
 # Test that we can detect hostname (basic functionality)
-current_hostname=$(hostname)
+# Use fallback method if hostname command is not available
+if command -v hostname > /dev/null 2>&1; then
+  current_hostname=$(hostname)
+else
+  current_hostname=$(cat /proc/sys/kernel/hostname 2>/dev/null || echo "$HOSTNAME")
+fi
 
 The value "$current_hostname" should not be blank
 # Hostname should not contain spaces or special characters that would break our logic

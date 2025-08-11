@@ -37,28 +37,53 @@ End
 It "returns arch on Linux with pacman"
 # Mock uname to return Linux and ensure pacman is available
 uname() { echo "Linux"; }
+# Mock /proc/version to avoid WSL detection
+temp_proc=$(mktemp)
+echo "Linux version 5.4.0-74-generic" > "$temp_proc"
 temp_dir=$(mktemp -d)
 echo '#!/bin/bash' > "$temp_dir/pacman"
 chmod +x "$temp_dir/pacman"
 export PATH="$temp_dir:$PATH"
 
+# Mock grep to read our temp /proc/version
+grep() {
+  if [[ "$*" == *"/proc/version"* ]]; then
+    command grep "$@" "$temp_proc"
+  else
+    command grep "$@"
+  fi
+}
+
 When call detect_platform
 
 The output should equal "arch"
 
-unset -f uname
-rm -rf "$temp_dir"
+unset -f uname grep
+rm -rf "$temp_dir" "$temp_proc"
 End
 
 It "returns linux on Linux without pacman"
 # Mock uname to return Linux and ensure no pacman
 uname() { echo "Linux"; }
+# Mock /proc/version to avoid WSL detection
+temp_proc=$(mktemp)
+echo "Linux version 5.4.0-74-generic" > "$temp_proc"
+
+# Mock grep to read our temp /proc/version
+grep() {
+  if [[ "$*" == *"/proc/version"* ]]; then
+    command grep "$@" "$temp_proc"
+  else
+    command grep "$@"
+  fi
+}
 
 When call detect_platform
 
 The output should equal "linux"
 
-unset -f uname
+unset -f uname grep
+rm -f "$temp_proc"
 End
 End
 
