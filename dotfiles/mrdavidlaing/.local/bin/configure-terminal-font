@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# Configure Gnome Console (kgx) to use JetBrains Mono Nerd Font
-
-# Set font configuration for Gnome Console
-gsettings set org.gnome.Console custom-font 'JetBrainsMono Nerd Font Mono 12'
-gsettings set org.gnome.Console use-system-font false
-gsettings set org.gnome.Console font-scale 1.0
-
-echo "Gnome Console font configured to use JetBrains Mono Nerd Font"

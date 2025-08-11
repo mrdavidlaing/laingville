@@ -176,6 +176,12 @@ install_yay() {
     
     log_info "Installing yay AUR helper from ArchLinuxCN repository..."
     
+    # For fresh installations (especially WSL), ensure system is up to date
+    log_info "Updating system packages (required for fresh installs)..."
+    if ! sudo pacman -Syu --noconfirm; then
+        log_warning "System update failed, but continuing with yay installation..."
+    fi
+    
     # Check if ArchLinuxCN repository is configured
     if ! grep -q "\[archlinuxcn\]" /etc/pacman.conf; then
         log_info "Adding ArchLinuxCN repository to pacman.conf..."
@@ -187,9 +193,20 @@ install_yay() {
         # Refresh package databases
         sudo pacman -Sy
         
-        # Install keyring
+        # Install keyring with proper error handling
+        log_info "Installing ArchLinuxCN keyring..."
         if ! sudo pacman -S --needed --noconfirm archlinuxcn-keyring; then
-            log_warning "Failed to install archlinuxcn-keyring, but continuing..."
+            log_warning "Failed to install archlinuxcn-keyring directly, trying manual key import..."
+            
+            # Manual key import as fallback
+            sudo pacman-key --recv-keys 7931B6D628C8D93F 2>/dev/null || true
+            sudo pacman-key --lsign-key 7931B6D628C8D93F 2>/dev/null || true
+            sudo pacman -Sy
+            
+            # Try keyring again
+            if ! sudo pacman -S --needed --noconfirm archlinuxcn-keyring; then
+                log_warning "Keyring installation failed, but continuing with yay installation..."
+            fi
         fi
     fi
     
@@ -199,6 +216,7 @@ install_yay() {
         return 0
     else
         log_error "Failed to install yay from ArchLinuxCN"
+        log_info "You may need to run: sudo pacman -Syu && sudo pacman -S archlinuxcn-keyring"
         return 1
     fi
 }
