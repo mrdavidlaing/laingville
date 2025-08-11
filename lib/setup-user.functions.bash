@@ -101,6 +101,43 @@ handle_packages() {
     process_custom_scripts "$platform" "$dry_run"
 }
 
+# Check if a config should NOT be linked on the current platform
+config_should_not_be_linked() {
+    local config_path="$1"
+    local platform="${2:-$(detect_platform)}"
+    
+    # Skip Linux-only configs on non-Linux platforms
+    if [[ "$platform" == "windows" || "$platform" == "macos" ]]; then
+        local config_name=$(basename "$config_path")
+        
+        case "$config_name" in
+            hypr|hyprland)
+                # Hyprland is a Wayland compositor - Linux only
+                return 0
+                ;;
+            waybar)
+                # Waybar is a Wayland bar - Linux only
+                return 0
+                ;;
+            systemd)
+                # systemd is Linux only
+                return 0
+                ;;
+            dynamic-wallpaper.yml)
+                # Dynamic wallpaper script is for Linux desktop environments
+                return 0
+                ;;
+            dconf)
+                # dconf is GNOME/GTK configuration - Linux only
+                return 0
+                ;;
+        esac
+    fi
+    
+    # By default, link the config
+    return 1
+}
+
 # Generic directory traversal with dotfile filtering
 traverse_dotfiles() {
     local file_handler="$1"
@@ -117,6 +154,13 @@ traverse_dotfiles() {
         # Only filter for dotfiles at the top level
         if [[ "$filter_dotfiles" == "true" && ! "$basename_item" =~ ^\. ]]; then
             continue
+        fi
+        
+        # Skip configs that shouldn't be linked on this platform
+        if [ -d "$item" ] && [[ "$relative_path" == "" || "$relative_path" == ".config/" ]]; then
+            if config_should_not_be_linked "$basename_item"; then
+                continue
+            fi
         fi
         
         if [ -f "$item" ]; then
