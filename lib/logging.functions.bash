@@ -19,14 +19,14 @@ readonly LOG_WHITE='\033[37m'
 readonly LOG_GRAY='\033[90m'
 
 # Icons for better visual scanning
-readonly ICON_SUCCESS="✓"
-readonly ICON_ERROR="✗"
-readonly ICON_WARNING="⚠"
-readonly ICON_INFO="ℹ"
-readonly ICON_DEBUG="🔍"
-readonly ICON_SECTION="▶"
-readonly ICON_SUBSECTION="  ▸"
-readonly ICON_DRY_RUN="•"
+readonly ICON_SUCCESS="[OK]"
+readonly ICON_ERROR="[ERROR]"
+readonly ICON_WARNING="[WARN]"
+readonly ICON_INFO="[INFO]"
+readonly ICON_DEBUG="[DEBUG]"
+readonly ICON_SECTION=">"
+readonly ICON_SUBSECTION="  >"
+readonly ICON_DRY_RUN="*"
 
 # Global state for consistent formatting
 LOG_INDENT_LEVEL=0

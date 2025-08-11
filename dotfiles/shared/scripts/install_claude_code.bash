@@ -69,7 +69,7 @@ if [ -f "$claude_binary_path" ] && [ -x "$claude_binary_path" ]; then
   # Verify it's actually working by checking version
   if "$claude_binary_path" --version &> /dev/null; then
     version_output=$("$claude_binary_path" --version 2>&1)
-    echo "✅ Native binary already installed and working: $version_output"
+    echo "[OK] Native binary already installed and working: $version_output"
     exit 0
   fi
 fi
@@ -86,7 +86,7 @@ echo "Installing native binary..."
 
 # Use native binary installer - installs to ~/.local/bin/claude
 if curl -fsSL https://claude.ai/install.sh | bash -s latest; then
-  echo "[Claude Code] ✅ Installation successful"
+  echo "[Claude Code] [OK] Installation successful"
   echo "[Claude Code] Native binary installed to ~/.local/bin/claude"
 
   # Verify the installation
@@ -95,6 +95,6 @@ if curl -fsSL https://claude.ai/install.sh | bash -s latest; then
     echo "[Claude Code] Version: $claude_version"
   fi
 else
-  echo "[Claude Code] ❌ Installation failed"
+  echo "[Claude Code] [ERROR] Installation failed"
   exit 1
 fi
