@@ -7,10 +7,15 @@
 alias ls='ls --color=auto'
 alias ll='ls -lah'
 alias grep='grep --color=auto'
+alias vim='nvim'
+alias vi='nvim'
 PS1='[\u@\h \W]\$ '
 
 # Add ~/.local/bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
+
+# Set default editor
+export EDITOR=nvim
 
 # Load 1Password environment secrets if available
 [ -f "$HOME/.config/env.secrets.local" ] && source "$HOME/.config/env.secrets.local"

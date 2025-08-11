@@ -97,6 +97,7 @@ macos:
     - git
     - tig
     - gh
+    - neovim
     - jq
     - tree
     - zoxide
