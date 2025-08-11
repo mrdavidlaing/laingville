@@ -9,3 +9,11 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
+
+[core]
+	pager = bat --style=plain --color=always --paging=always
+
+[pager]
+	log = bat --style=numbers,changes --color=always
+	show = bat --style=numbers,changes --color=always
+	diff = bat --style=changes --color=always
