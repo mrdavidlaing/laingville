@@ -89,7 +89,7 @@ detect_platform() {
       # Mock WSL check to fail by reading our fake /proc/version
       if grep -qi "microsoft\|wsl" "$temp_proc" 2> /dev/null; then
         echo "wsl"
-      elif false; then  # Force pacman check to fail
+      elif false; then # Force pacman check to fail
         echo "arch"
       else
         echo "linux"

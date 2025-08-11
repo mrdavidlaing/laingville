@@ -90,7 +90,7 @@ log_section() {
 
   echo
   _log_color "${LOG_BOLD}${LOG_BLUE}" "$(_log_indent)${message}"
-  _log_color "${LOG_BLUE}" "$(_log_indent)$(printf '-%.0s' {1..20})"
+  _log_color "${LOG_BLUE}" "$(_log_indent)$(printf -- '-%.0s' {1..20})"
 }
 
 # Subsection header - secondary level grouping
