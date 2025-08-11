@@ -73,7 +73,7 @@ export PLATFORM="arch"
 When call ./bin/setup-user --dry-run
 
 The status should be success
-The output should include "• Would: enable and start: dynamic-wallpaper.timer"
+The output should include "* Would: enable and start: dynamic-wallpaper.timer"
 End
 End
 
