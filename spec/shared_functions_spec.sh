@@ -80,7 +80,7 @@ temp_dir=$(mktemp -d)
 temp_proc="$temp_dir/proc_version"
 echo "Linux version 5.4.0-74-generic" > "$temp_proc"
 
-# Override the detect_platform function to use our mock
+# Override the detect_platform function to use our mock and ensure no pacman
 detect_platform() {
   local base_os="linux"
   
@@ -89,7 +89,7 @@ detect_platform() {
       # Mock WSL check to fail by reading our fake /proc/version
       if grep -qi "microsoft\|wsl" "$temp_proc" 2> /dev/null; then
         echo "wsl"
-      elif command -v pacman > /dev/null 2>&1; then
+      elif false; then  # Force pacman check to fail
         echo "arch"
       else
         echo "linux"
