@@ -37,3 +37,9 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
         echo "Ensure Windows OpenSSH is installed and in PATH." >&2
     fi
 fi
+
+# Git Learning Integration
+if [[ -f ~/.config/tmux/git-learning/git-hints.sh ]]; then
+    # Make git learning functions available
+    source ~/.bashrc_git_learning 2>/dev/null
+fi

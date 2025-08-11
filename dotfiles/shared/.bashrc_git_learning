@@ -1,0 +1,169 @@
+#!/bin/bash
+
+# Git Learning Integration for Bash
+# Source this file in your .bashrc to enable enhanced git learning features
+
+# Enhanced navi integration for Git commands
+alias g='navi --query git'
+alias gf='navi --fzf-overrides "--preview=\"echo {} | cut -d: -f2- | bat --language=bash --style=numbers --color=always --theme=ansi\" --preview-window=right:60%:wrap"'
+
+# Quick git learning shortcuts  
+alias git-learn='navi --cheat git-aliases'
+alias git-help='git-learn'
+alias gl='git-learn'
+
+# Contextual git helper function
+git-hint() {
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        echo "💡 Quick Git hints for current state:"
+        
+        local status_output=$(git status --porcelain 2>/dev/null)
+        if [[ -z "$status_output" ]]; then
+            echo "  Clean directory - try: git l (log), git b (branches)"
+        else
+            if echo "$status_output" | grep -q "^??"; then
+                echo "  Untracked files - try: git aa (add all)"
+            fi
+            if echo "$status_output" | grep -q "^[AM]"; then
+                echo "  Staged changes - try: git cm 'message' (commit)"
+            fi
+        fi
+        echo "  For full help: git-learn or Alt+G in tmux"
+    else
+        echo "💡 Not in a git repository"
+        echo "  Try: git init or cd to a git project"
+    fi
+}
+
+# Enhanced command-not-found handler with navi fallback
+command_not_found_handle() {
+    local cmd="$1"
+    
+    # If it looks like a git command, suggest navi
+    if [[ $cmd == git* ]] || [[ $cmd == g[a-z]* ]]; then
+        echo "❓ Command '$cmd' not found."
+        echo "🔍 Searching git aliases in navi..."
+        echo ""
+        navi --query "$cmd" 2>/dev/null || {
+            echo "💡 Try one of these instead:"
+            echo "  git-learn    - Browse all git aliases"
+            echo "  git-hint     - Context-aware suggestions" 
+            echo "  Alt+G        - Tmux popup (if in tmux)"
+        }
+        return 127
+    fi
+    
+    # Fallback to system handler or generic message
+    if command -v command-not-found-handle > /dev/null 2>&1; then
+        command-not-found-handle "$cmd"
+    else
+        echo "bash: $cmd: command not found" >&2
+        return 127
+    fi
+}
+
+# Git alias completions for common shortcuts
+if command -v __git_complete > /dev/null 2>&1; then
+    # Enable completion for common git aliases
+    __git_complete co _git_checkout
+    __git_complete sw _git_switch  
+    __git_complete b _git_branch
+    __git_complete cm _git_commit
+    __git_complete p _git_push
+    __git_complete pl _git_pull
+fi
+
+# Smart cd with git context awareness
+smart_cd() {
+    builtin cd "$@"
+    local exit_code=$?
+    
+    # If we entered a git repository, show a subtle hint
+    if [[ $exit_code -eq 0 ]] && git rev-parse --git-dir > /dev/null 2>&1; then
+        local branch=$(git branch --show-current 2>/dev/null)
+        echo "📍 Git repo: $(basename $(git rev-parse --show-toplevel)) (branch: $branch)"
+        
+        # Check if there are uncommitted changes
+        if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+            echo "💡 Tip: git s to see changes, Alt+G for context-aware help"
+        fi
+    fi
+    
+    return $exit_code
+}
+
+# Optional: replace cd with smart_cd (uncomment to enable)
+# alias cd='smart_cd'
+
+# Ctrl+G keybinding for git learning (works in bash)
+bind -x '"\C-g": git-learn'
+
+# Function to setup git aliases (run once after installing)
+setup-git-aliases() {
+    echo "🎯 Setting up essential git aliases..."
+    
+    # Essential shortcuts
+    git config --global alias.s 'status --short --branch'
+    git config --global alias.st 'status'
+    git config --global alias.a 'add'
+    git config --global alias.aa 'add --all'
+    git config --global alias.ap 'add --patch'
+    git config --global alias.c 'commit'
+    git config --global alias.cm 'commit -m'
+    git config --global alias.cam 'commit -am'
+    
+    # Log and history
+    git config --global alias.l 'log --oneline --graph --decorate -10'
+    git config --global alias.ll 'log --graph --pretty=format:"%C(yellow)%h%C(reset) %C(blue)%an%C(reset) %C(green)%cr%C(reset) %s %C(red)%d%C(reset)" -20'
+    git config --global alias.tree 'log --graph --all --oneline --decorate'
+    git config --global alias.last 'log -1 HEAD --stat'
+    
+    # Branch operations  
+    git config --global alias.b 'branch -v'
+    git config --global alias.ba 'branch -a'
+    git config --global alias.co 'checkout'
+    git config --global alias.cob 'checkout -b'
+    git config --global alias.sw 'switch'
+    git config --global alias.swc 'switch -c'
+    git config --global alias.bd 'branch -d'
+    git config --global alias.bD 'branch -D'
+    
+    # Diff operations
+    git config --global alias.d 'diff'
+    git config --global alias.ds 'diff --staged'
+    git config --global alias.dc 'diff --cached'
+    git config --global alias.dw 'diff --word-diff'
+    
+    # Remote operations
+    git config --global alias.p 'push'
+    git config --global alias.pushu '!git push -u origin $(git branch --show-current)'
+    git config --global alias.pushf 'push --force-with-lease'
+    git config --global alias.pl 'pull'
+    git config --global alias.pul 'pull --rebase'
+    git config --global alias.f 'fetch'
+    git config --global alias.fa 'fetch --all'
+    
+    # Workflow helpers
+    git config --global alias.uncommit 'reset --soft HEAD~1'
+    git config --global alias.undo 'reset HEAD~1'
+    git config --global alias.amend 'commit --amend --no-edit'
+    git config --global alias.unstage 'restore --staged'
+    git config --global alias.unstageall 'restore --staged .'
+    
+    # Cleanup
+    git config --global alias.cleanup '!git branch --merged | grep -v "\\*\\|main\\|master\\|develop" | xargs -n 1 git branch -d'
+    git config --global alias.aliases 'config --get-regexp alias'
+    
+    echo "✅ Git aliases configured!"
+    echo "💡 Try: git s, git l, git aa, git cm 'message'"
+    echo "🔍 Full reference: git-learn or Alt+G in tmux"
+}
+
+# Welcome message when sourced
+echo "🎓 Git learning tools loaded! Try:"
+echo "  git-learn    - Interactive git cheatsheet"  
+echo "  git-hint     - Contextual suggestions"
+echo "  Alt+G        - Tmux popup (if in tmux)"
+echo "  Ctrl+G       - Quick navi search"
+echo ""
+echo "  setup-git-aliases  - Install all git aliases (run once)"

@@ -1,0 +1,321 @@
+% git, aliases, essentials
+
+# Show repository status (short format with branch info)  
+git s
+$ git status --short --branch
+
+# Show repository status (full format)
+git st 
+$ git status
+
+# Add specific files to staging area
+git a <files>
+$ git add <files>
+
+# Add all changes to staging area
+git aa
+$ git add --all
+
+# Add files interactively (patch mode)
+git ap
+$ git add --patch
+
+# Commit with message
+git c
+$ git commit
+
+# Quick commit with inline message
+git cm "<message>"
+$ git commit -m "<message>"
+
+# Quick commit all changes with message
+git cam "<message>" 
+$ git commit -am "<message>"
+
+# Show recent commit history with graph (10 commits)
+git l
+$ git log --oneline --graph --decorate -10
+
+# Show detailed commit history with graph (20 commits)
+git ll
+$ git log --graph --pretty=format:'%C(yellow)%h%C(reset) %C(blue)%an%C(reset) %C(green)%cr%C(reset) %s %C(red)%d%C(reset)' -20
+
+# Show commit history for all branches
+git tree
+$ git log --graph --all --oneline --decorate
+
+# Show last commit details
+git last  
+$ git log -1 HEAD --stat
+
+# List branches with last commit info
+git b
+$ git branch -v
+
+# List all branches (including remotes)
+git ba
+$ git branch -a
+
+# Switch to existing branch
+git co <branch>
+$ git checkout <branch>
+
+# Create and switch to new branch  
+git cob "<branch_name>"
+$ git checkout -b "<branch_name>"
+
+# Switch branches (modern Git 2.23+)
+git sw <branch>
+$ git switch <branch>
+
+# Create and switch to new branch (modern)
+git swc "<branch_name>" 
+$ git switch -c "<branch_name>"
+
+# Delete branch (safe)
+git bd <branch>
+$ git branch -d <branch>
+
+# Delete branch (force)
+git bD <branch>
+$ git branch -D <branch>
+
+# Show differences (unstaged changes)
+git d
+$ git diff
+
+# Show differences (staged changes)  
+git ds
+$ git diff --staged
+
+# Show differences (cached - same as staged)
+git dc
+$ git diff --cached
+
+# Show word-level differences
+git dw
+$ git diff --word-diff
+
+# Push to origin
+git p
+$ git push
+
+# Push current branch to origin with upstream tracking
+git pushu
+$ git push -u origin $(git branch --show-current)
+
+# Force push safely (recommended over --force)
+git pushf
+$ git push --force-with-lease
+
+# Pull from origin
+git pl
+$ git pull
+
+# Pull with rebase (cleaner history)
+git pul  
+$ git pull --rebase
+
+# Fetch from origin
+git f
+$ git fetch
+
+# Fetch from all remotes
+git fa
+$ git fetch --all
+
+% git, aliases, workflow
+
+# Undo last commit (keep changes staged)
+git uncommit
+$ git reset --soft HEAD~1
+
+# Undo last commit (keep changes in working directory)
+git undo
+$ git reset HEAD~1
+
+# Amend last commit without editing message
+git amend
+$ git commit --amend --no-edit
+
+# Amend last commit with new message
+git amendem "<message>"
+$ git commit --amend -m "<message>"
+
+# Unstage files (modern Git 2.23+)  
+git unstage <files>
+$ git restore --staged <files>
+
+# Unstage all files
+git unstageall
+$ git restore --staged .
+
+# Restore file from HEAD (undo working changes)
+git restore <files>
+$ git restore <files>
+
+# Interactive rebase for last N commits
+git rbi <n>
+$ git rebase -i HEAD~<n>
+
+# Continue rebase after resolving conflicts
+git rbc
+$ git rebase --continue
+
+# Abort rebase
+git rba  
+$ git rebase --abort
+
+# Merge branch (no fast-forward)
+git mnf <branch>
+$ git merge --no-ff <branch>
+
+# Stash changes with message
+git stm "<message>"
+$ git stash push -m "<message>"
+
+# Stash all changes (including untracked)
+git sta
+$ git stash --include-untracked
+
+# Pop latest stash
+git stp
+$ git stash pop
+
+# Apply stash without removing it
+git stap <stash>
+$ git stash apply <stash>
+
+# List stashes
+git stl
+$ git stash list
+
+# Show stash contents  
+git sts <stash>
+$ git stash show -p <stash>
+
+# Drop specific stash
+git std <stash>
+$ git stash drop <stash>
+
+% git, aliases, advanced
+
+# Search commits by message
+git search "<search_term>"
+$ git log --grep="<search_term>"
+
+# Search commits by author
+git searchauthor "<author>"
+$ git log --author="<author>"
+
+# Show commits that changed a specific file
+git changes "<file_path>"
+$ git log --follow -p "<file_path>"
+
+# Find branches containing specific commit
+git fb "<commit_hash>"  
+$ git branch -a --contains "<commit_hash>"
+
+# Find tags containing specific commit
+git ft "<commit_hash>"
+$ git describe --always --contains "<commit_hash>"
+
+# Show what files changed in last commit  
+git dlf
+$ git diff HEAD~1 HEAD --name-only
+
+# Show differences between two commits
+git dr "<commit1>" "<commit2>"
+$ git diff "<commit1>".."<commit2>"
+
+# Cherry-pick commit from another branch
+git cp "<commit_hash>"
+$ git cherry-pick "<commit_hash>"
+
+# Create lightweight tag
+git tag "<tag_name>"
+$ git tag "<tag_name>"
+
+# Create annotated tag  
+git taga "<tag_name>" "<message>"
+$ git tag -a "<tag_name>" -m "<message>"
+
+# Push tags to origin
+git pusht
+$ git push --tags
+
+# Show remote repositories
+git rv  
+$ git remote -v
+
+# Add remote repository
+git ra "<name>" "<url>"
+$ git remote add "<name>" "<url>"
+
+# Remove remote repository  
+git rr "<name>"
+$ git remote remove "<name>"
+
+% git, aliases, cleanup
+
+# Clean up merged branches (safe)
+git cleanup
+$ git branch --merged | grep -v '\\*\\|main\\|master\\|develop' | xargs -n 1 git branch -d
+
+# Prune remote tracking branches and clean up
+git prune-all  
+$ git remote prune origin && git gc --prune=now
+
+# Show what git clean would remove (dry run)
+git cleanshow
+$ git clean -n -d
+
+# Remove untracked files and directories
+git cleanforce
+$ git clean -fd
+
+# Reset working directory to match HEAD (DESTRUCTIVE)
+git hardreset
+$ git reset --hard HEAD
+
+# Reset working directory to specific commit (DESTRUCTIVE)  
+git hardresetcommit "<commit>"
+$ git reset --hard "<commit>"
+
+# Show all git aliases defined in config
+git aliases
+$ git config --get-regexp alias
+
+# Show git configuration 
+git conf
+$ git config --list
+
+% git, aliases, github
+
+# Create pull request (requires GitHub CLI)
+git prc
+$ gh pr create
+
+# View current pull request  
+git prv
+$ gh pr view
+
+# List pull requests
+git prl  
+$ gh pr list
+
+# Checkout pull request locally
+git prco "<pr_number>"  
+$ gh pr checkout "<pr_number>"
+
+# Fork repository (requires GitHub CLI)
+git fork
+$ gh repo fork
+
+# Clone your own fork
+git clonefork "<repo>"
+$ gh repo clone "<repo>" 
+
+# Open repository in browser
+git open
+$ gh repo view --web

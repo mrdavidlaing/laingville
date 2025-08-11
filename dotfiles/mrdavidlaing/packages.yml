@@ -25,6 +25,7 @@ arch:
     - shellcheck  # Bash linter
     - shfmt       # Bash formatter
     - glow        # AUR: Markdown viewer
+    - navi        # AUR: Interactive cheatsheet tool
     - crush-bin   # AUR: Shell
     - opencode    # AUR: VSCode launcher
     - k9s         # Kubernetes TUI
