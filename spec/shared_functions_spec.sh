@@ -7,17 +7,19 @@ Describe "shared.functions.bash"
 
   Describe "detect_platform function"
     It "returns macos on Darwin"
-      # Mock OSTYPE for macOS
-      export OSTYPE="darwin21.6.0"
+      # Mock uname command to return Darwin
+      uname() { echo "Darwin"; }
       
       When call detect_platform
       
       The output should equal "macos"
+      
+      unset -f uname
     End
 
     It "prioritizes darwin over pacman"
-      # Even if pacman exists, should return macos on Darwin
-      export OSTYPE="darwin21.6.0"
+      # Mock uname to return Darwin, even if pacman exists
+      uname() { echo "Darwin"; }
       # Create fake pacman in PATH
       temp_dir=$(mktemp -d)
       echo '#!/bin/bash' > "$temp_dir/pacman"
@@ -28,7 +30,35 @@ Describe "shared.functions.bash"
       
       The output should equal "macos"
       
+      unset -f uname
       rm -rf "$temp_dir"
+    End
+
+    It "returns arch on Linux with pacman"
+      # Mock uname to return Linux and ensure pacman is available
+      uname() { echo "Linux"; }
+      temp_dir=$(mktemp -d)
+      echo '#!/bin/bash' > "$temp_dir/pacman"
+      chmod +x "$temp_dir/pacman"
+      export PATH="$temp_dir:$PATH"
+      
+      When call detect_platform
+      
+      The output should equal "arch"
+      
+      unset -f uname
+      rm -rf "$temp_dir"
+    End
+
+    It "returns linux on Linux without pacman"
+      # Mock uname to return Linux and ensure no pacman
+      uname() { echo "Linux"; }
+      
+      When call detect_platform
+      
+      The output should equal "linux"
+      
+      unset -f uname
     End
   End
 
