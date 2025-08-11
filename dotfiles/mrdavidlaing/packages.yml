@@ -22,6 +22,8 @@ arch:
     - uv
     - openssh
     - shellspec  # AUR: Testing framework
+    - shellcheck  # Bash linter
+    - shfmt       # Bash formatter
     - glow        # AUR: Markdown viewer
     - crush-bin   # AUR: Shell
     - opencode    # AUR: VSCode launcher
@@ -67,6 +69,8 @@ wsl:
     - openssh
     - kubectl
     - shellspec  # AUR: Testing framework
+    - shellcheck  # Bash linter
+    - shfmt       # Bash formatter
     - glow        # AUR: Markdown viewer  
     - crush-bin   # AUR: Shell
     - k9s         # Kubernetes TUI
@@ -102,6 +106,8 @@ macos:
     - ripgrep
     - tmux
     - laio
+    - shellcheck
+    - shfmt
   cask:
     - nikitabobko/tap/aerospace
     - alacritty

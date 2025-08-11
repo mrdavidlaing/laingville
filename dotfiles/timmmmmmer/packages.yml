@@ -11,6 +11,8 @@ arch:
     - gimp
   aur:
     - shellspec
+    - shellcheck
+    - shfmt
     - vivaldi
 
 windows:

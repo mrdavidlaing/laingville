@@ -1,0 +1,16 @@
+# ShellCheck configuration file
+# https://www.shellcheck.net/wiki/Ignore
+
+# Enable all optional checks
+enable=all
+
+# Disable specific checks that may not be relevant for our use case
+# SC1090/SC1091: Can't follow non-constant source / Not following sourced files
+disable=SC1090,SC1091
+
+# Set shell dialect
+shell=bash
+
+# External sources - tell shellcheck about our function files
+source-path=lib
+external-sources=true

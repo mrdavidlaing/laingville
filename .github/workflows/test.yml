@@ -14,21 +14,56 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Cache shellspec
-      id: cache-shellspec
+    - name: Cache tools
+      id: cache-tools
       uses: actions/cache@v4
       with:
-        path: ~/.local/bin/shellspec
-        key: shellspec-${{ runner.os }}-v1
+        path: |
+          ~/.local/bin/shellspec
+          ~/.local/bin/shellcheck
+          ~/.local/bin/shfmt
+        key: tools-${{ runner.os }}-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1
 
-    - name: Install shellspec
-      if: steps.cache-shellspec.outputs.cache-hit != 'true'
+    - name: Install tools
+      if: steps.cache-tools.outputs.cache-hit != 'true'
       run: |
+        mkdir -p ~/.local/bin
+        
+        # Install shellcheck
+        wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
+        mv shellcheck-v0.10.0/shellcheck ~/.local/bin/
+        chmod +x ~/.local/bin/shellcheck
+        
+        # Install shfmt
+        wget -qO ~/.local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64
+        chmod +x ~/.local/bin/shfmt
+        
+        # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
+        
+    - name: Add tools to PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Check formatting
+      run: |
+        echo "🎨 Checking bash script formatting..."
+        find . -type f \( -name "*.sh" -o -name "*.bash" \) \
+          -not -path "./.git/*" \
+          -not -path "./dotfiles/*/.*" \
+          -exec shfmt -d {} \;
+        
+    - name: Lint scripts
+      run: |
+        echo "🔍 Linting bash scripts..."
+        find . -type f \( -name "*.sh" -o -name "*.bash" \) \
+          -not -path "./.git/*" \
+          -not -path "./dotfiles/*/.*" \
+          -exec shellcheck {} \;
+        shellcheck setup.sh setup-secrets
         
     - name: Run shellspec tests
       shell: bash
-      run: $HOME/.local/bin/shellspec --shell bash
+      run: shellspec --shell bash
       
     - name: Test dry-run functionality
       shell: bash
