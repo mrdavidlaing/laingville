@@ -12,9 +12,9 @@ sudo systemctl enable --now sshd
 
 # Check if it's running
 if systemctl is-active --quiet sshd; then
-    echo "✓ SSH daemon is running and enabled"
-    systemctl status sshd --no-pager --lines=3
+  echo "✓ SSH daemon is running and enabled"
+  systemctl status sshd --no-pager --lines=3
 else
-    echo "✗ Failed to start SSH daemon"
-    exit 1
+  echo "✗ Failed to start SSH daemon"
+  exit 1
 fi

@@ -25,7 +25,7 @@ if [ -f /var/lib/rancher/k3s/server/node-token ]; then
 else
   TOKEN="<node-token>"
 fi
-cat <<EOF
+cat << EOF
 To use kubectl from this server or another machine:
 1) kubeconfig on this server is at ~/.kube/config
 2) If needed, set server to https://$IP:6443 in that file
