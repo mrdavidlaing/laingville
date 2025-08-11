@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ "$(uname)" = "Darwin" ]; then
+    top -l 1 | grep "CPU usage" | awk '{print $3}' | sed 's/%//'
+else
+    top -bn1 | grep "Cpu(s)" | awk '{printf "%.1f%%", 100-$8}'
+fi

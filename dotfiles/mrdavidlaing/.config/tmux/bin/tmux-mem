@@ -1,0 +1,17 @@
+#!/bin/bash
+if [ "$(uname)" = "Darwin" ]; then
+    vm_stat | awk '
+    /Pages active/ { active=$3 } 
+    /Pages inactive/ { inactive=$3 } 
+    /Pages speculative/ { spec=$3 } 
+    /Pages wired down/ { wired=$4 } 
+    /Pages free/ { free=$3 } 
+    END { 
+        total=(active+inactive+spec+wired+free)*4096/1024/1024/1024
+        # On macOS, only active + wired are truly "used" (inactive can be freed instantly)
+        used=(active+wired)*4096/1024/1024/1024
+        printf "%.1f%%", used/total*100 
+    }'
+else
+    free | grep Mem | awk '{printf "%.1f%%", $3/$2 * 100.0}'
+fi
