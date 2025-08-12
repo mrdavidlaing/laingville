@@ -17,7 +17,8 @@ LAINGVILLE_HOSTS="
 192.168.1.46    momac"
 
 # Backup original hosts file
-sudo cp /etc/hosts /etc/hosts.backup.$(date +%Y%m%d-%H%M%S)
+backup_timestamp=$(date +%Y%m%d-%H%M%S)
+sudo cp /etc/hosts "/etc/hosts.backup.${backup_timestamp}"
 
 # Remove any existing Laingville entries
 sudo sed -i '/# Laingville servers/,/^$/d' /etc/hosts
