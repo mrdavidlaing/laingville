@@ -1,5 +1,5 @@
 Describe "macos.functions.bash"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
 Before "source ./lib/security.functions.bash"
@@ -11,7 +11,7 @@ Describe "install_homebrew function"
 It "shows correct dry-run output when brew not installed"
 # Mock command -v to return failure for brew
 command() {
-  if [ "$1" = "-v" ] && [ "$2" = "brew" ]; then
+  if [[ "$1" = "-v" ]] && [[ "$2" = "brew" ]]; then
     return 1
   fi
   # Fall back to real command for other calls
@@ -28,7 +28,7 @@ End
 It "shows correct dry-run output when brew already installed"
 # Mock command -v to return success for brew
 command() {
-  if [ "$1" = "-v" ] && [ "$2" = "brew" ]; then
+  if [[ "$1" = "-v" ]] && [[ "$2" = "brew" ]]; then
     return 0
   fi
   # Fall back to real command for other calls
@@ -61,7 +61,7 @@ Describe "macOS functions handle non-dry-run mode gracefully"
 It "handles non-dry-run mode without actual system changes"
 # Mock command -v to simulate brew not being available
 command() {
-  if [ "$1" = "-v" ] && [ "$2" = "brew" ]; then
+  if [[ "$1" = "-v" ]] && [[ "$2" = "brew" ]]; then
     return 1
   fi
   # Fall back to real command for other calls

@@ -25,7 +25,7 @@ check_dotfile_symlinks() {
         non_dotfile_symlinks+=("${line}")
       fi
     fi
-  done <<< "$output"
+  done <<< "${output}"
 
   # Return failure if any non-dotfile symlinks found
   if [[ ${#non_dotfile_symlinks[@]} -gt 0 ]]; then

@@ -9,7 +9,8 @@ Before "source ./lib/setup-user.functions.bash"
 Describe "dry-run mode"
 It "shows expected output format"
 # Set DOTFILES_DIR to a known good directory for CI compatibility
-export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
 # Mock platform to ensure consistent systemd behavior across environments
 export PLATFORM="arch"
 
@@ -54,7 +55,8 @@ End
 
 Describe "shared dotfiles processing"
 It "processes shared dotfiles correctly"
-export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
 
 When call ./bin/setup-user --dry-run
 
@@ -66,7 +68,8 @@ End
 
 Describe "systemd services"
 It "detects systemd services"
-export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
 # Mock platform to ensure systemd services are detected consistently
 export PLATFORM="arch"
 
@@ -81,7 +84,7 @@ Describe "dynamic wallpaper script"
 It "shows help"
 script_path="${SHELLSPEC_PROJECT_ROOT}/dotfiles/shared/.local/bin/dynamic-wallpaper"
 
-When call "$script_path" --help
+When call "${script_path}" --help
 
 The status should be success
 The output should include "Dynamic Wallpaper Script"
@@ -92,7 +95,8 @@ End
 
 Describe "custom scripts"
 It "extracts scripts from real config"
-export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
 
 When call get_custom_scripts "arch"
 
@@ -103,7 +107,8 @@ End
 
 Describe "platform handling"
 It "shows correct behavior for unknown platform"
-export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
 
 When run bash -c 'export PLATFORM=unknown; ./bin/setup-user --dry-run'
 

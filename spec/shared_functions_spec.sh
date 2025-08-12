@@ -1,5 +1,5 @@
 Describe "shared.functions.bash"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
 Before "source ./lib/security.functions.bash"
@@ -22,37 +22,37 @@ It "prioritizes darwin over pacman"
 uname() { echo "Darwin"; }
 # Create fake pacman in PATH
 temp_dir=$(mktemp -d)
-echo '#!/bin/bash' > "$temp_dir/pacman"
-chmod +x "$temp_dir/pacman"
-export PATH="$temp_dir:$PATH"
+echo '#!/bin/bash' > "${temp_dir}/pacman"
+chmod +x "${temp_dir}/pacman"
+export PATH="${temp_dir}:${PATH}"
 
 When call detect_platform
 
 The output should equal "macos"
 
 unset -f uname
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "returns arch on Linux with pacman"
 # Create a temporary directory and mock files
 temp_dir=$(mktemp -d)
-temp_proc="$temp_dir/proc_version"
-echo "Linux version 5.4.0-74-generic" > "$temp_proc"
+temp_proc="${temp_dir}/proc_version"
+echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
 
 # Create mock pacman
-echo '#!/bin/bash' > "$temp_dir/pacman"
-chmod +x "$temp_dir/pacman"
-export PATH="$temp_dir:$PATH"
+echo '#!/bin/bash' > "${temp_dir}/pacman"
+chmod +x "${temp_dir}/pacman"
+export PATH="${temp_dir}:${PATH}"
 
 # Override the detect_platform function to use our mock
 detect_platform() {
   local base_os="linux"
   
-  case "$base_os" in
+  case "${base_os}" in
     "linux")
       # Mock WSL check to fail by reading our fake /proc/version
-      if grep -qi "microsoft\|wsl" "$temp_proc" 2> /dev/null; then
+      if grep -qi "microsoft\|wsl" "${temp_proc}" 2> /dev/null; then
         echo "wsl"
       elif command -v pacman > /dev/null 2>&1; then
         echo "arch"
@@ -61,7 +61,7 @@ detect_platform() {
       fi
       ;;
     *)
-      echo "$base_os"
+      echo "${base_os}"
       ;;
   esac
 }
@@ -71,23 +71,23 @@ When call detect_platform
 The output should equal "arch"
 
 unset -f detect_platform
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "returns linux on Linux without pacman"
 # Create a temporary directory for mock files
 temp_dir=$(mktemp -d)
-temp_proc="$temp_dir/proc_version"
-echo "Linux version 5.4.0-74-generic" > "$temp_proc"
+temp_proc="${temp_dir}/proc_version"
+echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
 
 # Override the detect_platform function to use our mock and ensure no pacman
 detect_platform() {
   local base_os="linux"
   
-  case "$base_os" in
+  case "${base_os}" in
     "linux")
       # Mock WSL check to fail by reading our fake /proc/version
-      if grep -qi "microsoft\|wsl" "$temp_proc" 2> /dev/null; then
+      if grep -qi "microsoft\|wsl" "${temp_proc}" 2> /dev/null; then
         echo "wsl"
       elif false; then # Force pacman check to fail
         echo "arch"
@@ -96,7 +96,7 @@ detect_platform() {
       fi
       ;;
     *)
-      echo "$base_os"
+      echo "${base_os}"
       ;;
   esac
 }
@@ -106,7 +106,7 @@ When call detect_platform
 The output should equal "linux"
 
 unset -f detect_platform
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 
@@ -147,7 +147,7 @@ End
 Describe "server packages.yml parsing"
 It "extracts packages correctly"
 temp_dir=$(mktemp -d)
-server_dir="$temp_dir/servers/testhost"
+server_dir="${temp_dir}/servers/testhost"
 mkdir -p "$server_dir"
 cat > "$server_dir/packages.yml" << 'EOF'
 arch:
@@ -168,7 +168,7 @@ When call get_packages_from_file "arch" "pacman" "$server_dir/packages.yml"
 The output should include "k3s"
 The output should include "htop"
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 

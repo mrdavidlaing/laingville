@@ -1,5 +1,5 @@
 Describe "setup.sh secrets"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/security.functions.bash"
 Before "source ./lib/shared.functions.bash"
