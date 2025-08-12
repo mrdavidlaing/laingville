@@ -6,7 +6,9 @@ enable=all
 
 # Disable specific checks that may not be relevant for our use case
 # SC1090/SC1091: Can't follow non-constant source / Not following sourced files
-disable=SC1090,SC1091
+# SC2154: Referenced but not assigned (common in test frameworks like ShellSpec)
+# SC2317: Command appears to be unreachable (common in test mock functions)
+disable=SC1090,SC1091,SC2154,SC2317
 
 # Set shell dialect
 shell=bash
