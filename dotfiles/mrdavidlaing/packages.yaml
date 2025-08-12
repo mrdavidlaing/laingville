@@ -1,7 +1,11 @@
+# Package configuration for mrdavidlaing
+# Defines which packages to install for each platform
+
+# Arch Linux - full desktop environment
 arch:
   yay:
     # Development tools
-    - base-devel  # Essential development tools
+    - base-devel
     - bash
     - git
     - github-cli
@@ -21,15 +25,15 @@ arch:
     - pnpm
     - uv
     - openssh
-    - shellspec  # AUR: Testing framework
-    - shellcheck  # Bash linter
-    - shfmt       # Bash formatter
-    - glow        # AUR: Markdown viewer
-    - navi        # AUR: Interactive cheatsheet tool
-    - crush-bin   # AUR: Shell
-    - opencode    # AUR: VSCode launcher
-    - k9s         # Kubernetes TUI
-    # Desktop environment (Linux only)
+    - shellspec
+    - shellcheck
+    - shfmt
+    - glow
+    - navi
+    - crush-bin
+    - opencode
+    - k9s
+    # Desktop environment
     - hyprland
     - waybar
     - rofi
@@ -40,13 +44,13 @@ arch:
     - alacritty
     - gimp
     - ttf-jetbrains-mono-nerd
-    - vivaldi     # AUR: Browser
-    - 1password   # AUR: Password manager
-    - 1password-cli  # AUR: CLI tool
+    - vivaldi
+    - 1password
+    - 1password-cli
   custom:
     - install_claude_code
 
-# WSL2-specific packages (headless, CLI-focused)
+# WSL - terminal-focused, no GUI
 wsl:
   yay:
     # Essential development tools
@@ -63,26 +67,25 @@ wsl:
     - fzf
     - jq
     - tmux
+    - navi
     - go
     - nodejs
     - pnpm
     - uv
     - openssh
     - kubectl
-    - shellspec  # AUR: Testing framework
-    - shellcheck  # Bash linter
-    - shfmt       # Bash formatter
-    - glow        # AUR: Markdown viewer  
-    - crush-bin   # AUR: Shell
-    - k9s         # Kubernetes TUI
-    # Skip GUI packages: hyprland, waybar, rofi, thunar, alacritty, gimp, etc.
-    # Skip redundant packages: vivaldi, 1password, 1password-cli (use Windows versions)
+    - shellspec
+    - shellcheck
+    - shfmt
+    - glow
+    - crush-bin
+    - k9s
   custom:
     - install_claude_code
 
+# Windows - GUI applications
 windows:
   winget:
-    # Windows-native GUI applications and system tools
     - Alacritty.Alacritty
     - Mozilla.Firefox
     - Microsoft.PowerToys
@@ -92,6 +95,7 @@ windows:
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
 
+# macOS - Unix tools and GUI apps
 macos:
   homebrew:
     - direnv
@@ -107,6 +111,7 @@ macos:
     - fzf
     - ripgrep
     - tmux
+    - navi
     - laio
     - shellcheck
     - shfmt

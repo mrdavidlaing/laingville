@@ -57,6 +57,8 @@ Describe "shared dotfiles processing"
 It "processes shared dotfiles correctly"
 DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+# Mock platform to ensure shared dotfiles are processed consistently
+export PLATFORM="arch"
 
 When call ./bin/setup-user --dry-run
 

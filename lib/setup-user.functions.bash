@@ -104,7 +104,7 @@ config_should_not_be_linked() {
   local config_path="$1"
   local platform="${2:-$(detect_platform)}"
 
-  # Skip Linux-only configs on non-Linux platforms
+  # Skip Linux-only configs on non-Linux platforms (but WSL can run terminal tools)
   if [[ "$platform" == "windows" || "$platform" == "macos" ]]; then
     local config_name=$(basename "$config_path")
 
@@ -127,6 +127,14 @@ config_should_not_be_linked() {
         ;;
       dconf)
         # dconf is GNOME/GTK configuration - Linux only
+        return 0
+        ;;
+      tmux)
+        # tmux is a terminal multiplexer - not needed on Windows
+        return 0
+        ;;
+      navi)
+        # navi is a terminal cheatsheet tool - not needed on Windows
         return 0
         ;;
     esac
@@ -174,6 +182,27 @@ traverse_dotfiles() {
 show_file_item() {
   local item="$1" dest_dir="$2" relative_path="$3"
   local filename=$(basename "$item")
+
+  # Skip files that shouldn't be linked on current platform
+  local platform="${PLATFORM:-$(detect_platform)}"
+  if [ "$platform" = "windows" ]; then
+    case "$filename" in
+      .bashrc | .bashrc_git_learning | .bash_profile | .bash_logout)
+        # Bash-specific files not needed on pure Windows
+        return 0
+        ;;
+    esac
+  fi
+
+  # Skip desktop environment configs on WSL (has no GUI)
+  if [ "$platform" = "wsl" ]; then
+    case "$filename" in
+      dynamic-wallpaper.yml | dynamic-wallpaper)
+        # Dynamic wallpaper is for Linux desktop environments
+        return 0
+        ;;
+    esac
+  fi
 
   # Use platform-aware path for display
   local target
@@ -267,6 +296,27 @@ create_file_item() {
     log_security_event "UNSAFE_FILENAME" "Skipping unsafe filename: $filename"
     echo "Warning: Skipping unsafe filename: $filename" >&2
     return 1
+  fi
+
+  # Skip files that shouldn't be linked on current platform
+  local platform="${PLATFORM:-$(detect_platform)}"
+  if [ "$platform" = "windows" ]; then
+    case "$filename" in
+      .bashrc | .bashrc_git_learning | .bash_profile | .bash_logout)
+        # Bash-specific files not needed on pure Windows
+        return 0
+        ;;
+    esac
+  fi
+
+  # Skip desktop environment configs on WSL (has no GUI)
+  if [ "$platform" = "wsl" ]; then
+    case "$filename" in
+      dynamic-wallpaper.yml | dynamic-wallpaper)
+        # Dynamic wallpaper is for Linux desktop environments
+        return 0
+        ;;
+    esac
   fi
 
   # Use platform-aware path for the actual link (after validation)

@@ -1,0 +1,67 @@
+# Symlink configuration for mrdavidlaing
+# Defines which dotfiles to symlink for each platform
+
+# Arch Linux - full desktop environment
+arch:
+  # Shell configs
+  - .bashrc
+  - .bashrc_git_learning
+  - .gitconfig
+  # Terminal tools
+  - .config/tmux
+  - .config/navi
+  - .config/alacritty
+  - .config/starship.toml
+  # Desktop environment
+  - .config/hypr
+  - .config/waybar
+  - .config/systemd
+  - .config/dynamic-wallpaper.yml
+  - .config/dconf
+  # Apps
+  - .config/1Password
+
+# WSL - terminal-focused, no GUI
+wsl:
+  # Shell configs
+  - .bashrc
+  - .bashrc_git_learning
+  - .gitconfig
+  # Terminal tools (tmux and navi work great in WSL!)
+  - .config/tmux
+  - .config/navi
+  - .config/starship.toml
+  # Alacritty config (for Windows Alacritty to read)
+  - .config/alacritty
+  # Apps
+  - .config/1Password
+  # Note: No desktop environment configs (hypr, waybar, dynamic-wallpaper, dconf, systemd)
+
+# Windows - minimal config with custom paths
+windows:
+  - .gitconfig
+  # Alacritty with Windows-specific paths
+  - source: .config/alacritty/alacritty.toml
+    target: $APPDATA/alacritty/alacritty.toml
+  - source: .config/alacritty/themes
+    target: $APPDATA/alacritty/themes
+  # Starship
+  - source: .config/starship.toml
+    target: $APPDATA/starship/starship.toml
+  # 1Password
+  - source: .config/1Password/settings
+    target: $LOCALAPPDATA/1Password/settings
+
+# macOS - Unix-like with some differences
+macos:
+  # Shell configs
+  - .bashrc
+  - .bashrc_git_learning
+  - .gitconfig
+  # Terminal tools
+  - .config/tmux
+  - .config/navi
+  - .config/alacritty
+  - .config/starship.toml
+  # Apps
+  - .config/1Password

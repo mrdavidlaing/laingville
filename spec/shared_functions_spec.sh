@@ -48,7 +48,7 @@ export PATH="${temp_dir}:${PATH}"
 # Override the detect_platform function to use our mock
 detect_platform() {
   local base_os="linux"
-  
+
   case "${base_os}" in
     "linux")
       # Mock WSL check to fail by reading our fake /proc/version
@@ -83,7 +83,7 @@ echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
 # Override the detect_platform function to use our mock and ensure no pacman
 detect_platform() {
   local base_os="linux"
-  
+
   case "${base_os}" in
     "linux")
       # Mock WSL check to fail by reading our fake /proc/version
