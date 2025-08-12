@@ -12,7 +12,8 @@ The stderr should include "Usage: ./setup.sh {user|server|secrets}"
 End
 
 It "forwards to setup-secrets script and shows op not found error when op is unavailable"
-When call ./setup.sh secrets --dry-run
+# Mock the op command to be unavailable by manipulating PATH
+When run bash -c 'export PATH="/bin:/usr/bin"; ./setup.sh secrets --dry-run'
 The status should be failure
 The stdout should include "1Password CLI (op) not found"
 End
