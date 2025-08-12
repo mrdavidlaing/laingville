@@ -14,6 +14,7 @@ current_shell=$(getent passwd "${current_user}" | cut -d: -f7)
 if [[ "${current_shell}" != *"bash"* ]]; then
   echo "Error: Your login shell is not bash" >&2
   echo "Current shell: ${current_shell}" >&2
-  echo "To fix this, run: chsh -s $(command -v bash)" >&2
+  bash_path=$(command -v bash)
+  echo "To fix this, run: chsh -s ${bash_path}" >&2
   exit 1
 fi

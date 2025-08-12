@@ -1,5 +1,5 @@
 Describe "setup-user script"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
 Before "source ./lib/security.functions.bash"
@@ -9,7 +9,7 @@ Before "source ./lib/setup-user.functions.bash"
 Describe "dry-run mode"
 It "shows expected output format"
 # Set DOTFILES_DIR to a known good directory for CI compatibility
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 # Mock platform to ensure consistent systemd behavior across environments
 export PLATFORM="arch"
 
@@ -37,10 +37,10 @@ End
 Describe "missing packages.yml handling"
 It "handles missing packages.yml gracefully"
 # Create temporary dotfiles directory within allowed path
-temp_dir="$SHELLSPEC_PROJECT_ROOT/dotfiles/test_temp_user_$$"
-mkdir -p "$temp_dir/.config"
-echo "test" > "$temp_dir/.config/test.conf"
-export DOTFILES_DIR="$temp_dir"
+temp_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/test_temp_user_$$"
+mkdir -p "${temp_dir}/.config"
+echo "test" > "${temp_dir}/.config/test.conf"
+export DOTFILES_DIR="${temp_dir}"
 
 When call ./bin/setup-user --dry-run
 
@@ -48,13 +48,13 @@ The status should be success
 The output should include "No packages.yml found"
 
 # Cleanup
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 
 Describe "shared dotfiles processing"
 It "processes shared dotfiles correctly"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 When call ./bin/setup-user --dry-run
 
@@ -66,7 +66,7 @@ End
 
 Describe "systemd services"
 It "detects systemd services"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 # Mock platform to ensure systemd services are detected consistently
 export PLATFORM="arch"
 
@@ -79,7 +79,7 @@ End
 
 Describe "dynamic wallpaper script"
 It "shows help"
-script_path="$SHELLSPEC_PROJECT_ROOT/dotfiles/shared/.local/bin/dynamic-wallpaper"
+script_path="${SHELLSPEC_PROJECT_ROOT}/dotfiles/shared/.local/bin/dynamic-wallpaper"
 
 When call "$script_path" --help
 
@@ -92,7 +92,7 @@ End
 
 Describe "custom scripts"
 It "extracts scripts from real config"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 When call get_custom_scripts "arch"
 
@@ -103,7 +103,7 @@ End
 
 Describe "platform handling"
 It "shows correct behavior for unknown platform"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 When run bash -c 'export PLATFORM=unknown; ./bin/setup-user --dry-run'
 
@@ -113,11 +113,11 @@ End
 
 It "skips custom scripts gracefully on unknown platform"
 # Create temporary dotfiles directory within allowed path
-temp_dir="$SHELLSPEC_PROJECT_ROOT/dotfiles/test_temp_custom_$$"
-mkdir -p "$temp_dir"
+temp_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/test_temp_custom_$$"
+mkdir -p "${temp_dir}"
 
 # Create packages.yml with custom script (which should be skipped on unknown platform)
-cat > "$temp_dir/packages.yml" << 'EOF'
+cat > "${temp_dir}/packages.yml" << 'EOF'
 arch:
   pacman:
     - git
@@ -125,7 +125,7 @@ arch:
     - nonexistent_script
 EOF
 
-export DOTFILES_DIR="$temp_dir"
+export DOTFILES_DIR="${temp_dir}"
 
 When run bash -c 'export PLATFORM=unknown; ./bin/setup-user --dry-run'
 
@@ -133,7 +133,7 @@ The status should be success
 The output should include "Unknown platform: unknown - skipping package installation"
 
 # Cleanup
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 End

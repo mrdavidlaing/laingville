@@ -1,10 +1,11 @@
 Describe "setup-user dotfile filtering"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/setup-user.functions.bash"
 
 Describe "user symlinks filtering"
 It "only includes dot-prefixed files and dirs"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
 
 When call ./bin/setup-user --dry-run
 
@@ -16,21 +17,21 @@ check_dotfile_symlinks() {
   local non_dotfile_symlinks=()
 
   while IFS= read -r line; do
-    if [[ "$line" =~ Would\ (create|update):\ ~/([^\ ]+) ]]; then
+    if [[ "${line}" =~ Would\ (create|update):\ ~/([^\ ]+) ]]; then
       local target="${BASH_REMATCH[2]}"
       local first_component="${target%%/*}" # Get first part before any /
 
-      if [[ ! "$first_component" =~ ^\. ]]; then
-        non_dotfile_symlinks+=("$line")
+      if [[ ! "${first_component}" =~ ^\. ]]; then
+        non_dotfile_symlinks+=("${line}")
       fi
     fi
   done <<< "$output"
 
   # Return failure if any non-dotfile symlinks found
-  if [ ${#non_dotfile_symlinks[@]} -gt 0 ]; then
+  if [[ ${#non_dotfile_symlinks[@]} -gt 0 ]]; then
     echo "FAILED: Found symlinks to non-dotfiles (files/dirs not starting with '.'):"
     for symlink in "${non_dotfile_symlinks[@]}"; do
-      echo "  $symlink"
+      echo "  ${symlink}"
     done
     return 1
   fi

@@ -1,5 +1,5 @@
 Describe "setup-server script"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
 Before "source ./lib/security.functions.bash"
@@ -14,10 +14,10 @@ It "works correctly"
 if command -v hostname > /dev/null 2>&1; then
   current_hostname=$(hostname)
 else
-  current_hostname=$(cat /proc/sys/kernel/hostname 2> /dev/null || echo "$HOSTNAME")
+  current_hostname=$(cat /proc/sys/kernel/hostname 2> /dev/null || echo "${HOSTNAME}")
 fi
 
-The value "$current_hostname" should not be blank
+The value "${current_hostname}" should not be blank
 # Hostname should not contain spaces or special characters that would break our logic
 # This test just checks that hostname detection works - skip pattern validation for now
 End
@@ -31,9 +31,9 @@ It "maps hostname to correct server directory"
 test_hostname="baljeet"
 expected_dir="servers/baljeet"
 
-When call map_hostname_to_server_dir "$test_hostname"
+When call map_hostname_to_server_dir "${test_hostname}"
 
-The output should equal "$expected_dir"
+The output should equal "${expected_dir}"
 End
 End
 
@@ -56,7 +56,8 @@ End
 
 Describe "dry-run mode"
 It "shows expected sections"
-export SERVER_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/servers/baljeet" && pwd)"
+SERVER_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/servers/baljeet" && pwd)"
+export SERVER_DIR
 export PLATFORM="arch"
 
 When call ./bin/setup-server --dry-run
@@ -71,9 +72,9 @@ End
 Describe "k3s package detection"
 It "specifically detects k3s for baljeet server"
 # This test ensures k3s is properly configured for baljeet
-server_packages_file="$SHELLSPEC_PROJECT_ROOT/servers/baljeet/packages.yml"
+server_packages_file="${SHELLSPEC_PROJECT_ROOT}/servers/baljeet/packages.yml"
 
-When call grep -q "k3s-bin" "$server_packages_file"
+When call grep -q "k3s-bin" "${server_packages_file}"
 The status should be success
 End
 End
@@ -81,9 +82,9 @@ End
 Describe "missing server packages.yml handling"
 It "handles missing server packages.yml gracefully"
 # Create temporary server directory within allowed path
-temp_dir="$SHELLSPEC_PROJECT_ROOT/servers/test_temp_server_$$"
-mkdir -p "$temp_dir" # Create directory but not packages.yml
-export SERVER_DIR="$temp_dir"
+temp_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_temp_server_$$"
+mkdir -p "${temp_dir}" # Create directory but not packages.yml
+export SERVER_DIR="${temp_dir}"
 
 When call ./bin/setup-server --dry-run
 
@@ -91,7 +92,7 @@ The status should be success
 The output should include "No packages.yml found"
 
 # Cleanup
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 
