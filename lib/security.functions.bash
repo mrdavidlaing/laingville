@@ -10,25 +10,28 @@ validate_package_name() {
   local pkg="$1"
 
   # Check for empty or null input
-  [ -z "$pkg" ] && return 1
+  [[ -z "${pkg}" ]] && return 1
 
   # Check length limit (reasonable package name length)
-  [ ${#pkg} -gt 200 ] && return 1
+  [[ ${#pkg} -gt 200 ]] && return 1
 
   # Allow alphanumeric characters, dots, hyphens, underscores, plus signs, and slashes
   # This covers most legitimate package naming conventions including Homebrew taps
-  [[ "$pkg" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+/-]*$ ]] || return 1
+  [[ "${pkg}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+/-]*$ ]] || return 1
 
   # Reject obviously malicious patterns
-  case "$pkg" in
-    *";"* | *"&"* | *"|"* | *'$'* | *'`'* | *'\'*)
+  case "${pkg}" in
+    *";"* | *"&"* | *"|"* | *'$'* | *'`'* | *"\\"*)
       return 1
+      ;;
+    *)
+      # Valid package name
       ;;
   esac
 
   # Reject path traversal patterns in package names
   # Allow single slashes for Homebrew taps, but reject multiple consecutive slashes and .. patterns
-  if [[ "$pkg" =~ \.\. ]] || [[ "$pkg" =~ // ]]; then
+  if [[ "${pkg}" =~ \.\. ]] || [[ "${pkg}" =~ // ]]; then
     return 1
   fi
 
@@ -42,39 +45,39 @@ validate_path_traversal() {
   local base_dir="$2"
   local allow_symlinks="${3:-false}"
 
-  [ -z "$path" ] || [ -z "$base_dir" ] && return 1
+  [[ -z "${path}" ]] || [[ -z "${base_dir}" ]] && return 1
 
   # For symlink validation, we want to validate the target path itself, not what it points to
   local canonical_path
-  if [ -L "$path" ]; then
+  if [[ -L "${path}" ]]; then
     # For existing symlinks, validate the path itself without following it
-    canonical_path="$path"
+    canonical_path="${path}"
   else
     # For non-symlinks, use polyfill canonicalization
-    canonical_path=$(canonicalize_path "$path")
+    canonical_path=$(canonicalize_path "${path}")
   fi
 
   # If canonicalization fails, try basic path validation
-  if [ -z "$canonical_path" ]; then
+  if [[ -z "${canonical_path}" ]]; then
     # Check if the path contains traversal sequences - if so, reject it
-    if [[ "$path" =~ /\.\./ ]] || [[ "$path" =~ /\.\./$ ]] || [[ "$path" =~ ^\.\./ ]]; then
+    if [[ "${path}" =~ /\.\./ ]] || [[ "${path}" =~ /\.\./$ ]] || [[ "${path}" =~ ^\.\./ ]]; then
       return 1 # Reject paths with .. traversal when they can't be resolved
     fi
-    canonical_path="$path"
+    canonical_path="${path}"
   fi
 
   local canonical_base
-  canonical_base=$(canonicalize_path "$base_dir" || echo "$base_dir")
+  canonical_base=$(canonicalize_path "${base_dir}" || echo "${base_dir}")
 
   # If symlinks are not allowed, do a simple check for direct symlinks
-  if [ "$allow_symlinks" != "true" ] && [ -L "$path" ]; then
+  if [[ "${allow_symlinks}" != "true" ]] && [[ -L "${path}" ]]; then
     return 1 # Path itself is a symlink and symlinks not allowed
   fi
 
   # Ensure the canonical path starts with the canonical base directory
-  case "$canonical_path" in
-    "$canonical_base"/*) return 0 ;;
-    "$canonical_base") return 0 ;;
+  case "${canonical_path}" in
+    "${canonical_base}"/*) return 0 ;;
+    "${canonical_base}") return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -84,25 +87,25 @@ validate_path_traversal() {
 sanitize_filename() {
   local filename="$1"
 
-  [ -z "$filename" ] && return 1
+  [[ -z "${filename}" ]] && return 1
 
   # Remove path traversal sequences using tr to avoid sed escaping issues
-  filename=$(echo "$filename" | tr -d '/' | tr -d '\\')
+  filename=$(echo "${filename}" | tr -d '/' | tr -d "\\" || true)
 
   # Remove null bytes and other dangerous characters
-  filename=$(echo "$filename" | tr -d '\0' | tr -d '<>:"|?*')
+  filename=$(echo "${filename}" | tr -d '\0' | tr -d '<>:"|?*' || true)
 
   # Remove dots to prevent hidden files and traversal remnants
-  filename=$(echo "$filename" | tr -d '.')
+  filename=$(echo "${filename}" | tr -d '.')
 
   # Remove leading/trailing whitespace using parameter expansion
   filename="${filename#"${filename%%[![:space:]]*}"}" # remove leading whitespace
   filename="${filename%"${filename##*[![:space:]]}"}" # remove trailing whitespace
 
   # Ensure filename isn't empty after sanitization
-  [ -z "$filename" ] && return 1
+  [[ -z "${filename}" ]] && return 1
 
-  echo "$filename"
+  echo "${filename}"
   return 0
 }
 
@@ -114,26 +117,27 @@ validate_yaml_file() {
   local max_lines="${3:-10000}"   # Line limit to prevent DoS
 
   # Check file existence and readability
-  [ -f "$file" ] || return 1
-  [ -r "$file" ] || return 1
+  [[ -f "${file}" ]] || return 1
+  [[ -r "${file}" ]] || return 1
 
   # Check file size to prevent DoS attacks (cross-platform)
   local file_size
-  file_size=$(get_file_size "$file")
-  [ "$file_size" -le "$max_size" ] || {
+  file_size=$(get_file_size "${file}")
+  [[ "${file_size}" -le "${max_size}" ]] || {
     echo "Error: Configuration file too large (${file_size} bytes > ${max_size} bytes)" >&2
     return 1
   }
 
   # Check line count
-  local line_count=$(wc -l < "$file" 2> /dev/null || echo "0")
-  [ "$line_count" -le "$max_lines" ] || {
+  local line_count
+  line_count=$(wc -l < "${file}" 2> /dev/null || echo "0")
+  [[ "${line_count}" -le "${max_lines}" ]] || {
     echo "Error: Configuration file has too many lines (${line_count} > ${max_lines})" >&2
     return 1
   }
 
   # Basic YAML structure validation (check for common issues)
-  if grep -q $'\t' "$file"; then
+  if grep -q $'\t' "${file}"; then
     echo "Error: YAML file contains tabs, use spaces for indentation" >&2
     return 1
   fi
@@ -146,13 +150,13 @@ validate_yaml_file() {
 validate_yaml_key() {
   local key="$1"
 
-  [ -z "$key" ] && return 1
+  [[ -z "${key}" ]] && return 1
 
   # Only allow lowercase letters, numbers, and underscores
-  [[ "$key" =~ ^[a-z0-9_]+$ ]] || return 1
+  [[ "${key}" =~ ^[a-z0-9_]+$ ]] || return 1
 
   # Check reasonable length
-  [ ${#key} -le 50 ] || return 1
+  [[ ${#key} -le 50 ]] || return 1
 
   return 0
 }
@@ -162,17 +166,17 @@ validate_yaml_key() {
 validate_systemd_unit_name() {
   local unit_name="$1"
 
-  [ -z "$unit_name" ] && return 1
+  [[ -z "${unit_name}" ]] && return 1
 
   # Check length
-  [ ${#unit_name} -le 256 ] || return 1
+  [[ ${#unit_name} -le 256 ]] || return 1
 
   # Validate systemd unit name format
   # Allow alphanumeric, dots, hyphens, underscores, @ symbols
-  [[ "$unit_name" =~ ^[a-zA-Z0-9@._-]+\.(service|timer|target|socket|mount|automount|swap|path|slice|scope)$ ]] || return 1
+  [[ "${unit_name}" =~ ^[a-zA-Z0-9@._-]+\.(service|timer|target|socket|mount|automount|swap|path|slice|scope)$ ]] || return 1
 
   # Reject dangerous patterns
-  [[ "$unit_name" =~ (\.\.|/) ]] && return 1
+  [[ "${unit_name}" =~ (\.\.|/) ]] && return 1
 
   return 0
 }
@@ -182,17 +186,17 @@ validate_systemd_unit_name() {
 validate_hostname() {
   local hostname="$1"
 
-  [ -z "$hostname" ] && return 1
+  [[ -z "${hostname}" ]] && return 1
 
   # Check length (reasonable hostname length)
-  [ ${#hostname} -le 253 ] || return 1
+  [[ ${#hostname} -le 253 ]] || return 1
 
   # Validate hostname format (RFC compliant)
-  [[ "$hostname" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]] || return 1
+  [[ "${hostname}" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]] || return 1
 
   # Ensure it doesn't start or end with dots or hyphens
-  [[ "$hostname" =~ ^[.-] ]] && return 1
-  [[ "$hostname" =~ [.-]$ ]] && return 1
+  [[ "${hostname}" =~ ^[.-] ]] && return 1
+  [[ "${hostname}" =~ [.-]$ ]] && return 1
 
   return 0
 }
@@ -204,21 +208,21 @@ validate_environment_variable() {
   local var_value="$2"
   local expected_prefix="$3"
 
-  [ -z "$var_name" ] || [ -z "$var_value" ] && return 1
+  [[ -z "${var_name}" ]] || [[ -z "${var_value}" ]] && return 1
 
   # Resolve canonical path first to handle relative paths correctly
   local canonical_path
-  canonical_path=$(canonicalize_path "$var_value" || echo "$var_value")
+  canonical_path=$(canonicalize_path "${var_value}" || echo "${var_value}")
 
   # Also resolve the expected prefix to handle relative paths
   local canonical_prefix
-  if [ -n "$expected_prefix" ]; then
-    canonical_prefix=$(canonicalize_path "$expected_prefix" || echo "$expected_prefix")
+  if [[ -n "${expected_prefix}" ]]; then
+    canonical_prefix=$(canonicalize_path "${expected_prefix}" || echo "${expected_prefix}")
 
     # Ensure canonical path is within canonical prefix
-    case "$canonical_path" in
-      "$canonical_prefix"/*) return 0 ;;
-      "$canonical_prefix") return 0 ;;
+    case "${canonical_path}" in
+      "${canonical_prefix}"/*) return 0 ;;
+      "${canonical_prefix}") return 0 ;;
       *) return 1 ;;
     esac
   fi
@@ -231,13 +235,14 @@ validate_environment_variable() {
 log_security_event() {
   local event_type="$1"
   local message="$2"
-  local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  local timestamp
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
   # Log to stderr for immediate visibility
-  echo "SECURITY[$timestamp]: $event_type - $message" >&2
+  echo "SECURITY[${timestamp}]: ${event_type} - ${message}" >&2
 
   # Also log to system log if available
   if command -v logger > /dev/null 2>&1; then
-    logger -t "laingville-setup" "SECURITY: $event_type - $message"
+    logger -t "laingville-setup" "SECURITY: ${event_type} - ${message}"
   fi
 }

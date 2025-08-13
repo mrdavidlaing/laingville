@@ -1,4 +1,5 @@
 Describe "macos.functions.bash"
+# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
 Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
@@ -10,12 +11,13 @@ Before "source ./lib/macos.functions.bash"
 Describe "install_homebrew function"
 It "shows correct dry-run output when brew not installed"
 # Mock command -v to return failure for brew
+# shellcheck disable=SC2329  # Mock function for testing
 command() {
-  if [[ "$1" = "-v" ]] && [[ "$2" = "brew" ]]; then
+  if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
     return 1
   fi
   # Fall back to real command for other calls
-  /usr/bin/command "$@"
+  /usr/bin/command "${@}"
 }
 
 When call install_homebrew true
@@ -27,12 +29,13 @@ End
 
 It "shows correct dry-run output when brew already installed"
 # Mock command -v to return success for brew
+# shellcheck disable=SC2329  # Mock function for testing
 command() {
-  if [[ "$1" = "-v" ]] && [[ "$2" = "brew" ]]; then
+  if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
     return 0
   fi
   # Fall back to real command for other calls
-  /usr/bin/command "$@"
+  /usr/bin/command "${@}"
 }
 
 When call install_homebrew true
@@ -60,26 +63,30 @@ End
 Describe "macOS functions handle non-dry-run mode gracefully"
 It "handles non-dry-run mode without actual system changes"
 # Mock command -v to simulate brew not being available
+# shellcheck disable=SC2329  # Mock function for testing
 command() {
-  if [[ "$1" = "-v" ]] && [[ "$2" = "brew" ]]; then
+  if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
     return 1
   fi
   # Fall back to real command for other calls
-  /usr/bin/command "$@"
+  /usr/bin/command "${@}"
 }
 
 # Mock curl to prevent actual Homebrew installation
+# shellcheck disable=SC2329  # Mock function for testing
 curl() {
   echo "# Mock Homebrew installer script"
   echo "echo 'Mock Homebrew installation'"
 }
 
 # Mock defaults to prevent actual system changes
+# shellcheck disable=SC2329  # Mock function for testing
 defaults() {
-  echo "Mock defaults command: $*"
+  echo "Mock defaults command: ${*}"
 }
 
 # Mock osascript to prevent actual login item changes
+# shellcheck disable=SC2329  # Mock function for testing
 osascript() {
   echo "exists"
 }
@@ -93,11 +100,13 @@ End
 
 It "configure_macos_system handles non-dry-run mode"
 # Mock defaults to prevent actual system changes
+# shellcheck disable=SC2329  # Mock function for testing
 defaults() {
-  echo "Mock defaults command: $*"
+  echo "Mock defaults command: ${*}"
 }
 
 # Mock osascript to prevent actual login item changes
+# shellcheck disable=SC2329  # Mock function for testing
 osascript() {
   echo "exists"
 }
@@ -128,6 +137,7 @@ End
 Describe "setup_systemd_services skips systemd on macOS"
 It "skips systemd on macOS in dry-run mode"
 # Mock detect_platform to return macos
+# shellcheck disable=SC2329  # Mock function for testing
 detect_platform() {
   echo "macos"
 }
@@ -141,6 +151,7 @@ End
 
 It "skips systemd on macOS in normal mode"
 # Mock detect_platform to return macos
+# shellcheck disable=SC2329  # Mock function for testing
 detect_platform() {
   echo "macos"
 }

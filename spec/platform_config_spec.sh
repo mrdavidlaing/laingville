@@ -12,27 +12,27 @@ BeforeEach 'unset WINDIR APPDATA LOCALAPPDATA'
 
 It 'returns standard Unix path for alacritty config'
 When call get_platform_config_path ".config/alacritty/" "alacritty.toml"
-The output should equal "$HOME/.config/alacritty/alacritty.toml"
+The output should equal "${HOME}/.config/alacritty/alacritty.toml"
 End
 
 It 'returns standard Unix path for alacritty themes'
 When call get_platform_config_path ".config/alacritty/themes/" "solarized_dark.toml"
-The output should equal "$HOME/.config/alacritty/themes/solarized_dark.toml"
+The output should equal "${HOME}/.config/alacritty/themes/solarized_dark.toml"
 End
 
 It 'returns standard Unix path for nested alacritty directories'
 When call get_platform_config_path ".config/alacritty/foo/bar/" "config.toml"
-The output should equal "$HOME/.config/alacritty/foo/bar/config.toml"
+The output should equal "${HOME}/.config/alacritty/foo/bar/config.toml"
 End
 
 It 'returns standard Unix path for 1Password config'
 When call get_platform_config_path ".config/1Password/settings/" "settings.json"
-The output should equal "$HOME/.config/1Password/settings/settings.json"
+The output should equal "${HOME}/.config/1Password/settings/settings.json"
 End
 
 It 'returns standard Unix path for other configs'
 When call get_platform_config_path ".config/starship/" "starship.toml"
-The output should equal "$HOME/.config/starship/starship.toml"
+The output should equal "${HOME}/.config/starship/starship.toml"
 End
 End
 
@@ -40,16 +40,19 @@ Describe 'on Windows (Git Bash/MSYS)'
 BeforeEach 'setup_windows_env'
 AfterEach 'cleanup_windows_env'
 
+# shellcheck disable=SC2329  # Mock function for testing
 setup_windows_env() {
   export WINDIR="/mnt/c/Windows"
   export APPDATA="/mnt/c/Users/TestUser/AppData/Roaming"
   export LOCALAPPDATA="/mnt/c/Users/TestUser/AppData/Local"
   # Create mock mkdir function that doesn't actually create directories
+  # shellcheck disable=SC2329  # Mock function for testing
   mkdir() {
     return 0
   }
 }
 
+# shellcheck disable=SC2329  # Mock function for testing
 cleanup_windows_env() {
   unset WINDIR APPDATA LOCALAPPDATA
   unset -f mkdir
@@ -82,7 +85,7 @@ End
 
 It 'returns standard Unix path for non-mapped configs'
 When call get_platform_config_path ".config/starship/" "starship.toml"
-The output should equal "$HOME/.config/starship/starship.toml"
+The output should equal "${HOME}/.config/starship/starship.toml"
 End
 
 It 'handles Windows paths with backslashes in APPDATA'
@@ -96,12 +99,15 @@ Describe 'edge cases'
 BeforeEach 'setup_windows_env'
 AfterEach 'cleanup_windows_env'
 
+# shellcheck disable=SC2329  # Mock function for testing
 setup_windows_env() {
   export WINDIR="/mnt/c/Windows"
   export APPDATA="/mnt/c/Users/TestUser/AppData/Roaming"
+  # shellcheck disable=SC2329  # Mock function for testing
   mkdir() { return 0; }
 }
 
+# shellcheck disable=SC2329  # Mock function for testing
 cleanup_windows_env() {
   unset WINDIR APPDATA
   unset -f mkdir
@@ -114,7 +120,7 @@ End
 
 It 'handles path without trailing slash'
 When call get_platform_config_path ".config/alacritty" "test.toml"
-The output should equal "$HOME/.config/alacrittytest.toml"
+The output should equal "${HOME}/.config/alacrittytest.toml"
 End
 
 It 'handles deep nesting correctly'
@@ -133,8 +139,9 @@ setup_tracking() {
   export MKDIR_CALLS=""
 
   # Track mkdir calls
+  # shellcheck disable=SC2329  # Mock function for testing
   mkdir() {
-    MKDIR_CALLS="$MKDIR_CALLS|$*"
+    MKDIR_CALLS="${MKDIR_CALLS}|${*}"
     return 0
   }
 }

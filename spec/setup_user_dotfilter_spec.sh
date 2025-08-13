@@ -1,11 +1,12 @@
 Describe "setup-user dotfile filtering"
+# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
 Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/setup-user.functions.bash"
 
 Describe "user symlinks filtering"
 It "only includes dot-prefixed files and dirs"
-DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 When call ./bin/setup-user --dry-run
 
@@ -13,7 +14,7 @@ The status should be success
 
 # Custom validation function to check all symlinks start with dots
 check_dotfile_symlinks() {
-  local output="$1"
+  local output="${1}"
   local non_dotfile_symlinks=()
 
   while IFS= read -r line; do

@@ -1,4 +1,8 @@
 Describe "shared.functions.bash"
+<<<<<<< HEAD
+=======
+# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
+>>>>>>> a65b094 (fix: Complete comprehensive shellcheck linting cleanup)
 Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
@@ -8,6 +12,7 @@ Before "source ./lib/shared.functions.bash"
 Describe "detect_platform function"
 It "returns macos on Darwin"
 # Mock uname command to return Darwin
+# shellcheck disable=SC2329  # Mock function for testing
 uname() { echo "Darwin"; }
 
 When call detect_platform
@@ -19,6 +24,7 @@ End
 
 It "prioritizes darwin over pacman"
 # Mock uname to return Darwin, even if pacman exists
+# shellcheck disable=SC2329  # Mock function for testing
 uname() { echo "Darwin"; }
 # Create fake pacman in PATH
 temp_dir=$(mktemp -d)
@@ -46,6 +52,7 @@ chmod +x "${temp_dir}/pacman"
 export PATH="${temp_dir}:${PATH}"
 
 # Override the detect_platform function to use our mock
+# shellcheck disable=SC2329  # Mock function for testing
 detect_platform() {
   local base_os="linux"
 
@@ -81,6 +88,7 @@ temp_proc="${temp_dir}/proc_version"
 echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
 
 # Override the detect_platform function to use our mock and ensure no pacman
+# shellcheck disable=SC2329  # Mock function for testing
 detect_platform() {
   local base_os="linux"
 
@@ -112,19 +120,21 @@ End
 
 Describe "get_packages_from_file function"
 It "extracts packages from real config"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
-When call get_packages_from_file "arch" "yay" "$DOTFILES_DIR/packages.yml"
+When call get_packages_from_file "arch" "yay" "${DOTFILES_DIR}/packages.yaml"
 
 The output should not be blank
 The output should include "hyprland"
 End
 
 It "extracts macOS packages from real config"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 # Test homebrew packages
-When call get_packages_from_file "macos" "homebrew" "$DOTFILES_DIR/packages.yml"
+When call get_packages_from_file "macos" "homebrew" "${DOTFILES_DIR}/packages.yaml"
 
 The output should not be blank
 The output should include "git"
@@ -133,9 +143,10 @@ The output should include "ripgrep"
 End
 
 It "extracts cask packages from real config"
-export DOTFILES_DIR="$(cd "$SHELLSPEC_PROJECT_ROOT/dotfiles/mrdavidlaing" && pwd)"
+export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
-When call get_packages_from_file "macos" "cask" "$DOTFILES_DIR/packages.yml"
+When call get_packages_from_file "macos" "cask" "${DOTFILES_DIR}/packages.yaml"
 
 The output should not be blank
 The output should include "alacritty"
@@ -144,12 +155,12 @@ The output should include "font-jetbrains-mono-nerd-font"
 End
 End
 
-Describe "server packages.yml parsing"
+Describe "server packages.yaml parsing"
 It "extracts packages correctly"
 temp_dir=$(mktemp -d)
 server_dir="${temp_dir}/servers/testhost"
-mkdir -p "$server_dir"
-cat > "$server_dir/packages.yml" << 'EOF'
+mkdir -p "${server_dir}"
+cat > "${server_dir}/packages.yaml" << 'EOF'
 arch:
   pacman:
     - k3s
@@ -163,7 +174,7 @@ windows:
     - SomeApp
 EOF
 
-When call get_packages_from_file "arch" "pacman" "$server_dir/packages.yml"
+When call get_packages_from_file "arch" "pacman" "${server_dir}/packages.yaml"
 
 The output should include "k3s"
 The output should include "htop"
@@ -196,7 +207,7 @@ End
 It "rejects too long names"
 longname=$(printf 'a%.0s' {1..60})
 
-When call validate_script_name "$longname"
+When call validate_script_name "${longname}"
 
 The status should not be success
 The stderr should include "Script name too long"

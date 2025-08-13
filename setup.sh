@@ -10,17 +10,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 
 # Check if we have any arguments
-if [ $# -eq 0 ]; then
+if [[ $# -eq 0 ]]; then
   echo "Usage: $0 {user|server|secrets} [args...]" >&2
   echo "  user    : Run user dotfile setup" >&2
   echo "  server  : Run server configuration" >&2
   exit 1
 fi
 
-COMMAND="$1"
+COMMAND="${1}"
 shift # Remove the command from the argument list
 
-case "$COMMAND" in
+case "${COMMAND}" in
   user)
     exec "${SCRIPT_DIR}/bin/setup-user" "$@"
     ;;

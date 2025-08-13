@@ -1,4 +1,5 @@
 Describe "setup.sh secrets"
+# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
 Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/security.functions.bash"

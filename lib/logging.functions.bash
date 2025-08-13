@@ -24,8 +24,7 @@ readonly ICON_ERROR="[ERROR]"
 readonly ICON_WARNING="[WARN]"
 readonly ICON_INFO="[INFO]"
 readonly ICON_DEBUG="[DEBUG]"
-readonly ICON_SECTION=">"
-readonly ICON_SUBSECTION="  >"
+# Removed unused variables ICON_SECTION and ICON_SUBSECTION
 readonly ICON_DRY_RUN="*"
 
 # Global state for consistent formatting
@@ -51,7 +50,8 @@ log_init() {
   fi
 
   # Show script start banner
-  local script_name=$(basename "${0}")
+  local script_name
+  script_name=$(basename "${0}")
   log_section "Starting ${script_name}"
 
   # Show dry-run mode if enabled
@@ -86,11 +86,12 @@ _log_indent() {
 # Main section header - highest level visual break
 log_section() {
   local message="$1"
-  local timestamp=$(_log_timestamp)
+  local timestamp
+  timestamp=$(_log_timestamp)
 
   echo
-  _log_color "${LOG_BOLD}${LOG_BLUE}" "$(_log_indent)${message}"
-  _log_color "${LOG_BLUE}" "$(_log_indent)$(printf -- '-%.0s' {1..20})"
+  _log_color "${LOG_BOLD}${LOG_BLUE}" "$(_log_indent || true)${message}"
+  _log_color "${LOG_BLUE}" "$(_log_indent || true)$(printf -- '-%.0s' {1..20} || true)"
 }
 
 # Subsection header - secondary level grouping
@@ -98,28 +99,28 @@ log_subsection() {
   local message="$1"
 
   echo
-  _log_color "${LOG_BOLD}${LOG_CYAN}" "$(_log_indent)${message}"
+  _log_color "${LOG_BOLD}${LOG_CYAN}" "$(_log_indent || true)${message}"
 }
 
 # Success message - operations completed successfully
 log_success() {
   local message="$1"
 
-  _log_color "${LOG_GREEN}" "$(_log_indent)${ICON_SUCCESS} ${message}"
+  _log_color "${LOG_GREEN}" "$(_log_indent || true)${ICON_SUCCESS} ${message}"
 }
 
 # Error message - critical failures (goes to stderr)
 log_error() {
   local message="$1"
 
-  _log_color "${LOG_BOLD}${LOG_RED}" "$(_log_indent)${ICON_ERROR} ERROR: ${message}" >&2
+  _log_color "${LOG_BOLD}${LOG_RED}" "$(_log_indent || true)${ICON_ERROR} ERROR: ${message}" >&2
 }
 
 # Warning message - non-critical issues
 log_warning() {
   local message="$1"
 
-  _log_color "${LOG_YELLOW}" "$(_log_indent)${ICON_WARNING} Warning: ${message}"
+  _log_color "${LOG_YELLOW}" "$(_log_indent || true)${ICON_WARNING} Warning: ${message}"
 }
 
 # Info message - general information
@@ -127,7 +128,7 @@ log_info() {
   local message="$1"
 
   [[ "${LOG_QUIET}" == "true" ]] && return
-  _log_color "${LOG_WHITE}" "$(_log_indent)${ICON_INFO} ${message}"
+  _log_color "${LOG_WHITE}" "$(_log_indent || true)${ICON_INFO} ${message}"
 }
 
 # Debug message - detailed troubleshooting info
@@ -135,14 +136,14 @@ log_debug() {
   local message="$1"
 
   [[ "${LOG_DEBUG:-false}" != "true" ]] && return
-  _log_color "${LOG_DIM}${LOG_GRAY}" "$(_log_indent)${ICON_DEBUG} ${message}"
+  _log_color "${LOG_DIM}${LOG_GRAY}" "$(_log_indent || true)${ICON_DEBUG} ${message}"
 }
 
 # Dry-run specific messages
 log_dry_run() {
   local message="$1"
 
-  _log_color "${LOG_MAGENTA}" "$(_log_indent)${ICON_DRY_RUN} Would: ${message}"
+  _log_color "${LOG_MAGENTA}" "$(_log_indent || true)${ICON_DRY_RUN} Would: ${message}"
 }
 
 # Progress indicator for long operations
@@ -151,7 +152,7 @@ log_progress() {
   local total="$2"
   local item="$3"
 
-  _log_color "${LOG_CYAN}" "$(_log_indent)(${current}/${total}) ${item}"
+  _log_color "${LOG_CYAN}" "$(_log_indent || true)(${current}/${total}) ${item}"
 }
 
 # Indent management for nested operations
@@ -182,7 +183,7 @@ log_summary_item() {
   local message="$2"
 
   local icon color
-  case "$status" in
+  case "${status}" in
     success) icon="${ICON_SUCCESS}" color="${LOG_GREEN}" ;;
     warning) icon="${ICON_WARNING}" color="${LOG_YELLOW}" ;;
     error) icon="${ICON_ERROR}" color="${LOG_RED}" ;;
@@ -204,16 +205,19 @@ if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
   declare -A LOG_TIMERS
 else
   # For bash 3.x, we'll use a simple approach without associative arrays
+  # shellcheck disable=SC2178
   LOG_TIMERS=""
 fi
 
 log_timer_start() {
   local name="$1"
   if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
-    LOG_TIMERS["$name"]=$(date +%s)
+    LOG_TIMERS["${name}"]=$(date +%s)
   else
     # For bash 3.x, just store in a simple variable (limited functionality)
-    eval "LOG_TIMER_${name}=$(date +%s)"
+    local end_time_val
+    end_time_val=$(date +%s)
+    eval "LOG_TIMER_${name}=${end_time_val}"
   fi
 }
 
@@ -222,14 +226,16 @@ log_timer_end() {
   local message="$2"
 
   if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
-    if [[ -n "${LOG_TIMERS[$name]}" ]]; then
-      local start_time="${LOG_TIMERS[$name]}"
-      local end_time=$(date +%s)
-      local duration=$((end_time - start_time))
+    if [[ -n "${LOG_TIMERS[${name}]}" ]]; then
+      local start_time="${LOG_TIMERS[${name}]}"
+      local end_time
+      end_time=$(date +%s)
+      local duration
+      duration=$((end_time - start_time))
 
-      unset LOG_TIMERS["$name"]
+      unset "LOG_TIMERS[${name}]"
 
-      if [[ -n "$message" ]]; then
+      if [[ -n "${message}" ]]; then
         log_info "${message} (${duration}s)"
       else
         log_info "Completed ${name} in ${duration}s"
@@ -240,11 +246,13 @@ log_timer_end() {
     local timer_var="LOG_TIMER_${name}"
     if [[ -n "${!timer_var:-}" ]]; then
       local start_time="${!timer_var}"
-      local end_time=$(date +%s)
-      local duration=$((end_time - start_time))
-      unset "$timer_var"
+      local end_time
+      end_time=$(date +%s)
+      local duration
+      duration=$((end_time - start_time))
+      unset "${timer_var}"
 
-      if [[ -n "$message" ]]; then
+      if [[ -n "${message}" ]]; then
         log_info "${message} (${duration}s)"
       else
         log_info "Completed ${name} in ${duration}s"
@@ -259,7 +267,7 @@ log_package_install() {
   local packages="$2"
   local dry_run="$3"
 
-  if [[ "$dry_run" == "true" ]]; then
+  if [[ "${dry_run}" == "true" ]]; then
     log_dry_run "Install via ${manager}: ${packages}"
   else
     log_info "Installing via ${manager}: ${packages}"
@@ -271,7 +279,7 @@ log_symlink() {
   local source="$2"
   local dry_run="$3"
 
-  if [[ "$dry_run" == "true" ]]; then
+  if [[ "${dry_run}" == "true" ]]; then
     log_dry_run "Link ${target} → ${source}"
   else
     log_success "Linked ${target}"
@@ -282,7 +290,7 @@ log_script_result() {
   local script="$1"
   local success="$2"
 
-  if [[ "$success" == "true" ]]; then
+  if [[ "${success}" == "true" ]]; then
     log_success "Script ${script} completed"
   else
     log_error "Script ${script} failed"
@@ -293,21 +301,23 @@ log_script_result() {
 log_security_event() {
   local event_type="$1"
   local message="$2"
-  local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  local timestamp
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
   # Always log security events as errors (they go to stderr)
   log_error "SECURITY[${timestamp}]: ${event_type} - ${message}"
 
   # Also log to system log if available
   if command -v logger > /dev/null 2>&1; then
-    logger -t "laingville-setup" "SECURITY: $event_type - $message"
+    logger -t "laingville-setup" "SECURITY: ${event_type} - ${message}"
   fi
 }
 
 # Cleanup function - call at script end
 log_finish() {
   local exit_code="${1:-0}"
-  local script_name=$(basename "${0}")
+  local script_name
+  script_name=$(basename "${0}")
 
   # Skip logging during shellspec tests
   if [[ -n "${SHELLSPEC_PROJECT_ROOT:-}" || -n "${SHELLSPEC_RUNNING:-}" ]]; then
@@ -315,7 +325,7 @@ log_finish() {
   fi
 
   echo
-  if [[ "$exit_code" -eq 0 ]]; then
+  if [[ "${exit_code}" -eq 0 ]]; then
     log_success "Completed ${script_name} successfully"
   else
     log_error "Failed ${script_name} with exit code ${exit_code}"
@@ -324,7 +334,7 @@ log_finish() {
   # Clean up any remaining timers
   if [[ ${BASH_VERSION%%.*} -ge 4 ]]; then
     for timer in "${!LOG_TIMERS[@]}"; do
-      log_timer_end "$timer"
+      log_timer_end "${timer}"
     done
   fi
   # For bash 3.x, we don't have a way to iterate over dynamic variables

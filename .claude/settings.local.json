@@ -1,18 +1,28 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:github.com)",
-      "Bash(grep:*)",
-      "Bash(git add:*)",
-      "Bash(gh run list:*)",
-      "Bash(gh run view:*)",
-      "Bash(shellspec:*)",
-      "Bash(source:*)",
-      "Bash(process_platform_symlinks:*)"
+      "Bash(make lint:*)",
+      "Bash(find:*)",
+      "Bash(shellcheck:*)",
+      "Bash(time shellspec:*)",
+      "Bash(sed:*)",
+      "Bash(lscpu:*)",
+      "WebSearch",
+      "Bash(shellspec:*)"
     ],
     "deny": []
   },
   "hooks": {
-    "post-edit": "make format"
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $CLAUDE_PROJECT_DIR && make format"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -72,27 +72,27 @@ log_info "Using server config from: $SERVER_DIR"
 log_subsection "Server Directory Validation"
 if [ ! -d "$SERVER_DIR" ]; then
     log_error "Server directory $SERVER_DIR does not exist"
-    log_error "Create the directory and add a packages.yml file to configure this server"
+    log_error "Create the directory and add a packages.yaml file to configure this server"
     exit 1
 else
     log_success "Server directory found"
 fi
 
-# Validate packages.yml exists and is safe
-PKG_FILE="$SERVER_DIR/packages.yml"
+# Validate packages.yaml exists and is safe
+PKG_FILE="$SERVER_DIR/packages.yaml"
 if [ ! -f "$PKG_FILE" ]; then
     if [ "$DRY_RUN" = true ]; then
-        log_info "No packages.yml found - no packages would be installed"
+        log_info "No packages.yaml found - no packages would be installed"
     else
-        log_error "Missing packages.yml in $SERVER_DIR"
+        log_error "Missing packages.yaml in $SERVER_DIR"
         exit 1
     fi
 else
     if ! validate_yaml_file "$PKG_FILE"; then
-        log_error "packages.yml failed validation"
+        log_error "packages.yaml failed validation"
         exit 1
     else
-        log_success "packages.yml validated"
+        log_success "packages.yaml validated"
     fi
 fi
 

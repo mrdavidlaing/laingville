@@ -1,5 +1,6 @@
 Describe "security.functions.bash"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/shared.functions.bash"
 Before "source ./lib/security.functions.bash"
@@ -137,7 +138,7 @@ End
 It "rejects too long package name"
 long_name=$(printf 'a%.0s' {1..250})
 
-When call validate_package_name "$long_name"
+When call validate_package_name "${long_name}"
 The status should be failure
 End
 End
@@ -146,58 +147,58 @@ End
 Describe "validate_path_traversal function"
 It "allows safe file path"
 temp_dir=$(mktemp -d)
-mkdir -p "$temp_dir/safe/subdir"
+mkdir -p "${temp_dir}/safe/subdir"
 
-When call validate_path_traversal "$temp_dir/safe/file.txt" "$temp_dir"
+When call validate_path_traversal "${temp_dir}/safe/file.txt" "${temp_dir}"
 The status should be success
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "allows safe subdirectory"
 temp_dir=$(mktemp -d)
-mkdir -p "$temp_dir/safe/subdir"
+mkdir -p "${temp_dir}/safe/subdir"
 
-When call validate_path_traversal "$temp_dir/safe/subdir" "$temp_dir"
+When call validate_path_traversal "${temp_dir}/safe/subdir" "${temp_dir}"
 The status should be success
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "allows base directory itself"
 temp_dir=$(mktemp -d)
 
-When call validate_path_traversal "$temp_dir" "$temp_dir"
+When call validate_path_traversal "${temp_dir}" "${temp_dir}"
 The status should be success
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "blocks traversal to etc passwd"
 temp_dir=$(mktemp -d)
 
-When call validate_path_traversal "$temp_dir/../../../etc/passwd" "$temp_dir"
+When call validate_path_traversal "${temp_dir}/../../../etc/passwd" "${temp_dir}"
 The status should be failure
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "blocks traversal to outside directory"
 temp_dir=$(mktemp -d)
 
-When call validate_path_traversal "$temp_dir/../outside" "$temp_dir"
+When call validate_path_traversal "${temp_dir}/../outside" "${temp_dir}"
 The status should be failure
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "blocks absolute path outside base"
 temp_dir=$(mktemp -d)
 
-When call validate_path_traversal "/etc/passwd" "$temp_dir"
+When call validate_path_traversal "/etc/passwd" "${temp_dir}"
 The status should be failure
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "blocks symlinks pointing outside by default"
@@ -205,12 +206,12 @@ temp_dir=$(mktemp -d)
 outside_dir=$(mktemp -d)
 
 # Create symlink pointing outside base dir
-ln -s "$outside_dir" "$temp_dir/evil_symlink"
+ln -s "${outside_dir}" "${temp_dir}/evil_symlink"
 
-When call validate_path_traversal "$temp_dir/evil_symlink/file" "$temp_dir" "false"
+When call validate_path_traversal "${temp_dir}/evil_symlink/file" "${temp_dir}" "false"
 The status should be failure
 
-rm -rf "$temp_dir" "$outside_dir"
+rm -rf "${temp_dir}" "${outside_dir}"
 End
 
 It "blocks symlinks pointing outside when allowing symlinks"
@@ -218,12 +219,12 @@ temp_dir=$(mktemp -d)
 outside_dir=$(mktemp -d)
 
 # Create symlink pointing outside base dir
-ln -s "$outside_dir" "$temp_dir/evil_symlink"
+ln -s "${outside_dir}" "${temp_dir}/evil_symlink"
 
-When call validate_path_traversal "$temp_dir/evil_symlink/file" "$temp_dir" "true"
+When call validate_path_traversal "${temp_dir}/evil_symlink/file" "${temp_dir}" "true"
 The status should be failure
 
-rm -rf "$temp_dir" "$outside_dir"
+rm -rf "${temp_dir}" "${outside_dir}"
 End
 End
 
@@ -315,7 +316,7 @@ End
 Describe "validate_yaml_file function"
 It "accepts valid YAML files"
 temp_file=$(mktemp)
-cat > "$temp_file" << 'EOF'
+cat > "${temp_file}" << 'EOF'
 arch:
   pacman:
     - htop
@@ -327,23 +328,23 @@ windows:
     - Git.Git
 EOF
 
-When call validate_yaml_file "$temp_file"
+When call validate_yaml_file "${temp_file}"
 The status should be success
 
-rm -f "$temp_file"
+rm -f "${temp_file}"
 End
 
 It "rejects files that are too large"
 temp_file=$(mktemp)
 
 # Create a file larger than 1KB (using small limit for testing)
-dd if=/dev/zero of="$temp_file" bs=1024 count=2 2> /dev/null
+dd if=/dev/zero of="${temp_file}" bs=1024 count=2 2> /dev/null
 
-When call validate_yaml_file "$temp_file" 1024
+When call validate_yaml_file "${temp_file}" 1024
 The status should be failure
 The stderr should include "too large"
 
-rm -f "$temp_file"
+rm -f "${temp_file}"
 End
 
 It "rejects files with too many lines"
@@ -351,25 +352,25 @@ temp_file=$(mktemp)
 
 # Create file with many lines
 for i in {1..15}; do
-  echo "line $i" >> "$temp_file"
+  echo "line ${i}" >> "${temp_file}"
 done
 
-When call validate_yaml_file "$temp_file" 10485760 10
+When call validate_yaml_file "${temp_file}" 10485760 10
 The status should be failure
 The stderr should include "too many lines"
 
-rm -f "$temp_file"
+rm -f "${temp_file}"
 End
 
 It "rejects files with tabs"
 temp_file=$(mktemp)
-printf "arch:\n\tpackages:\n\t\t- htop\n" > "$temp_file"
+printf "arch:\n\tpackages:\n\t\t- htop\n" > "${temp_file}"
 
-When call validate_yaml_file "$temp_file"
+When call validate_yaml_file "${temp_file}"
 The status should be failure
 The stderr should include "contains tabs"
 
-rm -f "$temp_file"
+rm -f "${temp_file}"
 End
 
 It "handles missing files gracefully"
@@ -426,7 +427,7 @@ End
 
 It "rejects too long key"
 long_key=$(printf 'a%.0s' {1..60})
-When call validate_yaml_key "$long_key"
+When call validate_yaml_key "${long_key}"
 The status should be failure
 End
 End
@@ -537,7 +538,7 @@ End
 
 It "rejects too long hostname"
 long_hostname=$(printf 'a%.0s' {1..300})
-When call validate_hostname "$long_hostname"
+When call validate_hostname "${long_hostname}"
 The status should be failure
 End
 End
@@ -546,19 +547,19 @@ Describe "validate_environment_variable function"
 It "accepts paths within expected prefix"
 temp_dir=$(mktemp -d)
 
-When call validate_environment_variable "TEST_DIR" "$temp_dir/subdir" "$temp_dir"
+When call validate_environment_variable "TEST_DIR" "${temp_dir}/subdir" "${temp_dir}"
 The status should be success
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "rejects paths outside expected prefix"
 temp_dir=$(mktemp -d)
 
-When call validate_environment_variable "TEST_DIR" "/etc/passwd" "$temp_dir"
+When call validate_environment_variable "TEST_DIR" "/etc/passwd" "${temp_dir}"
 The status should be failure
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 
 It "handles symlinks securely"
@@ -566,13 +567,13 @@ temp_dir=$(mktemp -d)
 outside_dir=$(mktemp -d)
 
 # Create symlink pointing outside allowed area
-ln -s "$outside_dir" "$temp_dir/evil_link"
+ln -s "${outside_dir}" "${temp_dir}/evil_link"
 
 # Should reject symlinks pointing outside allowed area
-When call validate_environment_variable "TEST_DIR" "$temp_dir/evil_link" "$temp_dir"
+When call validate_environment_variable "TEST_DIR" "${temp_dir}/evil_link" "${temp_dir}"
 The status should be failure
 
-rm -rf "$temp_dir" "$outside_dir"
+rm -rf "${temp_dir}" "${outside_dir}"
 End
 End
 
@@ -649,46 +650,46 @@ End
 
 It "validates dotfiles .bashrc path"
 temp_base=$(mktemp -d)
-dotfiles_dir="$temp_base/dotfiles/user"
-mkdir -p "$dotfiles_dir"
+dotfiles_dir="${temp_base}/dotfiles/user"
+mkdir -p "${dotfiles_dir}"
 
-When call validate_path_traversal "$dotfiles_dir/.bashrc" "$temp_base"
+When call validate_path_traversal "${dotfiles_dir}/.bashrc" "${temp_base}"
 The status should be success
 
-rm -rf "$temp_base"
+rm -rf "${temp_base}"
 End
 
 It "validates dotfiles alacritty config path"
 temp_base=$(mktemp -d)
-dotfiles_dir="$temp_base/dotfiles/user"
-mkdir -p "$dotfiles_dir/.config/alacritty"
+dotfiles_dir="${temp_base}/dotfiles/user"
+mkdir -p "${dotfiles_dir}/.config/alacritty"
 
-When call validate_path_traversal "$dotfiles_dir/.config/alacritty/alacritty.toml" "$temp_base"
+When call validate_path_traversal "${dotfiles_dir}/.config/alacritty/alacritty.toml" "${temp_base}"
 The status should be success
 
-rm -rf "$temp_base"
+rm -rf "${temp_base}"
 End
 
 It "validates dotfiles local bin script path"
 temp_base=$(mktemp -d)
-dotfiles_dir="$temp_base/dotfiles/user"
-mkdir -p "$dotfiles_dir/.local/bin"
+dotfiles_dir="${temp_base}/dotfiles/user"
+mkdir -p "${dotfiles_dir}/.local/bin"
 
-When call validate_path_traversal "$dotfiles_dir/.local/bin/script" "$temp_base"
+When call validate_path_traversal "${dotfiles_dir}/.local/bin/script" "${temp_base}"
 The status should be success
 
-rm -rf "$temp_base"
+rm -rf "${temp_base}"
 End
 
 It "rejects path traversal to etc passwd"
 temp_base=$(mktemp -d)
-dotfiles_dir="$temp_base/dotfiles/user"
-mkdir -p "$dotfiles_dir"
+dotfiles_dir="${temp_base}/dotfiles/user"
+mkdir -p "${dotfiles_dir}"
 
-When call validate_path_traversal "$dotfiles_dir/../../../etc/passwd" "$temp_base"
+When call validate_path_traversal "${dotfiles_dir}/../../../etc/passwd" "${temp_base}"
 The status should be failure
 
-rm -rf "$temp_base"
+rm -rf "${temp_base}"
 End
 End
 End

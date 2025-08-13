@@ -1,14 +1,14 @@
 Describe "security integration tests"
-Before "cd '$SHELLSPEC_PROJECT_ROOT'"
+Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 
 Describe "setup scripts reject malicious package configurations"
 It "rejects malicious packages in setup-user"
 # Create temporary directory within project dotfiles for security validation
-malicious_dir="$SHELLSPEC_PROJECT_ROOT/dotfiles/temp_malicious_test_$$"
-mkdir -p "$malicious_dir"
+malicious_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/temp_malicious_test_$$"
+mkdir -p "${malicious_dir}"
 
-# Create malicious packages.yml with command injection
-cat > "$malicious_dir/packages.yml" << 'EOF'
+# Create malicious packages.yaml with command injection
+cat > "${malicious_dir}/packages.yaml" << 'EOF'
 arch:
   yay:
     - "htop; rm -rf /tmp/test_malicious"
@@ -21,17 +21,17 @@ EOF
 
 # Create fake pacman to make platform detection return "arch"
 fake_bin=$(mktemp -d)
-fake_bin="$fake_bin/fake_bin"
-mkdir -p "$fake_bin"
-cat > "$fake_bin/pacman" << 'EOF'
+fake_bin="${fake_bin}/fake_bin"
+mkdir -p "${fake_bin}"
+cat > "${fake_bin}/pacman" << 'EOF'
 #!/bin/bash
 echo "fake pacman for testing"
 EOF
-chmod +x "$fake_bin/pacman"
+chmod +x "${fake_bin}/pacman"
 
 # Test setup-user rejects malicious packages
-export DOTFILES_DIR="$malicious_dir"
-export PATH="$fake_bin:$PATH"
+export DOTFILES_DIR="${malicious_dir}"
+export PATH="${fake_bin}:${PATH}"
 export PLATFORM="arch"
 
 When call ./bin/setup-user --dry-run
@@ -44,7 +44,7 @@ The output should include "Warning: Skipping invalid package"
 The stderr should include "SECURITY"
 The stderr should include "INVALID_PACKAGE"
 
-rm -rf "$malicious_dir" "$fake_bin"
+rm -rf "${malicious_dir}" "${fake_bin}"
 End
 End
 
@@ -77,11 +77,11 @@ End
 Describe "package validation prevents shell injection in real workflow"
 It "filters out malicious packages in mixed configuration"
 # Create test directory within project dotfiles for security validation
-test_dir="$SHELLSPEC_PROJECT_ROOT/dotfiles/temp_injection_test_$$"
-mkdir -p "$test_dir"
+test_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/temp_injection_test_$$"
+mkdir -p "${test_dir}"
 
-# Create packages.yml with mixed valid and invalid packages
-cat > "$test_dir/packages.yml" << 'EOF'
+# Create packages.yaml with mixed valid and invalid packages
+cat > "${test_dir}/packages.yaml" << 'EOF'
 arch:
   yay:
     - vim
@@ -95,16 +95,16 @@ EOF
 
 # Create fake pacman to make platform detection return "arch"
 fake_bin=$(mktemp -d)
-fake_bin="$fake_bin/fake_bin"
-mkdir -p "$fake_bin"
-cat > "$fake_bin/pacman" << 'EOF'
+fake_bin="${fake_bin}/fake_bin"
+mkdir -p "${fake_bin}"
+cat > "${fake_bin}/pacman" << 'EOF'
 #!/bin/bash
 echo "fake pacman for testing"
 EOF
-chmod +x "$fake_bin/pacman"
+chmod +x "${fake_bin}/pacman"
 
-export DOTFILES_DIR="$test_dir"
-export PATH="$fake_bin:$PATH"
+export DOTFILES_DIR="${test_dir}"
+export PATH="${fake_bin}:${PATH}"
 export PLATFORM="arch"
 
 When call ./bin/setup-user --dry-run
@@ -121,7 +121,7 @@ The output should include "Warning: Skipping invalid package"
 The stderr should include "SECURITY"
 The stderr should include "INVALID_PACKAGE"
 
-rm -rf "$test_dir" "$fake_bin"
+rm -rf "${test_dir}" "${fake_bin}"
 End
 End
 
@@ -130,14 +130,14 @@ It "rejects malicious hostname"
 temp_dir=$(mktemp -d)
 
 # Mock hostname command to return malicious value
-cat > "$temp_dir/hostname" << 'EOF'
+cat > "${temp_dir}/hostname" << 'EOF'
 #!/bin/bash
 echo "../../../etc"
 EOF
-chmod +x "$temp_dir/hostname"
+chmod +x "${temp_dir}/hostname"
 
 # Put fake hostname first in PATH and clear any cached values
-export PATH="$temp_dir:$PATH"
+export PATH="${temp_dir}:${PATH}"
 
 When call ./bin/setup-server --dry-run
 
@@ -147,26 +147,26 @@ The stderr should include "Invalid hostname"
 # Ignore startup output in stdout
 The output should include "Starting setup-server"
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 
 Describe "systemd unit validation prevents malicious unit names"
 It "filters out malicious systemd units"
 temp_dir=$(mktemp -d)
-systemd_dir="$temp_dir/.config/systemd/user"
-mkdir -p "$systemd_dir"
+systemd_dir="${temp_dir}/.config/systemd/user"
+mkdir -p "${systemd_dir}"
 
 # Create valid and invalid systemd units
-touch "$systemd_dir/valid.timer"
-touch "$systemd_dir/../evil.timer" # Outside directory
-touch "$systemd_dir/evil..timer"   # Invalid name
-mkdir -p "$systemd_dir/evil"
-touch "$systemd_dir/evil/bad.timer" # Path traversal attempt
+touch "${systemd_dir}/valid.timer"
+touch "${systemd_dir}/../evil.timer" # Outside directory
+touch "${systemd_dir}/evil..timer"   # Invalid name
+mkdir -p "${systemd_dir}/evil"
+touch "${systemd_dir}/evil/bad.timer" # Path traversal attempt
 
-export HOME="$temp_dir"
+export HOME="${temp_dir}"
 export PLATFORM="arch"
-export DOTFILES_DIR="$temp_dir"
+export DOTFILES_DIR="${temp_dir}"
 
 # Source all required functions
 source ./lib/polyfill.functions.bash
@@ -189,18 +189,18 @@ The output should not include "evil"
 The stderr should include "SECURITY"
 The stderr should include "INVALID_UNIT_NAME"
 
-rm -rf "$temp_dir"
+rm -rf "${temp_dir}"
 End
 End
 
 Describe "macOS package management integration with security validation"
 It "validates macOS packages including taps"
 # Create test directory for macOS packages
-test_dir="$SHELLSPEC_PROJECT_ROOT/dotfiles/temp_macos_test_$$"
-mkdir -p "$test_dir"
+test_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/temp_macos_test_$$"
+mkdir -p "${test_dir}"
 
-# Create packages.yml with macOS packages including taps
-cat > "$test_dir/packages.yml" << 'EOF'
+# Create packages.yaml with macOS packages including taps
+cat > "${test_dir}/packages.yaml" << 'EOF'
 macos:
   homebrew:
     - git
@@ -214,16 +214,16 @@ EOF
 
 # Create fake brew command to simulate macOS environment
 fake_bin=$(mktemp -d)
-fake_bin="$fake_bin/fake_bin_macos"
-mkdir -p "$fake_bin"
-cat > "$fake_bin/brew" << 'EOF'
+fake_bin="${fake_bin}/fake_bin_macos"
+mkdir -p "${fake_bin}"
+cat > "${fake_bin}/brew" << 'EOF'
 #!/bin/bash
-echo "fake brew for testing: $*"
+echo "fake brew for testing: ${*}"
 EOF
-chmod +x "$fake_bin/brew"
+chmod +x "${fake_bin}/brew"
 
-export DOTFILES_DIR="$test_dir"
-export PATH="$fake_bin:$PATH"
+export DOTFILES_DIR="${test_dir}"
+export PATH="${fake_bin}:${PATH}"
 export PLATFORM="macos"
 
 When call ./bin/setup-user --dry-run
@@ -248,18 +248,18 @@ The output should include "update Homebrew"
 # Should show macOS system configuration sections
 The output should include "MACOS SYSTEM CONFIG:"
 
-rm -rf "$test_dir" "$fake_bin"
+rm -rf "${test_dir}" "${fake_bin}"
 End
 End
 
 Describe "macOS platform detection works with package processing"
 It "correctly processes macOS platform"
 # Test that macOS platform is correctly detected and processed
-test_dir="$SHELLSPEC_PROJECT_ROOT/dotfiles/temp_macos_platform_test_$$"
-mkdir -p "$test_dir"
+test_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/temp_macos_platform_test_$$"
+mkdir -p "${test_dir}"
 
 # Create simple macOS packages config
-cat > "$test_dir/packages.yml" << 'EOF'
+cat > "${test_dir}/packages.yaml" << 'EOF'
 macos:
   homebrew:
     - curl
@@ -270,16 +270,16 @@ EOF
 
 # Create fake brew to simulate macOS
 fake_bin=$(mktemp -d)
-fake_bin="$fake_bin/fake_bin_platform"
-mkdir -p "$fake_bin"
-cat > "$fake_bin/brew" << 'EOF'
+fake_bin="${fake_bin}/fake_bin_platform"
+mkdir -p "${fake_bin}"
+cat > "${fake_bin}/brew" << 'EOF'
 #!/bin/bash
-echo "fake brew: $*"
+echo "fake brew: ${*}"
 EOF
-chmod +x "$fake_bin/brew"
+chmod +x "${fake_bin}/brew"
 
-export DOTFILES_DIR="$test_dir"
-export PATH="$fake_bin:$PATH"
+export DOTFILES_DIR="${test_dir}"
+export PATH="${fake_bin}:${PATH}"
 export PLATFORM="macos"
 
 When call ./bin/setup-user --dry-run
@@ -289,7 +289,7 @@ The output should include "USER PACKAGES (macos):"
 The output should include "install via homebrew: curl, wget"
 The output should include "install via cask: firefox"
 
-rm -rf "$test_dir" "$fake_bin"
+rm -rf "${test_dir}" "${fake_bin}"
 End
 End
 

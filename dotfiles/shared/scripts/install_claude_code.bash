@@ -85,8 +85,8 @@ fi
 echo "Installing native binary..."
 
 # Use native binary installer - installs to ~/.local/bin/claude
-install_script=$(curl -fsSL https://claude.ai/install.sh)
-if echo "${install_script}" | bash -s latest; then
+installer_script=$(curl -fsSL https://claude.ai/install.sh)
+if echo "${installer_script}" | bash -s latest; then
   echo "[Claude Code] [OK] Installation successful"
   echo "[Claude Code] Native binary installed to ~/.local/bin/claude"
 

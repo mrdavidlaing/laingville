@@ -9,7 +9,7 @@
 install_homebrew() {
   local dry_run="$1"
 
-  if [ "$dry_run" = true ]; then
+  if [[ "${dry_run}" = true ]]; then
     echo "HOMEBREW SETUP:"
     if ! command -v brew > /dev/null 2>&1; then
       log_dry_run "install Homebrew via official installer"
@@ -22,7 +22,9 @@ install_homebrew() {
   if ! command -v brew > /dev/null 2>&1; then
     log_info "Installing Homebrew..."
     # NOTE: The following command trusts the Homebrew installation script from GitHub.
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    local installer_script
+    installer_script=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
+    /bin/bash -c "${installer_script}"
     log_success "Homebrew installation complete"
   else
     log_info "Updating Homebrew..."
@@ -35,7 +37,7 @@ install_homebrew() {
 configure_macos_system() {
   local dry_run="$1"
 
-  if [ "$dry_run" = true ]; then
+  if [[ "${dry_run}" = true ]]; then
     echo "MACOS SYSTEM CONFIG:"
     log_dry_run "set keyboard repeat rate (KeyRepeat=1, InitialKeyRepeat=15)"
     log_dry_run "enable font smoothing (AppleFontSmoothing=1)"

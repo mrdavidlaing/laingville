@@ -1,4 +1,5 @@
 Describe "setup-user script"
+# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
 Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
@@ -9,8 +10,8 @@ Before "source ./lib/setup-user.functions.bash"
 Describe "dry-run mode"
 It "shows expected output format"
 # Set DOTFILES_DIR to a known good directory for CI compatibility
-DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 # Mock platform to ensure consistent systemd behavior across environments
 export PLATFORM="arch"
 
@@ -46,7 +47,7 @@ export DOTFILES_DIR="${temp_dir}"
 When call ./bin/setup-user --dry-run
 
 The status should be success
-The output should include "No packages.yml found"
+The output should include "No packages.yaml found"
 
 # Cleanup
 rm -rf "${temp_dir}"
@@ -55,8 +56,8 @@ End
 
 Describe "shared dotfiles processing"
 It "processes shared dotfiles correctly"
-DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 # Mock platform to ensure shared dotfiles are processed consistently
 export PLATFORM="arch"
 
@@ -70,8 +71,8 @@ End
 
 Describe "systemd services"
 It "detects systemd services"
-DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 # Mock platform to ensure systemd services are detected consistently
 export PLATFORM="arch"
 
@@ -97,8 +98,8 @@ End
 
 Describe "custom scripts"
 It "extracts scripts from real config"
-DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 When call get_custom_scripts "arch"
 
@@ -109,8 +110,8 @@ End
 
 Describe "platform handling"
 It "shows correct behavior for unknown platform"
-DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 export DOTFILES_DIR
+DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 When run bash -c 'export PLATFORM=unknown; ./bin/setup-user --dry-run'
 
@@ -123,8 +124,8 @@ It "skips custom scripts gracefully on unknown platform"
 temp_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/test_temp_custom_$$"
 mkdir -p "${temp_dir}"
 
-# Create packages.yml with custom script (which should be skipped on unknown platform)
-cat > "${temp_dir}/packages.yml" << 'EOF'
+# Create packages.yaml with custom script (which should be skipped on unknown platform)
+cat > "${temp_dir}/packages.yaml" << 'EOF'
 arch:
   pacman:
     - git
