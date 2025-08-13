@@ -57,13 +57,8 @@ End
 
 Describe "dry-run mode"
 It "shows expected sections"
-<<<<<<< HEAD
-SERVER_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/servers/baljeet" && pwd)"
-export SERVER_DIR
-=======
 export SERVER_DIR
 SERVER_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/servers/baljeet" && pwd)"
->>>>>>> a65b094 (fix: Complete comprehensive shellcheck linting cleanup)
 export PLATFORM="arch"
 
 When call ./bin/setup-server --dry-run
@@ -78,11 +73,7 @@ End
 Describe "k3s package detection"
 It "specifically detects k3s for baljeet server"
 # This test ensures k3s is properly configured for baljeet
-<<<<<<< HEAD
-server_packages_file="${SHELLSPEC_PROJECT_ROOT}/servers/baljeet/packages.yml"
-=======
 server_packages_file="${SHELLSPEC_PROJECT_ROOT}/servers/baljeet/packages.yaml"
->>>>>>> a65b094 (fix: Complete comprehensive shellcheck linting cleanup)
 
 When call grep -q "k3s-bin" "${server_packages_file}"
 The status should be success
@@ -93,14 +84,9 @@ Describe "missing server packages.yaml handling"
 It "handles missing server packages.yaml gracefully"
 # Create temporary server directory within allowed path
 temp_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_temp_server_$$"
-<<<<<<< HEAD
-mkdir -p "${temp_dir}" # Create directory but not packages.yml
-export SERVER_DIR="${temp_dir}"
-=======
 mkdir -p "${temp_dir}" # Create directory but not packages.yaml
 export SERVER_DIR
 SERVER_DIR="${temp_dir}"
->>>>>>> a65b094 (fix: Complete comprehensive shellcheck linting cleanup)
 
 When call ./bin/setup-server --dry-run
 

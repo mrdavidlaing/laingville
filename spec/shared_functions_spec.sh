@@ -1,8 +1,5 @@
 Describe "shared.functions.bash"
-<<<<<<< HEAD
-=======
 # shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
->>>>>>> a65b094 (fix: Complete comprehensive shellcheck linting cleanup)
 Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 Before "source ./lib/polyfill.functions.bash"
 Before "source ./lib/logging.functions.bash"
