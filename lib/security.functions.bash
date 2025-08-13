@@ -90,10 +90,10 @@ sanitize_filename() {
   [[ -z "${filename}" ]] && return 1
 
   # Remove path traversal sequences using tr to avoid sed escaping issues
-  filename=$(echo "${filename}" | tr -d '/' | tr -d "\\" || true)
+  filename=$(echo "${filename}" | tr -d '/' | tr -d '\\' || true)
 
   # Remove null bytes and other dangerous characters
-  filename=$(echo "${filename}" | tr -d '\0' | tr -d '<>:"|?*' || true)
+  filename=$(echo "${filename}" | tr -d '\0<>:"|?*' || true)
 
   # Remove dots to prevent hidden files and traversal remnants
   filename=$(echo "${filename}" | tr -d '.')
