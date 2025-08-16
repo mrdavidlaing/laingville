@@ -17,9 +17,11 @@
     # Skip Git installation check if you know it's already installed:
     .\setup.ps1 -SkipGitInstall
 
-    # Pass arguments to setup.sh:
-    .\setup.ps1 user
-    .\setup.ps1 server --dry-run
+    # Run user setup in dry-run mode:
+    .\setup.ps1 -Target user -DryRun
+
+    # Run server setup:
+    .\setup.ps1 -Target server
 
 .NOTES
     Requires Windows 10/11 with winget installed (comes by default)
@@ -27,12 +29,22 @@
 
 param(
     [switch]$SkipGitInstall,
+    [switch]$DryRun,
+    [ValidateSet("user", "server")]
+    [string]$Target = "user",
     [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$SetupArgs
+    [string[]]$AdditionalArgs
 )
 
 $ErrorActionPreference = "Stop"
 $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
+
+# Check for incorrect bash-style syntax and provide helpful error
+if ($AdditionalArgs -contains "--dry-run") {
+    Write-Error "Use PowerShell syntax: -DryRun (not --dry-run)"
+    Write-Host "Example: .\setup.ps1 -Target user -DryRun" -ForegroundColor Yellow
+    exit 1
+}
 
 function Write-Step {
     param([string]$Message)
@@ -59,6 +71,83 @@ function Test-GitBash {
     ) | Where-Object { Test-Path $_ } | Select-Object -First 1
     
     return $gitPath
+}
+
+function Test-WSLFeature {
+    # Simple check - if wsl.exe exists and responds to --list, WSL is available
+    if (Get-Command "wsl.exe" -ErrorAction SilentlyContinue) {
+        try {
+            # Use --list which should work even with no distributions
+            $output = & wsl.exe --list --quiet 2>&1
+            # If WSL is working, it should return successfully even with empty list
+            return ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq $null)
+        }
+        catch {
+            return $false
+        }
+    }
+    return $false
+}
+
+function Test-DeveloperMode {
+    # Check registry for Developer Mode setting
+    try {
+        $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
+        $allowDeveloperUnlock = Get-ItemProperty -Path $regPath -Name "AllowDevelopmentWithoutDevLicense" -ErrorAction SilentlyContinue
+        return ($allowDeveloperUnlock.AllowDevelopmentWithoutDevLicense -eq 1)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Enable-DeveloperMode {
+    Write-Step "Developer Mode is required for symbolic link creation..."
+    Write-Host "Please enable Developer Mode manually in Windows Settings."
+    return $false
+}
+
+function Ensure-WindowsPrerequisites {
+    Write-Step "Checking Windows prerequisites for dotfile management..."
+    
+    $prerequisitesMet = $true
+    
+    # Check WSL feature (needed for Arch Linux configuration)
+    if (-not (Test-WSLFeature)) {
+        Write-Host "WSL feature is not enabled." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "To enable WSL:" -ForegroundColor Yellow
+        Write-Host "1. Open PowerShell as Administrator" -ForegroundColor Yellow
+        Write-Host "2. Run: Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -All" -ForegroundColor Yellow
+        Write-Host "3. Restart your computer when prompted" -ForegroundColor Yellow
+        Write-Host "4. Run this script again after restart" -ForegroundColor Yellow
+        Write-Host ""
+        $prerequisitesMet = $false
+    } else {
+        Write-Host "WSL feature is enabled" -ForegroundColor Green
+    }
+    
+    # Check Developer Mode
+    if (-not (Test-DeveloperMode)) {
+        Write-Host "Developer Mode is not enabled (required for symbolic links)." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "To enable Developer Mode:" -ForegroundColor Yellow
+        Write-Host "1. Open Windows Settings (Win + I)" -ForegroundColor Yellow
+        Write-Host "2. Go to Update & Security > For developers" -ForegroundColor Yellow
+        Write-Host "3. Turn on 'Developer Mode'" -ForegroundColor Yellow
+        Write-Host "4. Run this script again after enabling" -ForegroundColor Yellow
+        Write-Host ""
+        $prerequisitesMet = $false
+    } else {
+        Write-Host "Developer Mode is enabled" -ForegroundColor Green
+    }
+    
+    if ($prerequisitesMet) {
+        Write-Host "All Windows prerequisites are satisfied!" -ForegroundColor Green
+    } else {
+        Write-Host "Please satisfy the prerequisites above and run this script again." -ForegroundColor Red
+        exit 1
+    }
 }
 
 function Install-Git {
@@ -110,7 +199,7 @@ function Install-Git {
 function Run-Setup {
     param([string]$GitBash)
     
-    Write-Step "Running setup.sh script in Git Bash..."
+    Write-Step "Running PowerShell setup scripts..."
     
     # Get the directory where this script is located
     $scriptDir = Split-Path -Parent $MyInvocation.PSCommandPath
@@ -119,33 +208,37 @@ function Run-Setup {
         $scriptDir = Get-Location
     }
     
-    $setupPath = Join-Path $scriptDir "setup.sh"
+    # Build script path using the Target parameter
+    $scriptPath = Join-Path $scriptDir "bin\setup-$Target.ps1"
     
-    if (-not (Test-Path $setupPath)) {
-        Write-Error "setup.sh script not found at: $setupPath"
-        Write-Host "Please ensure you're running this script from the laingville repository directory"
+    if (-not (Test-Path $scriptPath)) {
+        Write-Error "PowerShell script not found at: $scriptPath"
+        Write-Host "Available scripts: setup-user.ps1, setup-server.ps1"
         exit 1
     }
     
-    # Convert Windows path to Unix-style path for Git Bash
-    $unixPath = $scriptDir -replace '\\', '/' -replace '^([A-Z]):', '/$1'
+    Write-Host "Executing: $scriptPath" -ForegroundColor Green
     
-    # Build arguments string for setup.sh
-    $argsString = ""
-    if ($SetupArgs -and $SetupArgs.Count -gt 0) {
-        $argsString = " " + ($SetupArgs -join " ")
+    try {
+        # Execute the PowerShell script with parameters
+        $params = @{}
+        if ($DryRun) { $params.DryRun = $true }
+        if ($AdditionalArgs) { $params.AdditionalArgs = $AdditionalArgs }
+        
+        & $scriptPath @params
+        
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -eq 0) {
+            Write-Host "`nSetup completed successfully!" -ForegroundColor Green
+        } else {
+            Write-Host "`nSetup failed with exit code: $exitCode" -ForegroundColor Red
+            exit $exitCode
+        }
     }
-    
-    # Change to repo directory and run setup.sh with arguments
-    $bashCommand = "cd '$unixPath' && ./setup.sh$argsString"
-    
-    Write-Host "Git Bash is ready. For the best interactive experience, please run:" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "    & `"$GitBash`" -c `"$bashCommand`"" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "This ensures you can interact with sudo prompts and see full streaming output." -ForegroundColor Gray
-    
-    return 0
+    catch {
+        Write-Error "Failed to execute setup script: $_"
+        exit 1
+    }
 }
 
 # Main execution
@@ -157,7 +250,10 @@ function Main {
 ================================================================
 "@ -ForegroundColor Magenta
 
-    # Step 1: Install or verify Git
+    # Step 1: Ensure Windows prerequisites (WSL, Developer Mode)
+    Ensure-WindowsPrerequisites
+
+    # Step 2: Install or verify Git
     if (-not $SkipGitInstall) {
         $gitBash = Install-Git
     }
@@ -169,7 +265,7 @@ function Main {
         }
     }
     
-    # Step 2: Provide setup instructions
+    # Step 3: Provide setup instructions
     Run-Setup -GitBash $gitBash
 }
 
