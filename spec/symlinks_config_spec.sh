@@ -143,12 +143,6 @@ The output should equal ".config/test|/test/path/config"
 unset TEST_VAR
 End
 
-It "handles Windows environment variables"
-export APPDATA="C:/Users/Test/AppData/Roaming"
-When call process_symlink_entry "source:.config/alacritty target:${APPDATA}/alacritty"
-The output should equal ".config/alacritty|C:/Users/Test/AppData/Roaming/alacritty"
-unset APPDATA
-End
 End
 
 Describe "create_symlink_with_target"
@@ -177,19 +171,5 @@ The output should include "Would: create: ${temp_dir}/custom/test.conf"
 rm -rf "${temp_dir}"
 End
 
-It "handles APPDATA variable substitution"
-temp_dir=$(mktemp -d)
-mkdir -p "${temp_dir}/dotfiles/.config/alacritty"
-echo "test content" > "${temp_dir}/dotfiles/.config/alacritty/alacritty.toml"
-export APPDATA="${temp_dir}/AppData/Roaming"
-mkdir -p "${APPDATA}"
-
-When call create_symlink_with_target "${temp_dir}/dotfiles/.config/alacritty/alacritty.toml" "\${APPDATA}/alacritty/alacritty.toml" "${temp_dir}/home" true
-The status should be success
-The output should include "Would: create: ${temp_dir}/AppData/Roaming/alacritty/alacritty.toml"
-
-unset APPDATA
-rm -rf "${temp_dir}"
-End
 End
 End

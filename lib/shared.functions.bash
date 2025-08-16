@@ -6,7 +6,7 @@
 # Security functions are sourced independently by calling scripts
 
 # Detect the current operating system
-# Returns: "macos", "linux", "windows", or "unknown"
+# Returns: "macos", "linux", or "unknown"
 detect_os() {
   # Use full path to uname for reliability in restricted environments
   local uname_cmd
@@ -24,7 +24,6 @@ detect_os() {
   case "$(${uname_cmd} -s)" in
     "Darwin") echo "macos" ;;
     "Linux") echo "linux" ;;
-    CYGWIN* | MINGW32* | MSYS* | MINGW*) echo "windows" ;;
     *) echo "unknown" ;;
   esac
 }
@@ -35,8 +34,8 @@ detect_platform() {
   base_os=$(detect_os)
 
   case "${base_os}" in
-    "macos" | "windows")
-      # For macOS/Windows, platform equals OS
+    "macos")
+      # For macOS, platform equals OS
       echo "${base_os}"
       ;;
     "linux")
@@ -118,7 +117,6 @@ process_packages() {
   case "${manager}" in
     "pacman") packages=$(get_packages_from_file "${platform}" "pacman" "${packages_file}") ;;
     "yay") packages=$(get_packages_from_file "${platform}" "yay" "${packages_file}") ;;
-    "winget") packages=$(get_packages_from_file "${platform}" "winget" "${packages_file}") ;;
     "homebrew") packages=$(get_packages_from_file "${platform}" "homebrew" "${packages_file}") ;;
     "cask") packages=$(get_packages_from_file "${platform}" "cask" "${packages_file}") ;;
     *)
@@ -169,16 +167,8 @@ process_packages() {
       local quoted_pkg
       printf -v quoted_pkg '%q' "${pkg}"
 
-      if [[ "${manager}" = "winget" ]]; then
-        # Winget has different syntax
-        if ! eval "${cmd}${quoted_pkg} --silent --accept-package-agreements --accept-source-agreements"; then
-          failed_packages+=("${pkg}")
-        fi
-      else
-        # Standard package managers
-        if ! eval "${cmd} ${quoted_pkg}"; then
-          failed_packages+=("${pkg}")
-        fi
+      if ! eval "${cmd} ${quoted_pkg}"; then
+        failed_packages+=("${pkg}")
       fi
     done
 
@@ -277,11 +267,6 @@ handle_packages_from_file() {
 
       # Use yay for all packages (official + AUR combined)
       process_packages "yay" "yay -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
-      ;;
-    "windows")
-      process_packages "winget" "winget install --id=" "${platform}" "${dry_run}" "${packages_file}"
-      # Handle WSL2 Arch setup if WSL2 is available
-      setup_wsl2_arch "${dry_run}" "${packages_file}"
       ;;
     "macos")
       process_packages "homebrew" "brew install" "${platform}" "${dry_run}" "${packages_file}"

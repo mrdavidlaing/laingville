@@ -20,7 +20,7 @@ When call ./bin/setup-user --dry-run
 The status should be success
 The output should include "DRY RUN MODE"
 The output should include "SHARED SYMLINKS:"
-The output should include "USER SYMLINKS:"
+The output should include "SYMLINKS (from symlinks.yaml):"
 The output should include "PACKAGES"
 The output should include "SYSTEMD SERVICES:"
 End

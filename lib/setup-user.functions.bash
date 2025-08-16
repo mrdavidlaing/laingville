@@ -111,7 +111,7 @@ config_should_not_be_linked() {
   local platform="${2:-$(detect_platform)}"
 
   # Skip Linux-only configs on non-Linux platforms (but WSL can run terminal tools)
-  if [[ "${platform}" == "windows" || "${platform}" == "macos" ]]; then
+  if [[ "${platform}" == "macos" ]]; then
     local config_name
     config_name=$(basename "${config_path}")
 
@@ -196,21 +196,6 @@ show_file_item() {
   local filename
   filename=$(basename "${item}")
 
-  # Skip files that shouldn't be linked on current platform
-  local platform="${PLATFORM:-$(detect_platform)}"
-  if [[ "${platform}" = "windows" ]]; then
-    case "${filename}" in
-      .bashrc | .bashrc_git_learning | .bash_profile | .bash_logout)
-        # Bash-specific files not needed on pure Windows
-        return 0
-        ;;
-      *)
-        # Default: process all other files
-        ;;
-
-    esac
-  fi
-
   # Skip desktop environment configs on WSL (has no GUI)
   if [[ "${platform}" = "wsl" ]]; then
     case "${filename}" in
@@ -225,9 +210,8 @@ show_file_item() {
     esac
   fi
 
-  # Use platform-aware path for display
-  local target
-  target=$(get_platform_config_path "${relative_path}" "${filename}")
+  # Use standard Unix path for display
+  local target="${HOME}/${relative_path}${filename}"
   local action="create"
   if [[ -e "${target}" ]]; then
     [[ -L "${target}" ]] && action="update" || action="replace"
@@ -267,52 +251,6 @@ show_symlinks() {
   traverse_dotfiles "show_file_item" "show_directory_item" "${src_dir}" "${dest_dir}" "${relative_path}" "${filter_dotfiles}"
 }
 
-# Get Windows-specific config path for cross-platform compatibility
-get_platform_config_path() {
-  local relative_path="$1"
-  local filename="$2"
-  local full_path="${relative_path}${filename}"
-
-  # Only apply Windows-specific mapping when on Windows
-  if [[ "${OSTYPE}" == "msys"* ]] || [[ "${OSTYPE}" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
-    case "${full_path}" in
-      # Alacritty config mapping
-      ".config/alacritty/"*)
-        # Extract the subpath after .config/alacritty/
-        local subpath="${full_path#.config/alacritty/}"
-        # Normalize Windows path separators to forward slashes
-        # shellcheck disable=SC2154  # APPDATA is a Windows environment variable
-        local appdata_path="${APPDATA//\\//}/alacritty"
-        # Create directory structure if it contains subdirectories
-        local subdir
-        subdir=$(dirname "${subpath}")
-        if [[ "${subdir}" != "." ]]; then
-          mkdir -p "${appdata_path}/${subdir}" 2> /dev/null
-        else
-          mkdir -p "${appdata_path}" 2> /dev/null
-        fi
-        echo "${appdata_path}/${subpath}"
-        return 0
-        ;;
-      # 1Password config mapping (if needed in future)
-      ".config/1Password/"*)
-        # Normalize Windows path separators to forward slashes
-        # shellcheck disable=SC2154  # LOCALAPPDATA is a Windows environment variable
-        local localappdata_path="${LOCALAPPDATA//\\//}/1Password"
-        mkdir -p "${localappdata_path}" 2> /dev/null
-        echo "${localappdata_path}/${filename}"
-        return 0
-        ;;
-      *)
-        # Default: use standard Unix path
-        ;;
-    esac
-  fi
-
-  # Default: use HOME directory with standard Unix paths
-  echo "${HOME}/${full_path}"
-}
-
 # File handler for create mode
 create_file_item() {
   local item="$1" dest_dir="$2" relative_path="$3"
@@ -327,21 +265,8 @@ create_file_item() {
     return 1
   fi
 
-  # Skip files that shouldn't be linked on current platform
-  local platform="${PLATFORM:-$(detect_platform)}"
-  if [[ "${platform}" = "windows" ]]; then
-    case "${filename}" in
-      .bashrc | .bashrc_git_learning | .bash_profile | .bash_logout)
-        # Bash-specific files not needed on pure Windows
-        return 0
-        ;;
-      *)
-        # Default: process all other files
-        ;;
-    esac
-  fi
-
   # Skip desktop environment configs on WSL (has no GUI)
+  local platform="${PLATFORM:-$(detect_platform)}"
   if [[ "${platform}" = "wsl" ]]; then
     case "${filename}" in
       dynamic-wallpaper.yml | dynamic-wallpaper)
@@ -354,26 +279,11 @@ create_file_item() {
     esac
   fi
 
-  # Use platform-aware path for the actual link (after validation)
-  local target
-  target=$(get_platform_config_path "${relative_path}" "${filename}")
+  # Use standard Unix path for the actual link (after validation)
+  local target="${HOME}/${relative_path}${filename}"
 
   # Additional validation - ensure target is within allowed directories
-  # On Windows, allow AppData directories in addition to HOME
-  local validation_passed=false
-
-  if validate_path_traversal "${target}" "${HOME}" "true"; then
-    validation_passed=true
-  elif [[ "${OSTYPE}" == "msys"* ]] || [[ "${OSTYPE}" == "cygwin"* ]] || [[ -n "${WINDIR:-}" ]]; then
-    # On Windows, also allow AppData directories (normalize paths for comparison)
-    local normalized_appdata="${APPDATA//\\//}"
-    local normalized_localappdata="${LOCALAPPDATA//\\//}"
-    if [[ "${target}" == "${normalized_appdata}"* ]] || [[ "${target}" == "${normalized_localappdata}"* ]]; then
-      validation_passed=true
-    fi
-  fi
-
-  if [[ "${validation_passed}" = false ]]; then
+  if ! validate_path_traversal "${target}" "${HOME}" "true"; then
     log_security_event "INVALID_TARGET" "Target outside allowed directories: ${target}"
     log_warning "Skipping link outside allowed directories: ${target}"
     return 1
@@ -384,12 +294,17 @@ create_file_item() {
     rm -f "${target}"
   fi
 
-  # Create symlink
+  # Ensure parent directory exists
+  local target_dir
+  target_dir=$(dirname "${target}")
+  mkdir -p "${target_dir}" 2> /dev/null
+
+  # Create Unix symlink
   if ln -s "${item}" "${target}" 2> /dev/null; then
-    # Show detailed linking info like in dry-run mode
     log_success "Linked: ${target} -> ${item}"
   else
     log_warning "Failed to create symlink: ${target}"
+    return 1
   fi
 }
 
@@ -589,37 +504,6 @@ Defaults:${CURRENT_USER} timestamp_timeout=${timeout_minutes}"
   rm -f "${temp_file}"
 }
 
-# Setup 1Password config on first run only
-setup_1password_config() {
-  local dry_run="$1"
-
-  # Check if 1Password settings template exists in dotfiles
-  local template_source="${DOTFILES_DIR}/.config/1Password/settings/settings.json"
-  local settings_target="${HOME}/.config/1Password/settings/settings.json"
-
-  if [[ ! -f "${template_source}" ]]; then
-    return
-  fi
-
-  if [[ "${dry_run}" = true ]]; then
-    echo "1PASSWORD CONFIG:"
-    if [[ -f "${settings_target}" ]]; then
-      log_dry_run "skip 1Password config (already exists)"
-    else
-      log_dry_run "install 1Password settings template (first run only)"
-    fi
-  else
-    if [[ -f "${settings_target}" ]]; then
-      log_info "Skipping 1Password config (already exists)"
-    else
-      log_info "Installing 1Password settings template..."
-      mkdir -p "$(dirname "${settings_target}")"
-      cp "${template_source}" "${settings_target}"
-      log_success "1Password settings template installed"
-    fi
-  fi
-}
-
 # Run per-user setup hook script if present
 run_user_setup_hook() {
   local dry_run="$1"
@@ -655,4 +539,40 @@ run_user_setup_hook() {
     log_warning "User setup hook failed"
     return 1
   fi
+}
+
+# Setup symlinks using symlinks.yaml if available, otherwise fallback to recursive approach
+# Args: $1 - source directory, $2 - destination directory, $3 - dry_run (true/false)
+# Returns: 0 if symlinks.yaml was used, 1 if fallback needed
+setup_symlinks_from_yaml() {
+  local src_dir="$1"
+  local dest_dir="$2"
+  local dry_run="$3"
+  local platform
+
+  platform=$(detect_platform)
+  local symlinks_yaml="${src_dir}/symlinks.yaml"
+
+  # Check if symlinks.yaml exists
+  if [[ ! -f "${symlinks_yaml}" ]]; then
+    return 1 # Indicate fallback needed
+  fi
+
+  # Validate the YAML file
+  if ! validate_yaml_file "${symlinks_yaml}"; then
+    log_security_event "INVALID_YAML" "YAML validation failed for: ${symlinks_yaml}"
+    log_warning "Invalid symlinks.yaml file, falling back to recursive approach"
+    return 1
+  fi
+
+  # Use the symlinks.functions.bash to process platform symlinks
+  if [[ "${dry_run}" = true ]]; then
+    echo "SYMLINKS (from symlinks.yaml):"
+    process_platform_symlinks "${symlinks_yaml}" "${platform}" "${src_dir}" "${dest_dir}" true
+  else
+    log_info "Setting up symlinks from symlinks.yaml for platform: ${platform}"
+    process_platform_symlinks "${symlinks_yaml}" "${platform}" "${src_dir}" "${dest_dir}" false
+  fi
+
+  return 0 # Indicate symlinks.yaml was used successfully
 }

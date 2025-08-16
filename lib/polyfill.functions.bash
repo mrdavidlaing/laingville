@@ -39,20 +39,6 @@ canonicalize_path() {
       # Use readlink -f on Linux
       readlink -f "${path}" 2> /dev/null
       ;;
-    "windows")
-      # Windows path canonicalization
-      if command -v realpath > /dev/null 2>&1; then
-        realpath "${path}" 2> /dev/null
-      elif command -v cygpath > /dev/null 2>&1; then
-        # Convert Windows paths using cygpath if available
-        local temp_path
-        temp_path=$(cygpath -a "${path}")
-        cygpath -m "${temp_path}" 2> /dev/null
-      else
-        # Basic fallback for Windows - convert to Unix-style paths
-        echo "${path}" | sed 's|\|/|g' | sed 's|^\([A-Za-z]\):|/\L\1|' || true
-      fi
-      ;;
     *)
       # Unknown platform - try both approaches
       if command -v realpath > /dev/null 2>&1; then
@@ -87,10 +73,6 @@ get_file_size() {
         # macOS/BSD format
         stat -f%z "${file}" 2> /dev/null || echo "0"
         ;;
-      "windows")
-        # Windows stat - try both formats
-        stat -c%s "${file}" 2> /dev/null || stat -f%z "${file}" 2> /dev/null || echo "0"
-        ;;
       *)
         # Unknown platform - try both formats
         stat -c%s "${file}" 2> /dev/null || stat -f%z "${file}" 2> /dev/null || echo "0"
@@ -119,10 +101,6 @@ read_symlink() {
       ;;
     "linux")
       # Linux readlink
-      readlink "${path}" 2> /dev/null
-      ;;
-    "windows")
-      # Windows readlink (if available in Git Bash/MSYS2)
       readlink "${path}" 2> /dev/null
       ;;
     *)

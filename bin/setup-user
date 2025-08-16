@@ -12,6 +12,7 @@ source "$LIB_DIR/polyfill.functions.bash"
 source "$LIB_DIR/logging.functions.bash"
 source "$LIB_DIR/security.functions.bash"
 source "$LIB_DIR/shared.functions.bash"
+source "$LIB_DIR/symlinks.functions.bash"
 source "$LIB_DIR/setup-user.functions.bash"
 
 # Simple argument parsing
@@ -59,11 +60,15 @@ fi
 log_subsection "Shared Dotfiles"
 SHARED_DOTFILES_DIR="$PROJECT_ROOT/dotfiles/shared"
 if [ -d "$SHARED_DOTFILES_DIR" ] && [ "$(ls -A "$SHARED_DOTFILES_DIR" 2>/dev/null)" ]; then
-    if [ "$DRY_RUN" = true ]; then
-        show_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
-    else
-        log_info "Setting up shared dotfiles..."
-        create_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
+    # Try symlinks.yaml first, fallback to recursive approach
+    if ! setup_symlinks_from_yaml "$SHARED_DOTFILES_DIR" "$HOME" "$DRY_RUN"; then
+        # Fallback to old recursive approach
+        if [ "$DRY_RUN" = true ]; then
+            show_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
+        else
+            log_info "Setting up shared dotfiles..."
+            create_symlinks "$SHARED_DOTFILES_DIR" "$HOME" ""
+        fi
     fi
 else
     log_info "No shared dotfiles found"
@@ -72,13 +77,18 @@ fi
 # Handle user-specific dotfiles
 log_subsection "User-Specific Dotfiles"
 if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
-    if [ "$DRY_RUN" = true ]; then
-        show_symlinks "$DOTFILES_DIR" "$HOME" ""
-        run_user_setup_hook "$DRY_RUN"
-    else
-        log_info "Setting up user-specific dotfiles..."
-        create_symlinks "$DOTFILES_DIR" "$HOME" ""
-        
+    # Try symlinks.yaml first, fallback to recursive approach
+    if ! setup_symlinks_from_yaml "$DOTFILES_DIR" "$HOME" "$DRY_RUN"; then
+        # Fallback to old recursive approach
+        if [ "$DRY_RUN" = true ]; then
+            show_symlinks "$DOTFILES_DIR" "$HOME" ""
+        else
+            log_info "Setting up user-specific dotfiles..."
+            create_symlinks "$DOTFILES_DIR" "$HOME" ""
+        fi
+    fi
+    
+    if [ "$DRY_RUN" = false ]; then
         # Reload Hyprland config if hyprland.conf was linked and Hyprland is running
         if [ -f "$HOME/.config/hypr/hyprland.conf" ] && command -v hyprctl >/dev/null 2>&1; then
             if hyprctl version >/dev/null 2>&1; then
@@ -87,9 +97,9 @@ if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
             fi
         fi
         log_success "Dotfiles setup complete!"
-
-        run_user_setup_hook "$DRY_RUN"
     fi
+
+    run_user_setup_hook "$DRY_RUN"
 else
     if [ "$DRY_RUN" = true ]; then
         log_dry_run "No user dotfiles found - no symlinks would be created"
@@ -123,9 +133,6 @@ setup_systemd_services "$DRY_RUN"
 log_subsection "Sudo Configuration"
 configure_sudo_timeout "$DRY_RUN"
 
-# Setup 1Password config on first run only
-log_subsection "1Password Configuration"
-setup_1password_config "$DRY_RUN"
 
 # macOS-specific system configuration
 if [ "$PLATFORM" = "macos" ]; then
