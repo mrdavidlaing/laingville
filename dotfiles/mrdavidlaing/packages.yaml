@@ -87,13 +87,13 @@ wsl:
 windows:
   winget:
     - Alacritty.Alacritty
+    - wez.wezterm
     - Mozilla.Firefox
     - Microsoft.PowerToys
     - AgileBits.1Password
-    - VivaldiTechnologies.Vivaldi
-    - Docker.DockerDesktop
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
+    - Microsoft.PowerShell
 
 # macOS - Unix tools and GUI apps
 macos:
@@ -118,6 +118,7 @@ macos:
   cask:
     - nikitabobko/tap/aerospace
     - alacritty
+    - wezterm
     - 1password-cli
     - font-jetbrains-mono-nerd-font
     - docker-desktop

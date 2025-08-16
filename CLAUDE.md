@@ -122,3 +122,58 @@ Tests automatically run on:
 - All pushes to main branch
 
 The GitHub Actions workflow ensures code quality and prevents regressions from being merged.
+
+## PowerShell Testing
+
+**IMPORTANT: Always run PowerShell tests after making changes to .ps1 files**
+
+### Framework
+The repository uses **Pester v5** for PowerShell testing, which provides BDD-style syntax similar to ShellSpec:
+- `Describe` blocks for grouping tests
+- `Context` blocks for scenarios  
+- `It` blocks for individual test cases
+- `Should` assertions for expectations
+
+### Run PowerShell Tests
+```powershell
+# Run all PowerShell tests
+Invoke-Pester
+
+# Run with configuration file
+$config = Import-PowerShellDataFile '.\.pester.ps1'
+Invoke-Pester -Configuration $config
+
+# Run specific test file
+Invoke-Pester -Path .\spec\powershell\shared.functions.Tests.ps1
+```
+
+### PowerShell Test Files
+- `spec/powershell/shared.functions.Tests.ps1` - Tests for shared PowerShell functions
+- `spec/powershell/yaml.functions.Tests.ps1` - Tests for YAML parsing functions
+- `spec/powershell/security.functions.Tests.ps1` - Tests for security validation functions
+- `spec/powershell/logging.functions.Tests.ps1` - Tests for logging functions
+- `spec/powershell/setup-user.functions.Tests.ps1` - Tests for user setup functions
+
+### PowerShell Test Coverage
+Tests cover:
+- Package installation with winget (including mocked external calls)
+- YAML parsing for packages and symlinks
+- Security validation (safe filenames and paths)
+- Logging functions with correct formatting and colors
+- User mapping and platform-specific path handling
+- Symlink creation with proper error handling
+
+### When to Run PowerShell Tests
+- After modifying any `.ps1` files in `lib/` or `bin/`
+- After changing PowerShell function implementations
+- Before committing PowerShell script changes
+- When adding new PowerShell functionality
+
+### Continuous Integration
+PowerShell tests automatically run on Windows runners in GitHub Actions:
+- Installs Pester if not available
+- Executes all tests in `spec/powershell/`
+- Generates test results and code coverage reports
+- Uploads artifacts for analysis
+
+Both bash (ShellSpec) and PowerShell (Pester) test suites must pass for CI to succeed.

@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  test-bash:
     runs-on: ubuntu-latest
     
     steps:
@@ -73,3 +73,52 @@ jobs:
         ./setup.sh user --dry-run
         ./setup.sh server --dry-run
         echo "✅ Dry-run tests passed"
+
+  test-powershell:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PowerShell
+      shell: pwsh
+      run: |
+        # Install Pester if not available
+        if (-not (Get-Module -ListAvailable -Name Pester)) {
+          Install-Module -Name Pester -Force -SkipPublisherCheck
+        }
+        
+        # Import Pester
+        Import-Module Pester -Force
+
+    - name: Run Pester tests
+      shell: pwsh
+      run: |
+        # Configure Pester using the .pester.ps1 file
+        $config = Import-PowerShellDataFile '.\.pester.ps1'
+        $result = Invoke-Pester -Configuration $config
+        
+        # Exit with error code if tests failed
+        if ($result.FailedCount -gt 0) {
+          Write-Host "❌ $($result.FailedCount) tests failed" -ForegroundColor Red
+          exit 1
+        }
+        
+        Write-Host "✅ All $($result.PassedCount) PowerShell tests passed" -ForegroundColor Green
+
+    - name: Test PowerShell dry-run functionality
+      shell: pwsh
+      run: |
+        # Test that PowerShell dry-run works
+        .\bin\setup-user.ps1 -DryRun
+        Write-Host "✅ PowerShell dry-run tests passed" -ForegroundColor Green
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: powershell-test-results
+        path: |
+          testresults.xml
+          coverage.xml
