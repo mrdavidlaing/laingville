@@ -1,7 +1,7 @@
 # Makefile for Laingville repository
 # Provides canonical commands for formatting, linting, and testing bash scripts
 
-.PHONY: all format lint test check help
+.PHONY: all format lint lint-powershell test check help
 
 # Default target: run format, lint, then test
 all: format lint test
@@ -36,6 +36,10 @@ lint:
 		exit 1; \
 	fi
 
+# Lint all PowerShell scripts using PSScriptAnalyzer
+lint-powershell:
+	@pwsh -ExecutionPolicy Bypass -File scripts/lint-powershell.ps1
+
 # Run all tests using shellspec
 test:
 	@echo "🧪 Running tests..."
@@ -64,12 +68,13 @@ check:
 help:
 	@echo "Laingville Makefile - Available targets:"
 	@echo ""
-	@echo "  make           - Run format, lint, and test (default)"
-	@echo "  make format    - Format all bash scripts with shfmt"
-	@echo "  make lint      - Lint all bash scripts with shellcheck"
-	@echo "  make test      - Run all tests with shellspec"
-	@echo "  make check     - Check format and run lint/test without modifying files"
-	@echo "  make help      - Show this help message"
+	@echo "  make              - Run format, lint, and test (default)"
+	@echo "  make format       - Format all bash scripts with shfmt"
+	@echo "  make lint         - Lint all bash scripts with shellcheck"
+	@echo "  make lint-powershell - Lint all PowerShell scripts with PSScriptAnalyzer"
+	@echo "  make test         - Run all tests with shellspec"
+	@echo "  make check        - Check format and run lint/test without modifying files"
+	@echo "  make help         - Show this help message"
 	@echo ""
 	@echo "Recommended workflow:"
-	@echo "  1. make        (format, lint, and test)"
+	@echo "  1. make           (format, lint, and test)"

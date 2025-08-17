@@ -98,6 +98,7 @@ windows:
     - Microsoft.PowerShell
   psmodule:
     - Pester
+    - PSScriptAnalyzer
 
 # macOS - Unix tools and GUI apps
 macos:
