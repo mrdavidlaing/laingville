@@ -24,6 +24,7 @@
     Requires Windows 10/11 with Developer Mode enabled for symlink creation
 #>
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
 param(
     [switch]$DryRun
 )

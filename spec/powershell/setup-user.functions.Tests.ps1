@@ -30,14 +30,14 @@ Describe "setup-user.functions.ps1" {
             }
             
             It "creates the alacritty directory in APPDATA" {
-                $testPath = Get-PlatformConfigPath ".config/alacritty/" "test.toml"
+                Get-PlatformConfigPath ".config/alacritty/" "test.toml" | Out-Null
                 $alacrittyDir = Join-Path $env:APPDATA "alacritty"
                 
                 Test-Path $alacrittyDir | Should -Be $true
             }
             
             It "creates subdirectories when needed" {
-                $testPath = Get-PlatformConfigPath ".config/alacritty/themes/" "test.toml"
+                Get-PlatformConfigPath ".config/alacritty/themes/" "test.toml" | Out-Null
                 $themesDir = Join-Path $env:APPDATA "alacritty\themes"
                 
                 Test-Path $themesDir | Should -Be $true
@@ -137,6 +137,7 @@ Describe "setup-user.functions.ps1" {
                 $nestedTarget = Join-Path $script:tempDir "nested\deep\target.txt"
                 
                 $result = New-FileSymlink $nestedTarget $script:testSource
+                $result | Should -Be $true
                 
                 $parentDir = Split-Path $nestedTarget -Parent
                 Test-Path $parentDir | Should -Be $true
@@ -147,6 +148,7 @@ Describe "setup-user.functions.ps1" {
                 "Existing content" | Set-Content $script:testTarget
                 
                 $result = New-FileSymlink $script:testTarget $script:testSource
+                $result | Should -Be $true
                 
                 # Should have called mklink (mocked)
                 Should -Invoke cmd.exe -Times 1
@@ -154,6 +156,7 @@ Describe "setup-user.functions.ps1" {
             
             It "calls mklink with correct parameters" {
                 $result = New-FileSymlink $script:testTarget $script:testSource
+                $result | Should -Be $true
                 
                 Should -Invoke cmd.exe -Times 1 -ParameterFilter {
                     $args -contains "/c" -and
@@ -188,6 +191,7 @@ Describe "setup-user.functions.ps1" {
                 Mock Write-LogError { }
                 
                 $result = New-FileSymlink $script:testTarget $script:testSource
+                $result | Should -Be $false
                 
                 Should -Invoke Write-LogError -Times 1 -ParameterFilter {
                     $Message -match "Failed to create symlink"

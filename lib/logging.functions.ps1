@@ -1,3 +1,6 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+param()
+
 # Logging functions for PowerShell setup scripts
 # Provides consistent logging across all scripts
 

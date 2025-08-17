@@ -8,16 +8,16 @@ BeforeAll {
 
 Describe "shared.functions.ps1" {
     
-    Describe "Install-WingetPackages" {
+    Describe "Install-WingetPackage" {
         
         Context "when no packages are provided" {
             It "returns true for empty array" {
-                $result = Install-WingetPackages @()
+                $result = Install-WingetPackage @()
                 $result | Should -Be $true
             }
             
             It "returns true for null input" {
-                $result = Install-WingetPackages $null
+                $result = Install-WingetPackage $null
                 $result | Should -Be $true
             }
         }
@@ -34,14 +34,14 @@ Describe "shared.functions.ps1" {
             It "installs each package successfully" {
                 $packages = @("Git.Git", "Microsoft.PowerShell")
                 
-                $result = Install-WingetPackages $packages
+                $result = Install-WingetPackage $packages
                 
                 Should -Invoke winget -Times 2
                 $result | Should -Be $true
             }
             
             It "handles single package installation" {
-                $result = Install-WingetPackages @("Git.Git")
+                $result = Install-WingetPackage @("Git.Git")
                 
                 Should -Invoke winget -Times 1
                 $result | Should -Be $true
@@ -50,7 +50,7 @@ Describe "shared.functions.ps1" {
             It "skips empty package strings" {
                 $packages = @("Git.Git", "", "Microsoft.PowerShell")
                 
-                $result = Install-WingetPackages $packages
+                $result = Install-WingetPackage $packages
                 
                 Should -Invoke winget -Times 2
                 $result | Should -Be $true
@@ -64,7 +64,7 @@ Describe "shared.functions.ps1" {
                     return "Package already installed"
                 }
                 
-                $result = Install-WingetPackages @("Git.Git")
+                $result = Install-WingetPackage @("Git.Git")
                 
                 $result | Should -Be $true
             }
@@ -75,7 +75,7 @@ Describe "shared.functions.ps1" {
                     return "Package not found"
                 }
                 
-                $result = Install-WingetPackages @("NonExistent.Package")
+                $result = Install-WingetPackage @("NonExistent.Package")
                 
                 $result | Should -Be $true
             }
@@ -86,7 +86,7 @@ Describe "shared.functions.ps1" {
                     return "Some error occurred"
                 }
                 
-                $result = Install-WingetPackages @("Problematic.Package")
+                $result = Install-WingetPackage @("Problematic.Package")
                 
                 $result | Should -Be $true
             }
@@ -96,7 +96,7 @@ Describe "shared.functions.ps1" {
             It "handles exceptions gracefully" {
                 Mock winget { throw "Command not found" }
                 
-                $result = Install-WingetPackages @("Any.Package")
+                $result = Install-WingetPackage @("Any.Package")
                 
                 $result | Should -Be $true
             }

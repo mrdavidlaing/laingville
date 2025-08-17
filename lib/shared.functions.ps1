@@ -1,3 +1,6 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+param()
+
 # Shared PowerShell functions for setup scripts
 # Core utilities and Windows-specific implementations
 
@@ -15,9 +18,9 @@
     Installs each package with proper error handling and progress reporting
     Handles common exit codes like "already installed" appropriately
 .EXAMPLE
-    Install-WingetPackages @("Git.Git", "Microsoft.PowerShell")
+    Install-WingetPackage @("Git.Git", "Microsoft.PowerShell")
 #>
-function Install-WingetPackages {
+function Install-WingetPackage {
     param([string[]]$Packages)
     
     if (-not $Packages -or $Packages.Count -eq 0) {
@@ -72,9 +75,9 @@ function Install-WingetPackages {
     Installs each PowerShell module with proper error handling and progress reporting
     Uses Install-Module with appropriate flags for automation
 .EXAMPLE
-    Install-PowerShellModules @("Pester", "PSReadLine")
+    Install-PowerShellModule @("Pester", "PSReadLine")
 #>
-function Install-PowerShellModules {
+function Install-PowerShellModule {
     param([string[]]$Modules)
     
     if (-not $Modules -or $Modules.Count -eq 0) {

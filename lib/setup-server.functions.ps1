@@ -1,3 +1,6 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+param()
+
 # PowerShell server setup functions - Windows-native implementation
 # Mirrors functionality from setup-server.functions.bash
 
@@ -16,10 +19,9 @@ function Get-ServerDirectory {
 }
 
 # Get server packages from packages.yaml file
-function Get-ServerPackages {
+function Get-ServerPackage {
     param(
-        [string]$ServerDir,
-        [string]$Platform = "windows"
+        [string]$ServerDir
     )
     
     $packagesFile = Join-Path $ServerDir "packages.yaml"
@@ -32,11 +34,11 @@ function Get-ServerPackages {
         }
     }
     
-    return Get-PackagesFromYaml $packagesFile $Platform
+    return Get-PackagesFromYaml $packagesFile
 }
 
 # Install server packages
-function Install-ServerPackages {
+function Install-ServerPackage {
     param(
         [string]$ServerDir,
         [bool]$DryRun = $false
@@ -54,7 +56,7 @@ function Install-ServerPackages {
         return $true
     }
     
-    $packages = Get-ServerPackages $ServerDir "windows"
+    $packages = Get-ServerPackage $ServerDir
     
     if ($DryRun) {
         Write-Host "SERVER PACKAGES:" -ForegroundColor White
@@ -71,14 +73,14 @@ function Install-ServerPackages {
     # Install winget packages
     if ($packages.winget.Count -gt 0) {
         Write-Step "Installing Server Packages"
-        return Install-WingetPackages $packages.winget
+        return Install-WingetPackage $packages.winget
     }
     
     return $true
 }
 
 # Get custom scripts from packages.yaml
-function Get-ServerCustomScripts {
+function Get-ServerCustomScript {
     param(
         [string]$ServerDir,
         [string]$Platform = "windows"
@@ -124,7 +126,7 @@ function Get-ServerCustomScripts {
 }
 
 # Process custom server scripts
-function Invoke-ServerCustomScripts {
+function Invoke-ServerCustomScript {
     param(
         [string]$ProjectRoot,
         [string]$ServerDir,
@@ -132,7 +134,7 @@ function Invoke-ServerCustomScripts {
         [bool]$DryRun = $false
     )
     
-    $scripts = Get-ServerCustomScripts $ServerDir $Platform
+    $scripts = Get-ServerCustomScript $ServerDir $Platform
     
     if ($scripts.Count -eq 0) {
         if ($DryRun) {
@@ -244,13 +246,13 @@ function Invoke-ServerSetup {
         Write-Step "Shared Server Configuration"
         
         # Install shared packages
-        $sharedResult = Install-ServerPackages $sharedServerDir $DryRun
+        $sharedResult = Install-ServerPackage $sharedServerDir $DryRun
         if (-not $sharedResult) {
             Write-LogWarning "Shared server package installation encountered issues"
         }
         
         # Run shared custom scripts
-        $sharedScriptResult = Invoke-ServerCustomScripts $scriptRoot $sharedServerDir "windows" $DryRun
+        $sharedScriptResult = Invoke-ServerCustomScript $scriptRoot $sharedServerDir "windows" $DryRun
         if (-not $sharedScriptResult) {
             Write-LogWarning "Shared server custom scripts encountered issues"
         }
@@ -260,13 +262,13 @@ function Invoke-ServerSetup {
     Write-Step "Host-Specific Server Configuration"
     
     # Install server packages
-    $packageResult = Install-ServerPackages $serverDir $DryRun
+    $packageResult = Install-ServerPackage $serverDir $DryRun
     if (-not $packageResult) {
         Write-LogWarning "Server package installation encountered issues"
     }
     
     # Run custom scripts
-    $scriptResult = Invoke-ServerCustomScripts $scriptRoot $serverDir "windows" $DryRun
+    $scriptResult = Invoke-ServerCustomScript $scriptRoot $serverDir "windows" $DryRun
     if (-not $scriptResult) {
         Write-LogWarning "Server custom scripts encountered issues"
     }

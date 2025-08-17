@@ -27,6 +27,8 @@
     Requires Windows 10/11 with winget installed (comes by default)
 #>
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
 param(
     [switch]$SkipGitInstall,
     [switch]$DryRun,
@@ -78,7 +80,7 @@ function Test-WSLFeature {
     if (Get-Command "wsl.exe" -ErrorAction SilentlyContinue) {
         try {
             # Use --list which should work even with no distributions
-            $output = & wsl.exe --list --quiet 2>&1
+            & wsl.exe --list --quiet 2>&1 | Out-Null
             # If WSL is working, it should return successfully even with empty list
             return ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq $null)
         }
@@ -107,7 +109,7 @@ function Enable-DeveloperMode {
     return $false
 }
 
-function Ensure-WindowsPrerequisites {
+function Test-WindowsPrerequisite {
     Write-Step "Checking Windows prerequisites for dotfile management..."
     
     $prerequisitesMet = $true
@@ -196,8 +198,7 @@ function Install-Git {
 }
 
 
-function Run-Setup {
-    param([string]$GitBash)
+function Invoke-Setup {
     
     Write-Step "Running PowerShell setup scripts..."
     
@@ -251,7 +252,7 @@ function Main {
 "@ -ForegroundColor Magenta
 
     # Step 1: Ensure Windows prerequisites (WSL, Developer Mode)
-    Ensure-WindowsPrerequisites
+    Test-WindowsPrerequisite
 
     # Step 2: Install or verify Git
     if (-not $SkipGitInstall) {
@@ -266,7 +267,7 @@ function Main {
     }
     
     # Step 3: Provide setup instructions
-    Run-Setup -GitBash $gitBash
+    Invoke-Setup
 }
 
 # Run the main function

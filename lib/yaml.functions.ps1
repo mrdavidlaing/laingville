@@ -13,8 +13,7 @@
 #>
 function Get-PackagesFromYaml {
     param(
-        [string]$YamlFile,
-        [string]$Platform = "windows"
+        [string]$YamlFile
     )
     
     if (-not (Test-Path $YamlFile)) {

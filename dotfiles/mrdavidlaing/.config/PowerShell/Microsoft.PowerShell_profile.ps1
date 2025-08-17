@@ -1,3 +1,6 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
+param()
+
 # PowerShell Profile for mrdavidlaing
 # This profile is automatically loaded when PowerShell starts
 

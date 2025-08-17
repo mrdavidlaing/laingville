@@ -1,3 +1,6 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+param()
+
 # PowerShell user setup functions - Windows-native implementation
 # Mirrors functionality from setup-user.functions.bash
 
@@ -62,6 +65,7 @@ function Get-PlatformConfigPath {
     New-FileSymlink "C:\Users\user\.bashrc" "C:\repo\dotfiles\.bashrc"
 #>
 function New-FileSymlink {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$Target,
         [string]$Source
@@ -75,42 +79,50 @@ function New-FileSymlink {
     # Ensure parent directory exists
     $targetDir = Split-Path $Target -Parent
     if (-not (Test-Path $targetDir)) {
-        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        if ($PSCmdlet.ShouldProcess($targetDir, "Create directory")) {
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        }
     }
     
     # Remove existing file/symlink
     if (Test-Path $Target) {
-        Remove-Item $Target -Force
+        if ($PSCmdlet.ShouldProcess($Target, "Remove existing file")) {
+            Remove-Item $Target -Force
+        }
     }
     
     Write-LogInfo "Creating symlink: $Target -> $Source"
     
     # Create symlink using cmd mklink (requires Developer Mode)
-    try {
-        $result = & cmd.exe /c "mklink `"$Target`" `"$Source`"" 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-LogSuccess "Linked: $Target -> $Source"
-            return $true
-        } else {
-            Write-LogError "Failed to create symlink: $Target -> $Source"
-            Write-LogError "mklink error: $result"
-            Write-LogError "Ensure Windows prerequisites are met:"
-            Write-LogError "  1. Run setup.ps1 to enable Developer Mode"
-            Write-LogError "  2. Restart this script after prerequisites are satisfied"
+    if ($PSCmdlet.ShouldProcess($Target, "Create symlink to $Source")) {
+        try {
+            $result = & cmd.exe /c "mklink `"$Target`" `"$Source`"" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-LogSuccess "Linked: $Target -> $Source"
+                return $true
+            } else {
+                Write-LogError "Failed to create symlink: $Target -> $Source"
+                Write-LogError "mklink error: $result"
+                Write-LogError "Ensure Windows prerequisites are met:"
+                Write-LogError "  1. Run setup.ps1 to enable Developer Mode"
+                Write-LogError "  2. Restart this script after prerequisites are satisfied"
+                return $false
+            }
+        }
+        catch {
+            Write-LogError "Exception creating symlink: $_"
             return $false
         }
-    }
-    catch {
-        Write-LogError "Exception creating symlink: $_"
-        return $false
+    } else {
+        return $true
     }
 }
 
 # File handler for create mode
 function New-FileItem {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$Item,
-        [string]$DestDir,
         [string]$RelativePath
     )
     
@@ -149,6 +161,7 @@ function New-FileItem {
 
 # Directory handler for create mode
 function New-DirectoryItem {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$Item,
         [string]$DestDir,
@@ -172,15 +185,16 @@ function New-DirectoryItem {
     }
     
     # Create target directory and recurse
-    New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-    return Invoke-CreateSymlinks $Item $targetDir "${RelativePath}${dirname}/" $false
+    if ($PSCmdlet.ShouldProcess($targetDir, "Create directory")) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    }
+    return Invoke-CreateSymlink $Item $targetDir "${RelativePath}${dirname}/" $false
 }
 
 # Show file item for dry-run mode
 function Show-FileItem {
     param(
         [string]$Item,
-        [string]$DestDir,
         [string]$RelativePath
     )
     
@@ -218,11 +232,11 @@ function Show-DirectoryItem {
     $dirname = Split-Path $Item -Leaf
     $targetDir = Join-Path $DestDir $dirname
     
-    return Invoke-TraverseDotfiles "Show-FileItem" "Show-DirectoryItem" $Item $targetDir "${RelativePath}${dirname}/" $false
+    return Invoke-TraverseDotfile "Show-FileItem" "Show-DirectoryItem" $Item $targetDir "${RelativePath}${dirname}/" $false
 }
 
 # Traverse dotfiles directory structure
-function Invoke-TraverseDotfiles {
+function Invoke-TraverseDotfile {
     param(
         [string]$FileHandler,
         [string]$DirHandler,
@@ -259,7 +273,7 @@ function Invoke-TraverseDotfiles {
                 if (-not $result) { $success = $false }
             } else {
                 # File
-                $result = & $FileHandler $item.FullName $DestDir $RelativePath
+                $result = & $FileHandler $item.FullName $RelativePath
                 if (-not $result) { $success = $false }
             }
         }
@@ -273,7 +287,7 @@ function Invoke-TraverseDotfiles {
 }
 
 # Create symlinks with path validation
-function Invoke-CreateSymlinks {
+function Invoke-CreateSymlink {
     param(
         [string]$SrcDir,
         [string]$DestDir,
@@ -281,11 +295,11 @@ function Invoke-CreateSymlinks {
         [bool]$FilterDotfiles = $true
     )
     
-    return Invoke-TraverseDotfiles "New-FileItem" "New-DirectoryItem" $SrcDir $DestDir $RelativePath $FilterDotfiles
+    return Invoke-TraverseDotfile "New-FileItem" "New-DirectoryItem" $SrcDir $DestDir $RelativePath $FilterDotfiles
 }
 
 # Show symlinks for dry-run mode
-function Show-Symlinks {
+function Show-Symlink {
     param(
         [string]$SrcDir,
         [string]$DestDir,
@@ -299,7 +313,7 @@ function Show-Symlinks {
         Write-Host "USER SYMLINKS:" -ForegroundColor White
     }
     
-    return Invoke-TraverseDotfiles "Show-FileItem" "Show-DirectoryItem" $SrcDir $DestDir $RelativePath $FilterDotfiles
+    return Invoke-TraverseDotfile "Show-FileItem" "Show-DirectoryItem" $SrcDir $DestDir $RelativePath $FilterDotfiles
 }
 
 <#
@@ -404,9 +418,9 @@ function Invoke-SymlinksFromConfig {
 .DESCRIPTION
     Reads packages.yaml and installs Windows packages using winget
 .EXAMPLE
-    Install-UserPackages "C:\repo\dotfiles\user" $false
+    Install-UserPackage "C:\repo\dotfiles\user" $false
 #>
-function Install-UserPackages {
+function Install-UserPackage {
     param(
         [string]$DotfilesDir,
         [bool]$DryRun = $false
@@ -424,7 +438,7 @@ function Install-UserPackages {
         return $true
     }
     
-    $packages = Get-PackagesFromYaml $packagesFile "windows"
+    $packages = Get-PackagesFromYaml $packagesFile
     
     if ($DryRun) {
         Write-Host "PACKAGES:" -ForegroundColor White
@@ -447,7 +461,7 @@ function Install-UserPackages {
     # Install winget packages
     if ($packages.winget.Count -gt 0) {
         Write-Step "Installing Windows Packages"
-        $wingetResult = Install-WingetPackages $packages.winget
+        $wingetResult = Install-WingetPackage $packages.winget
         if (-not $wingetResult) {
             return $false
         }
@@ -456,7 +470,7 @@ function Install-UserPackages {
     # Install PowerShell modules
     if ($packages.psmodule.Count -gt 0) {
         Write-Step "Installing PowerShell Modules"
-        $moduleResult = Install-PowerShellModules $packages.psmodule
+        $moduleResult = Install-PowerShellModule $packages.psmodule
         if (-not $moduleResult) {
             return $false
         }
@@ -516,6 +530,10 @@ function Test-DeveloperModeEnabled {
         # Try to create a symbolic link
         $result = & cmd.exe /c "mklink `"$testLink`" `"$testFile`"" 2>&1
         $success = ($LASTEXITCODE -eq 0) -and (Test-Path $testLink)
+        
+        if (-not $success -and $result) {
+            Write-LogError "Symlink test failed: $result"
+        }
         
         # Clean up
         Remove-Item -Path $testDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -591,10 +609,10 @@ function Invoke-UserSetup {
     if (Test-Path $sharedDir) {
         if ($DryRun) {
             Write-LogInfo "DRY RUN MODE - No changes will be made"
-            $result = Show-Symlinks $sharedDir $env:USERPROFILE "" $true
+            $result = Show-Symlink $sharedDir $env:USERPROFILE "" $true
         } else {
             Write-LogInfo "Setting up shared dotfiles..."
-            $result = Invoke-CreateSymlinks $sharedDir $env:USERPROFILE "" $true
+            $result = Invoke-CreateSymlink $sharedDir $env:USERPROFILE "" $true
         }
         
         if (-not $result) {
@@ -613,7 +631,7 @@ function Invoke-UserSetup {
     }
     
     # Install packages
-    $packageResult = Install-UserPackages $dotfilesDir $DryRun
+    $packageResult = Install-UserPackage $dotfilesDir $DryRun
     if (-not $packageResult) {
         Write-LogWarning "Package installation encountered issues"
     }

@@ -27,6 +27,7 @@
     Requires Windows 10/11 with winget installed
 #>
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
 param(
     [switch]$DryRun,
     [switch]$Help
