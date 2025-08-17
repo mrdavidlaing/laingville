@@ -483,6 +483,19 @@ config.keys = {
     mods = 'LEADER',
     action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS|TABS' },
   },
+  
+  -- Help popup
+  {
+    key = 'h',
+    mods = 'LEADER',
+    action = wezterm.action.SplitPane {
+      direction = 'Right',
+      size = { Percent = 50 },
+      command = {
+        args = { 'powershell.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "Alt+arrows: Navigate panes"; Write-Host "Ldr+arrows: Resize panes"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "l       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "h       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
+      },
+    },
+  },
 }
 
 -- Copy mode key bindings (vi-style like tmux)
