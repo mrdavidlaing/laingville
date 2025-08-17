@@ -4,6 +4,11 @@
 BeforeAll {
     # Import the functions to test
     . "$PSScriptRoot/../../lib/shared.functions.ps1"
+    
+    # Create a stub for winget if it doesn't exist (for CI environments)
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        function winget { }
+    }
 }
 
 Describe "shared.functions.ps1" {
@@ -28,7 +33,7 @@ Describe "shared.functions.ps1" {
                 Mock winget { 
                     $global:LASTEXITCODE = 0
                     return "Successfully installed package"
-                } -ModuleName $null
+                }
             }
             
             It "installs each package successfully" {
