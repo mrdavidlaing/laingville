@@ -54,7 +54,14 @@ function Test-SafePath {
     
     # Resolve to absolute path
     try {
-        $absolutePath = [System.IO.Path]::GetFullPath($Path)
+        # Handle relative paths more explicitly
+        if ([System.IO.Path]::IsPathRooted($Path)) {
+            $absolutePath = [System.IO.Path]::GetFullPath($Path)
+        } else {
+            # For relative paths, try to resolve against current directory first
+            $currentDir = Get-Location -PSProvider FileSystem | Select-Object -ExpandProperty Path
+            $absolutePath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($currentDir, $Path))
+        }
     }
     catch {
         return $false
