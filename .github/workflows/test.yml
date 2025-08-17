@@ -223,30 +223,25 @@ jobs:
           Write-Host "📊 PowerShell Coverage: $coveragePercent%" -ForegroundColor Cyan
           
           # Add to GitHub Step Summary
-          $summary = @"
-## 📊 PowerShell Test Results
-          
-**Coverage**: $coveragePercent%  
-**Tests Passed**: $($result.PassedCount)  
-**Tests Failed**: $($result.FailedCount)  
-**Tests Skipped**: $($result.SkippedCount)  
-
-### Coverage Details
-- **Lines Covered**: $($coverage.NumberOfCommandsExecuted) / $($coverage.NumberOfCommandsAnalyzed)
-- **Files Analyzed**: $($coverage.AnalyzedFiles.Count)
-
-### Coverage Badge
-"@
+          "## 📊 PowerShell Test Results" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "**Coverage**: $coveragePercent%" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "**Tests Passed**: $($result.PassedCount)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "**Tests Failed**: $($result.FailedCount)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "**Tests Skipped**: $($result.SkippedCount)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "### Coverage Details" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "- **Lines Covered**: $($coverage.NumberOfCommandsExecuted) / $($coverage.NumberOfCommandsAnalyzed)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "- **Files Analyzed**: $($coverage.AnalyzedFiles.Count)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "### Coverage Badge" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
           
           # Determine badge color based on coverage
           if ($coveragePercent -ge 80) { $color = "brightgreen" }
           elseif ($coveragePercent -ge 60) { $color = "yellow" }
           else { $color = "red" }
           
-          $summary += "![Coverage](https://img.shields.io/badge/PowerShell_Coverage-$coveragePercent%25-$color)"
-          
-          # Write to GitHub Step Summary
-          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "![Coverage](https://img.shields.io/badge/PowerShell_Coverage-$coveragePercent%25-$color)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
         }
         
         # Exit with error code if tests failed
