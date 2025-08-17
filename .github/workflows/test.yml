@@ -225,8 +225,12 @@ jobs:
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
         ./setup.sh user --dry-run
         
-        # Mock hostname for server test to use 'shared' which always exists
-        export HOSTNAME="shared"
+        # Mock hostname command for server test to use 'baljeet' which has packages.yaml
+        mkdir -p ~/.local/bin
+        echo '#!/bin/bash' > ~/.local/bin/hostname
+        echo 'echo "baljeet"' >> ~/.local/bin/hostname
+        chmod +x ~/.local/bin/hostname
+        export PATH="$HOME/.local/bin:$PATH"
         ./setup.sh server --dry-run
         echo "✅ Dry-run tests passed on ${{ matrix.platform }}"
 
@@ -325,8 +329,8 @@ jobs:
         # Test that PowerShell dry-run works
         .\bin\setup-user.ps1 -DryRun
         
-        # Mock hostname for server test to use 'shared' which always exists
-        $env:COMPUTERNAME = "shared"
+        # Mock hostname for server test to use 'baljeet' which has a packages.yaml
+        $env:COMPUTERNAME = "baljeet"
         .\bin\setup-server.ps1 -DryRun
         Write-Host "✅ PowerShell dry-run tests passed on ${{ matrix.os }}" -ForegroundColor Green
 
