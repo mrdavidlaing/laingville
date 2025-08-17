@@ -25,6 +25,9 @@ config.window_padding = {
 config.window_decorations = "RESIZE"
 config.scrollback_lines = 50000
 
+-- Transparency settings (simplified for compatibility)
+config.window_background_opacity = 0.95  -- Constant subtle transparency
+
 -- Mouse support (matching tmux mouse mode)
 config.enable_scroll_bar = false
 config.mouse_bindings = {
