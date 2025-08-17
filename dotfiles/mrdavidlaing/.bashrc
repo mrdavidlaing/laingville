@@ -9,6 +9,7 @@ alias ll='ls -lah'
 alias grep='grep --color=auto'
 alias vim='nvim'
 alias vi='nvim'
+alias cd='z'
 PS1='[\u@\h \W]\$ '
 
 # Add ~/.local/bin to PATH
