@@ -39,7 +39,7 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
-        key: tools-ubuntu-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-42
+        key: tools-ubuntu-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-pkg
 
     - name: Cache tools (Arch Linux)
       if: matrix.platform == 'archlinux'
@@ -51,7 +51,7 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
-        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-42
+        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-pkg
 
     - name: Cache tools (macOS)
       if: matrix.platform == 'macos'
@@ -69,20 +69,6 @@ jobs:
       run: |
         mkdir -p ~/.local/bin
         
-        # Install dependencies for kcov
-        sudo apt-get update
-        sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
-        
-        # Install kcov for coverage
-        cd /tmp
-        git clone https://github.com/SimonKagstrom/kcov.git
-        cd kcov
-        mkdir build && cd build
-        cmake -G 'Ninja' ..
-        ninja
-        sudo ninja install
-        cp /usr/local/bin/kcov ~/.local/bin/
-        
         # Install shellcheck
         cd /tmp
         wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
@@ -95,6 +81,10 @@ jobs:
         
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
+        
+        # Install kcov for coverage (use package manager for speed)
+        sudo apt-get update
+        sudo apt-get install -y kcov
 
     - name: Install tools (Arch Linux)
       if: matrix.platform == 'archlinux' && steps.cache-tools-arch.outputs.cache-hit != 'true'
@@ -106,17 +96,20 @@ jobs:
         pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip
         
         # Install dependencies for kcov
-        pacman -S --noconfirm libcurl-gnutls elfutils libdw binutils
+        pacman -S --noconfirm libcurl-gnutls elfutils binutils
         
-        # Install kcov for coverage
-        cd /tmp
-        git clone https://github.com/SimonKagstrom/kcov.git
-        cd kcov
-        mkdir build && cd build
-        cmake -G 'Ninja' ..
-        ninja
-        ninja install
-        cp /usr/local/bin/kcov ~/.local/bin/
+        # Install kcov for coverage (try package manager first)
+        pacman -S --noconfirm kcov || {
+          echo "Package kcov not available, building from source..."
+          cd /tmp
+          git clone https://github.com/SimonKagstrom/kcov.git
+          cd kcov
+          mkdir build && cd build
+          cmake -G 'Ninja' ..
+          ninja
+          ninja install
+          cp /usr/local/bin/kcov ~/.local/bin/
+        }
         
         # Install shellcheck
         cd /tmp
@@ -135,6 +128,9 @@ jobs:
       if: matrix.platform == 'macos' && steps.cache-tools-macos.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/.local/bin
+        
+        # Install tmux for configuration testing
+        brew install tmux
         
         # Install shellcheck
         wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.darwin.x86_64.tar.xz | tar -xJ
