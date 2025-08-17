@@ -216,8 +216,8 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
   end
   
   -- Trim title if too long
-  if #title > 20 then
-    title = title:sub(1, 17) .. '...'
+  if #title > 35 then
+    title = title:sub(1, 32) .. '...'
   end
   
   return {
