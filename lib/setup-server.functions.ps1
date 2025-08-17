@@ -229,7 +229,7 @@ function Invoke-ServerSetup {
     Write-LogInfo "Configuring server: $hostname"
     
     # Determine server directory
-    $scriptRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $scriptRoot = Split-Path $PSScriptRoot -Parent
     $serverDir = Join-Path $scriptRoot (Get-ServerDirectory $hostname)
     $sharedServerDir = Join-Path $scriptRoot "servers\shared"
     
