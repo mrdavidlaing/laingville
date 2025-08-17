@@ -224,6 +224,9 @@ jobs:
         # Test that dry-run works without requiring sudo/pacman
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
         ./setup.sh user --dry-run
+        
+        # Mock hostname for server test to use 'shared' which always exists
+        export HOSTNAME="shared"
         ./setup.sh server --dry-run
         echo "✅ Dry-run tests passed on ${{ matrix.platform }}"
 
@@ -321,6 +324,9 @@ jobs:
         
         # Test that PowerShell dry-run works
         .\bin\setup-user.ps1 -DryRun
+        
+        # Mock hostname for server test to use 'shared' which always exists
+        $env:COMPUTERNAME = "shared"
         .\bin\setup-server.ps1 -DryRun
         Write-Host "✅ PowerShell dry-run tests passed on ${{ matrix.os }}" -ForegroundColor Green
 
