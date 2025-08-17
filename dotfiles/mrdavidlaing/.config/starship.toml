@@ -1,7 +1,7 @@
 # Multi-line prompt format
 format = """
 ($status$cmd_duration ☁️  $gcloud$aws $line_break)\
-$username@$hostname 📂 $directory$git_branch$git_status\
+$username@$hostname $shell 📂 $directory$git_branch$git_status\
 $line_break\
 $character"""
 
@@ -47,6 +47,16 @@ format = "[$user]($style)"
 ssh_only = false
 style = "bold green"
 format = "[$hostname](bold green)"
+
+[shell]
+disabled = false
+format = "[$indicator]($style) "
+bash_indicator = ""
+powershell_indicator = "󰨊"
+fish_indicator = "🐟"
+zsh_indicator = "⚡"
+cmd_indicator = "💻"
+style = "cyan bold"
 
 [character]
 success_symbol = "[❯](bold green)"
