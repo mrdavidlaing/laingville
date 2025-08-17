@@ -25,6 +25,7 @@ function Get-PackagesFromYaml {
         pacman = @()
         aur = @()
         winget = @()
+        psmodule = @()
     }
     
     try {
@@ -52,6 +53,26 @@ function Get-PackagesFromYaml {
                 } | Where-Object { $_ -and $_.Length -gt 0 }
                 
                 $packages.winget = $wingetPackages
+            }
+            
+            # Extract PowerShell modules - look for psmodule: followed by list items
+            if ($windowsSection -match "psmodule:\s*\r?\n((?:\s+-.*\r?\n?)*)") {
+                $psmoduleList = $Matches[1]
+                $psmodulePackages = $psmoduleList -split "\r?\n" | ForEach-Object {
+                    if ($_ -match '^\s*-\s*(.+)$') {
+                        $Matches[1].Trim().Trim('"').Trim("'")
+                    }
+                } | Where-Object { $_ -and $_.Length -gt 0 }
+                
+                $packages.psmodule = $psmodulePackages
+            }
+            # Also handle inline array format: psmodule: [module1, module2]
+            elseif ($windowsSection -match "psmodule:\s*\[(.*?)\]") {
+                $psmodulePackages = $Matches[1] -split ',' | ForEach-Object { 
+                    $_.Trim().Trim('"').Trim("'") 
+                } | Where-Object { $_ -and $_.Length -gt 0 }
+                
+                $packages.psmodule = $psmodulePackages
             }
         }
     }

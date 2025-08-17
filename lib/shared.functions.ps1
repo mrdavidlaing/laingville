@@ -63,6 +63,69 @@ function Install-WingetPackages {
     return $true
 }
 
+<#
+.SYNOPSIS
+    Installs PowerShell modules from PowerShell Gallery
+.PARAMETER Modules
+    Array of module names to install
+.DESCRIPTION
+    Installs each PowerShell module with proper error handling and progress reporting
+    Uses Install-Module with appropriate flags for automation
+.EXAMPLE
+    Install-PowerShellModules @("Pester", "PSReadLine")
+#>
+function Install-PowerShellModules {
+    param([string[]]$Modules)
+    
+    if (-not $Modules -or $Modules.Count -eq 0) {
+        return $true
+    }
+    
+    Write-Host "Installing PowerShell modules: $($Modules -join ', ')" -ForegroundColor Cyan
+    
+    foreach ($module in $Modules) {
+        if ($module) {
+            Write-Host "Installing PowerShell module: $module" -ForegroundColor Yellow
+            try {
+                # Check if we need to install/upgrade
+                $latest = Find-Module -Name $module -ErrorAction SilentlyContinue
+                $installed = Get-Module -Name $module -ListAvailable -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1
+                
+                if ($installed -and $latest -and $installed.Version -ge $latest.Version) {
+                    Write-Host "[OK] Already up-to-date: $module v$($installed.Version)" -ForegroundColor Green
+                    continue
+                }
+                
+                # Try to remove the module from memory if it's loaded
+                $loadedModule = Get-Module -Name $module -ErrorAction SilentlyContinue
+                if ($loadedModule) {
+                    Write-Host "Unloading $module from memory..." -ForegroundColor Gray
+                    Remove-Module -Name $module -Force -ErrorAction SilentlyContinue
+                }
+                
+                Write-Host "Installing/upgrading to latest version of: $module" -ForegroundColor Gray
+                
+                # Install or upgrade module with appropriate flags
+                Install-Module -Name $module -Force -SkipPublisherCheck -AllowClobber -Scope CurrentUser -ErrorAction Stop
+                
+                # Get the installed version to confirm
+                $newInstalled = Get-Module -Name $module -ListAvailable -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1
+                if ($newInstalled) {
+                    Write-Host "[OK] Installed/Updated: $module v$($newInstalled.Version)" -ForegroundColor Green
+                } else {
+                    Write-Host "[OK] Installed: $module" -ForegroundColor Green
+                }
+            }
+            catch {
+                Write-Warning "Failed to install PowerShell module $module`: $($_.Exception.Message)"
+                return $false
+            }
+        }
+    }
+    
+    return $true
+}
+
 
 <#
 .SYNOPSIS

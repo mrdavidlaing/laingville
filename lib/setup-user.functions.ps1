@@ -432,7 +432,13 @@ function Install-UserPackages {
             foreach ($pkg in $packages.winget) {
                 Write-Host "* Would: install winget package: $pkg" -ForegroundColor Cyan
             }
-        } else {
+        }
+        if ($packages.psmodule.Count -gt 0) {
+            foreach ($module in $packages.psmodule) {
+                Write-Host "* Would: install PowerShell module: $module" -ForegroundColor Cyan
+            }
+        }
+        if ($packages.winget.Count -eq 0 -and $packages.psmodule.Count -eq 0) {
             Write-Host "* Would: skip (no Windows packages defined)" -ForegroundColor Gray
         }
         return $true
@@ -441,7 +447,19 @@ function Install-UserPackages {
     # Install winget packages
     if ($packages.winget.Count -gt 0) {
         Write-Step "Installing Windows Packages"
-        return Install-WingetPackages $packages.winget
+        $wingetResult = Install-WingetPackages $packages.winget
+        if (-not $wingetResult) {
+            return $false
+        }
+    }
+    
+    # Install PowerShell modules
+    if ($packages.psmodule.Count -gt 0) {
+        Write-Step "Installing PowerShell Modules"
+        $moduleResult = Install-PowerShellModules $packages.psmodule
+        if (-not $moduleResult) {
+            return $false
+        }
     }
     
     return $true

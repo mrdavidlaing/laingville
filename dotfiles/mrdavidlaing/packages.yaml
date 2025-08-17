@@ -16,6 +16,7 @@ arch:
     - zoxide
     - ripgrep
     - bat
+    - exa
     - fzf
     - jq
     - tmux
@@ -64,6 +65,7 @@ wsl:
     - zoxide
     - ripgrep
     - bat
+    - exa
     - fzf
     - jq
     - tmux
@@ -94,6 +96,8 @@ windows:
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
     - Microsoft.PowerShell
+  psmodule:
+    - Pester
 
 # macOS - Unix tools and GUI apps
 macos:
@@ -107,6 +111,7 @@ macos:
     - tree
     - zoxide
     - bat
+    - exa
     - starship
     - fzf
     - ripgrep

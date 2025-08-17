@@ -43,6 +43,9 @@ windows:
   # PowerShell Profile
   - source: .config/PowerShell/Microsoft.PowerShell_profile.ps1
     target: $USERPROFILE/Documents/PowerShell/Microsoft.PowerShell_profile.ps1
+  # Windows Terminal
+  - source: .config/WindowsTerminal/settings.json
+    target: $LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json
   # Alacritty with Windows-specific paths
   - source: .config/alacritty/alacritty.toml
     target: $APPDATA/alacritty/alacritty.toml
