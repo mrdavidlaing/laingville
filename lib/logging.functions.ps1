@@ -53,6 +53,8 @@ function Write-LogError {
 #>
 function Write-Step {
     param([string]$Message)
+    # Call Write-Host twice directly (avoiding nested function calls)
     Write-Host "`n$Message" -ForegroundColor Cyan
-    Write-Host ("-" * $Message.Length) -ForegroundColor Cyan
+    $underline = "-" * $Message.Length
+    Write-Host $underline -ForegroundColor Cyan
 }

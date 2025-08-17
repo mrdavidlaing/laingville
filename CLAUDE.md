@@ -135,6 +135,8 @@ The repository uses **Pester v5** for PowerShell testing, which provides BDD-sty
 - `Should` assertions for expectations
 
 ### Run PowerShell Tests
+
+#### From Windows PowerShell/PowerShell Core
 ```powershell
 # Run all PowerShell tests
 Invoke-Pester
@@ -146,6 +148,25 @@ Invoke-Pester -Configuration $config
 # Run specific test file
 Invoke-Pester -Path .\spec\powershell\shared.functions.Tests.ps1
 ```
+
+#### From WSL (Windows Subsystem for Linux)
+When working in WSL, you can run PowerShell tests using these commands:
+
+```bash
+# Run all PowerShell tests
+pwsh.exe -NoProfile -Command "Invoke-Pester -Path ./spec/powershell -Output Detailed"
+
+# Run specific test file
+pwsh.exe -NoProfile -File spec/powershell/shared.functions.Tests.ps1
+
+# Run individual test files to isolate issues
+pwsh.exe -NoProfile -File spec/powershell/logging.functions.Tests.ps1
+pwsh.exe -NoProfile -File spec/powershell/security.functions.Tests.ps1
+pwsh.exe -NoProfile -File spec/powershell/yaml.functions.Tests.ps1
+pwsh.exe -NoProfile -File spec/powershell/setup-user.functions.Tests.ps1
+```
+
+**Note**: The `-NoProfile` flag prevents PowerShell profile loading issues that can occur in WSL environments.
 
 ### PowerShell Test Files
 - `spec/powershell/shared.functions.Tests.ps1` - Tests for shared PowerShell functions

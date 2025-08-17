@@ -85,7 +85,7 @@ Describe "security.functions.ps1" {
                 $result = Test-SafeFilename "file^command.txt"
                 $result | Should -Be $false
                 
-                $result = Test-SafeFilename "file`command.txt"
+                $result = Test-SafeFilename "file``command.txt"
                 $result | Should -Be $false
                 
                 $result = Test-SafeFilename "file;command.txt"

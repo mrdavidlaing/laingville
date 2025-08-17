@@ -15,7 +15,7 @@ function Test-SafeFilename {
     if (-not $Filename) { return $false }
     
     # Check for dangerous characters
-    $dangerousChars = @('..', '/', '\', '<', '>', ':', [char]34, [char]124, '?', '*', '^', '`', ';')
+    $dangerousChars = @('..', '/', '\', '<', '>', ':', [char]34, [char]124, '?', '*', '^', [char]96, ';')
     
     foreach ($char in $dangerousChars) {
         if ($Filename.Contains($char)) {
@@ -63,7 +63,9 @@ function Test-SafePath {
     # Check if within allowed base
     if ($AllowedBase) {
         $allowedBasePath = [System.IO.Path]::GetFullPath($AllowedBase)
-        if (-not $absolutePath.StartsWith($allowedBasePath, [System.StringComparison]::OrdinalIgnoreCase)) {
+        if ($absolutePath.StartsWith($allowedBasePath, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        } else {
             return $false
         }
     }

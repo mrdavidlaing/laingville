@@ -11,7 +11,8 @@
       "Bash(shellspec:*)",
       "WebFetch(domain:wezterm.org)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:pester.dev)"
+      "WebFetch(domain:pester.dev)",
+      "Bash(pwsh.exe:*)"
     ],
     "deny": []
   },

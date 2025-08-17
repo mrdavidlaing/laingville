@@ -110,11 +110,11 @@ function Get-SymlinksFromYaml {
         $content = Get-Content $YamlFile -Raw
         
         # Simple YAML parsing for platform section
-        if ($content -match "${Platform}:\s*\r?\n((?:\s+.*\r?\n?)*)") {
+        if ($content -match "${Platform}:\s*\r?\n((?:\s+[^\r\n]+(?:\r?\n|$))*)") {
             $platformSection = $Matches[1]
             
             # Split into lines and process each symlink entry
-            $lines = $platformSection -split "\r?\n" | Where-Object { $_.Trim() }
+            $lines = $platformSection -split "\r?\n" | Where-Object { $_.Trim() -ne "" }
             
             $currentEntry = $null
             foreach ($line in $lines) {
@@ -136,10 +136,11 @@ function Get-SymlinksFromYaml {
                         }
                     } else {
                         # Simple string entry - both source and target are the same
-                        $symlinks += @{
+                        $entry = @{
                             source = $value
                             target = $value
                         }
+                        $symlinks += $entry
                     }
                 } elseif ($line -match "^\s+target:\s*(.+)$" -and $currentEntry) {
                     # Target line for complex object
@@ -154,5 +155,5 @@ function Get-SymlinksFromYaml {
         Write-Warning "Failed to parse symlinks YAML file ${YamlFile}: $_"
     }
     
-    return $symlinks
+    return ,$symlinks
 }
