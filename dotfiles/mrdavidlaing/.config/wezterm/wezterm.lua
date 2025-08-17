@@ -31,10 +31,37 @@ config.window_background_opacity = 0.95  -- Constant subtle transparency
 -- Mouse support (matching tmux mouse mode)
 config.enable_scroll_bar = false
 config.mouse_bindings = {
+  -- Single click - complete selection and copy
   {
     event = { Up = { streak = 1, button = 'Left' } },
     mods = 'NONE',
     action = wezterm.action.CompleteSelection 'ClipboardAndPrimarySelection',
+  },
+  -- Double click - select word and copy
+  {
+    event = { Up = { streak = 2, button = 'Left' } },
+    mods = 'NONE',
+    action = wezterm.action_callback(function(window, pane)
+      window:perform_action(wezterm.action.SelectTextAtMouseCursor 'Word', pane)
+      window:perform_action(wezterm.action.CopyTo 'ClipboardAndPrimarySelection', pane)
+      -- Clear selection after a brief delay to show what was copied
+      wezterm.time.call_after(0.3, function()
+        window:perform_action(wezterm.action.ClearSelection, pane)
+      end)
+    end),
+  },
+  -- Triple click - select line and copy
+  {
+    event = { Up = { streak = 3, button = 'Left' } },
+    mods = 'NONE',
+    action = wezterm.action_callback(function(window, pane)
+      window:perform_action(wezterm.action.SelectTextAtMouseCursor 'Line', pane)
+      window:perform_action(wezterm.action.CopyTo 'ClipboardAndPrimarySelection', pane)
+      -- Clear selection after a brief delay to show what was copied
+      wezterm.time.call_after(0.3, function()
+        window:perform_action(wezterm.action.ClearSelection, pane)
+      end)
+    end),
   },
 }
 
@@ -47,8 +74,8 @@ config.colors = {
   cursor_fg = '#002b36',
   cursor_border = '#839496',
   
-  selection_fg = '#93a1a1',
-  selection_bg = '#073642',
+  selection_fg = '#002b36',  -- Dark text for contrast
+  selection_bg = '#ff8800',  -- Orange background (matching tmux orange theme)
   
   ansi = {
     '#073642', '#dc322f', '#859900', '#b58900',
@@ -90,6 +117,7 @@ config.inactive_pane_hsb = {
 
 -- Enable key debugging
 config.debug_key_events = true
+
 
 -- Status bar configuration (matching tmux status bar)
 config.status_update_interval = 1000
@@ -242,8 +270,8 @@ config.launch_menu = {
     args = { 'wsl.exe', '-d', 'archlinux' },
   },
   {
-    label = 'PowerShell',
-    args = { 'powershell.exe', '-NoLogo' },
+    label = 'PowerShell 7+',
+    args = { 'pwsh.exe', '-NoLogo' },
   },
   {
     label = 'Git Bash',
@@ -487,6 +515,21 @@ config.keys = {
     action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS|TABS' },
   },
   
+  -- Standard copy/paste shortcuts
+  {
+    key = 'c',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.Multiple {
+      wezterm.action.CopyTo 'ClipboardAndPrimarySelection',
+      wezterm.action.ClearSelection,
+    },
+  },
+  {
+    key = 'v',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.PasteFrom 'Clipboard',
+  },
+  
   -- Help popup
   {
     key = 'h',
@@ -495,35 +538,138 @@ config.keys = {
       direction = 'Right',
       size = { Percent = 50 },
       command = {
-        args = { 'powershell.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "Alt+arrows: Navigate panes"; Write-Host "Ldr+arrows: Resize panes"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "l       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "h       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
+        args = { 'pwsh.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "Alt+arrows: Navigate panes"; Write-Host "Ldr+arrows: Resize panes"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "l       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- COPY/PASTE --" -ForegroundColor Cyan; Write-Host "Ctrl+Shift+C: Copy"; Write-Host "Ctrl+Shift+V: Paste"; Write-Host "Double-click: Copy word"; Write-Host "Triple-click: Copy line"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "h       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
       },
     },
   },
 }
 
--- Copy mode key bindings (vi-style like tmux)
+-- Copy mode key bindings (enhanced vi-style like tmux)
 config.key_tables = {
   copy_mode = {
+    -- Vi navigation
     {
-      key = 'v',
+      key = 'h',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveLeft',
+    },
+    {
+      key = 'j',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveDown',
+    },
+    {
+      key = 'k',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveUp',
+    },
+    {
+      key = 'l',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveRight',
+    },
+    -- Word movement
+    {
+      key = 'w',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveForwardWord',
+    },
+    {
+      key = 'b',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveBackwardWord',
+    },
+    {
+      key = 'e',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveForwardWordEnd',
+    },
+    -- Line movement
+    {
+      key = '0',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveToStartOfLine',
+    },
+    {
+      key = '^',
       mods = 'NONE',
       action = wezterm.action.CopyMode 'MoveToStartOfLineContent',
     },
     {
+      key = '$',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveToEndOfLineContent',
+    },
+    -- Page movement
+    {
+      key = 'g',
+      mods = 'CTRL',
+      action = wezterm.action.CopyMode 'MoveToScrollbackTop',
+    },
+    {
+      key = 'G',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'MoveToScrollbackBottom',
+    },
+    {
+      key = 'u',
+      mods = 'CTRL',
+      action = wezterm.action.CopyMode 'PageUp',
+    },
+    {
+      key = 'd',
+      mods = 'CTRL',
+      action = wezterm.action.CopyMode 'PageDown',
+    },
+    -- Visual selection
+    {
+      key = 'v',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode { SetSelectionMode = 'Cell' },
+    },
+    {
       key = 'V',
       mods = 'NONE',
-      action = wezterm.action.CopyMode 'MoveToStartOfLine',
+      action = wezterm.action.CopyMode { SetSelectionMode = 'Line' },
     },
+    {
+      key = 'v',
+      mods = 'CTRL',
+      action = wezterm.action.CopyMode { SetSelectionMode = 'Block' },
+    },
+    -- Copy and search
     {
       key = 'y',
       mods = 'NONE',
       action = wezterm.action.Multiple {
         wezterm.action.CopyTo 'ClipboardAndPrimarySelection',
+        wezterm.action.ClearSelection,
         wezterm.action.CopyMode 'Close',
       },
     },
     {
+      key = '/',
+      mods = 'NONE',
+      action = wezterm.action.Search { CaseSensitiveString = '' },
+    },
+    {
+      key = 'n',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'NextMatch',
+    },
+    {
+      key = 'N',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'PriorMatch',
+    },
+    -- Exit copy mode
+    {
       key = 'Escape',
+      mods = 'NONE',
+      action = wezterm.action.CopyMode 'Close',
+    },
+    {
+      key = 'q',
       mods = 'NONE',
       action = wezterm.action.CopyMode 'Close',
     },
