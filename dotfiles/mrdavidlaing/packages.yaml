@@ -16,7 +16,7 @@ arch:
     - zoxide
     - ripgrep
     - bat
-    - exa
+    - eza
     - fzf
     - jq
     - tmux
@@ -65,7 +65,7 @@ wsl:
     - zoxide
     - ripgrep
     - bat
-    - exa
+    - eza
     - fzf
     - jq
     - tmux
@@ -111,7 +111,7 @@ macos:
     - tree
     - zoxide
     - bat
-    - exa
+    - eza
     - starship
     - fzf
     - ripgrep

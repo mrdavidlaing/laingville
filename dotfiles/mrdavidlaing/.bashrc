@@ -4,8 +4,21 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-alias ls='ls --color=auto'
-alias ll='ls -lah'
+# Enhanced eza aliases with icons and useful defaults
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -la --icons --group-directories-first'
+alias la='eza -a --icons'
+
+# Git integration
+alias lg='eza -la --icons --git'
+
+# Tree views for project exploration
+alias lt='eza --tree --icons --level=2'
+alias lt3='eza --tree --icons --level=3'
+
+# Sort variations for development workflows
+alias lm='eza -la --icons --sort=modified'  # Most recent first
+alias lsize='eza -la --icons --sort=size'   # Largest first
 alias grep='grep --color=auto'
 alias vim='nvim'
 alias vi='nvim'
