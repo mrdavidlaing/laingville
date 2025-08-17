@@ -11,16 +11,27 @@ jobs:
     name: Bash Tests
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - os: ubuntu-latest
+            platform: ubuntu
+            runner: ubuntu-latest
+          - os: macos-latest
+            platform: macos
+            runner: macos-latest
+          - os: archlinux
+            platform: archlinux
+            runner: ubuntu-latest
+            container: archlinux:latest
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Cache tools (Linux)
-      if: runner.os == 'Linux'
-      id: cache-tools-linux
+    - name: Cache tools (Ubuntu)
+      if: matrix.platform == 'ubuntu'
+      id: cache-tools-ubuntu
       uses: actions/cache@v4
       with:
         path: |
@@ -28,10 +39,22 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
-        key: tools-${{ runner.os }}-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-42
+        key: tools-ubuntu-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-42
+
+    - name: Cache tools (Arch Linux)
+      if: matrix.platform == 'archlinux'
+      id: cache-tools-arch
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/bin/shellspec
+          ~/.local/bin/shellcheck
+          ~/.local/bin/shfmt
+          ~/.local/bin/kcov
+        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-42
 
     - name: Cache tools (macOS)
-      if: runner.os == 'macOS'
+      if: matrix.platform == 'macos'
       id: cache-tools-macos
       uses: actions/cache@v4
       with:
@@ -39,10 +62,10 @@ jobs:
           ~/.local/bin/shellspec
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
-        key: tools-${{ runner.os }}-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1
+        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1
 
-    - name: Install tools (Linux)
-      if: runner.os == 'Linux' && steps.cache-tools-linux.outputs.cache-hit != 'true'
+    - name: Install tools (Ubuntu)
+      if: matrix.platform == 'ubuntu' && steps.cache-tools-ubuntu.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/.local/bin
         
@@ -73,8 +96,43 @@ jobs:
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
 
+    - name: Install tools (Arch Linux)
+      if: matrix.platform == 'archlinux' && steps.cache-tools-arch.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/.local/bin
+        
+        # Update package database and install base tools
+        pacman -Syu --noconfirm
+        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip
+        
+        # Install dependencies for kcov
+        pacman -S --noconfirm libcurl-gnutls elfutils libdw binutils
+        
+        # Install kcov for coverage
+        cd /tmp
+        git clone https://github.com/SimonKagstrom/kcov.git
+        cd kcov
+        mkdir build && cd build
+        cmake -G 'Ninja' ..
+        ninja
+        ninja install
+        cp /usr/local/bin/kcov ~/.local/bin/
+        
+        # Install shellcheck
+        cd /tmp
+        wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
+        mv shellcheck-v0.10.0/shellcheck ~/.local/bin/
+        chmod +x ~/.local/bin/shellcheck
+        
+        # Install shfmt
+        wget -qO ~/.local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64
+        chmod +x ~/.local/bin/shfmt
+        
+        # Install shellspec
+        curl -fsSL https://git.io/shellspec | sh -s -- --yes
+
     - name: Install tools (macOS)
-      if: runner.os == 'macOS' && steps.cache-tools-macos.outputs.cache-hit != 'true'
+      if: matrix.platform == 'macos' && steps.cache-tools-macos.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/.local/bin
         
@@ -95,7 +153,7 @@ jobs:
 
     - name: Check formatting
       run: |
-        echo "🎨 Checking bash script formatting on ${{ matrix.os }}..."
+        echo "🎨 Checking bash script formatting on ${{ matrix.platform }}..."
         find . -type f \( -name "*.sh" -o -name "*.bash" \) \
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
@@ -103,7 +161,7 @@ jobs:
         
     - name: Lint scripts
       run: |
-        echo "🔍 Linting bash scripts on ${{ matrix.os }}..."
+        echo "🔍 Linting bash scripts on ${{ matrix.platform }}..."
         find . -type f \( -name "*.sh" -o -name "*.bash" \) \
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
@@ -111,37 +169,37 @@ jobs:
         shellcheck setup.sh setup-secrets
         
     - name: Run shellspec tests with coverage (Linux)
-      if: runner.os == 'Linux'
+      if: matrix.platform == 'ubuntu' || matrix.platform == 'archlinux'
       shell: bash
       run: |
-        echo "🧪 Running bash tests with coverage on ${{ matrix.os }}..."
+        echo "🧪 Running bash tests with coverage on ${{ matrix.platform }}..."
         # Run tests with kcov coverage
         shellspec --shell bash --kcov --covdir coverage \
           --kcov-options "--exclude-pattern=/.shellspec,/spec/,/dotfiles/,/.git/,/coverage/"
       
     - name: Run shellspec tests (macOS)
-      if: runner.os == 'macOS'
+      if: matrix.platform == 'macos'
       shell: bash
       run: |
-        echo "🧪 Running bash tests on ${{ matrix.os }}..."
+        echo "🧪 Running bash tests on ${{ matrix.platform }}..."
         shellspec --shell bash
       
     - name: Upload bash coverage (Linux)
-      if: runner.os == 'Linux'
+      if: matrix.platform == 'ubuntu' || matrix.platform == 'archlinux'
       uses: actions/upload-artifact@v4
       with:
-        name: bash-coverage-${{ matrix.os }}
+        name: bash-coverage-${{ matrix.platform }}
         path: coverage/
 
     - name: Generate bash coverage summary (Linux)
-      if: runner.os == 'Linux'
+      if: matrix.platform == 'ubuntu' || matrix.platform == 'archlinux'
       run: |
         echo "📊 Generating bash coverage summary..."
         if [ -f coverage/index.html ]; then
           # Extract coverage percentage from kcov HTML report
           COVERAGE=$(grep -o "covered.*%" coverage/index.html | head -1 | grep -o "[0-9]\+\.[0-9]\+")
           echo "Bash Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
-          echo "📊 **Bash Test Coverage (Linux)**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Bash Test Coverage (${{ matrix.platform }})**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Add coverage badge
@@ -158,12 +216,12 @@ jobs:
     - name: Test dry-run functionality
       shell: bash
       run: |
-        echo "🚀 Testing dry-run functionality on ${{ matrix.os }}..."
+        echo "🚀 Testing dry-run functionality on ${{ matrix.platform }}..."
         # Test that dry-run works without requiring sudo/pacman
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
         ./setup.sh user --dry-run
         ./setup.sh server --dry-run
-        echo "✅ Dry-run tests passed on ${{ matrix.os }}"
+        echo "✅ Dry-run tests passed on ${{ matrix.platform }}"
 
   test-powershell:
     name: PowerShell Tests
@@ -309,6 +367,7 @@ jobs:
         if [ "$PS_STATUS" = "success" ]; then PS_EMOJI="✅"; else PS_EMOJI="❌"; fi
         
         echo "| Ubuntu | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| Arch Linux | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "| macOS | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "| Windows | N/A | $PS_EMOJI | $PS_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -325,7 +384,7 @@ jobs:
           echo "- **Bash Tests (ShellSpec)**: ~194 examples" >> $GITHUB_STEP_SUMMARY
           echo "- **PowerShell Tests (Pester)**: ~98 tests" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Coverage**: Cross-platform validation" >> $GITHUB_STEP_SUMMARY
-          echo "- **Platforms Tested**: Ubuntu, macOS, Windows" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platforms Tested**: Ubuntu, Arch Linux, macOS, Windows" >> $GITHUB_STEP_SUMMARY
           
         else
           echo "## ❌ Overall Result: FAILURE" >> $GITHUB_STEP_SUMMARY
