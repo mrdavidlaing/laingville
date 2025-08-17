@@ -191,7 +191,10 @@ function Invoke-ServerCustomScript {
                 ".ps1" {
                     & PowerShell -ExecutionPolicy Bypass -File $fullScriptPath
                 }
-                ".bat" -or ".cmd" {
+                ".bat" {
+                    & cmd.exe /c $fullScriptPath
+                }
+                ".cmd" {
                     & cmd.exe /c $fullScriptPath
                 }
                 default {
@@ -203,7 +206,7 @@ function Invoke-ServerCustomScript {
             if ($LASTEXITCODE -eq 0) {
                 Write-LogSuccess "Completed custom script: $script"
             } else {
-                Write-LogError "Custom script failed with exit code $LASTEXITCODE: $script"
+                Write-LogError "Custom script failed with exit code ${LASTEXITCODE}: $script"
                 $success = $false
             }
         }
