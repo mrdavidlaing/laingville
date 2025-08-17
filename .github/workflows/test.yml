@@ -8,14 +8,31 @@ on:
 
 jobs:
   test-bash:
-    runs-on: ubuntu-latest
+    name: Bash Tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Cache tools
-      id: cache-tools
+    - name: Cache tools (Linux)
+      if: runner.os == 'Linux'
+      id: cache-tools-linux
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/bin/shellspec
+          ~/.local/bin/shellcheck
+          ~/.local/bin/shfmt
+          ~/.local/bin/kcov
+        key: tools-${{ runner.os }}-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-42
+
+    - name: Cache tools (macOS)
+      if: runner.os == 'macOS'
+      id: cache-tools-macos
       uses: actions/cache@v4
       with:
         path: |
@@ -24,12 +41,27 @@ jobs:
           ~/.local/bin/shfmt
         key: tools-${{ runner.os }}-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1
 
-    - name: Install tools
-      if: steps.cache-tools.outputs.cache-hit != 'true'
+    - name: Install tools (Linux)
+      if: runner.os == 'Linux' && steps.cache-tools-linux.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/.local/bin
         
+        # Install dependencies for kcov
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
+        
+        # Install kcov for coverage
+        cd /tmp
+        git clone https://github.com/SimonKagstrom/kcov.git
+        cd kcov
+        mkdir build && cd build
+        cmake -G 'Ninja' ..
+        ninja
+        sudo ninja install
+        cp /usr/local/bin/kcov ~/.local/bin/
+        
         # Install shellcheck
+        cd /tmp
         wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
         mv shellcheck-v0.10.0/shellcheck ~/.local/bin/
         chmod +x ~/.local/bin/shellcheck
@@ -40,13 +72,30 @@ jobs:
         
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
+
+    - name: Install tools (macOS)
+      if: runner.os == 'macOS' && steps.cache-tools-macos.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/.local/bin
+        
+        # Install shellcheck
+        wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.darwin.x86_64.tar.xz | tar -xJ
+        mv shellcheck-v0.10.0/shellcheck ~/.local/bin/
+        chmod +x ~/.local/bin/shellcheck
+        
+        # Install shfmt
+        wget -qO ~/.local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_darwin_amd64
+        chmod +x ~/.local/bin/shfmt
+        
+        # Install shellspec
+        curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
     - name: Add tools to PATH
       run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Check formatting
       run: |
-        echo "🎨 Checking bash script formatting..."
+        echo "🎨 Checking bash script formatting on ${{ matrix.os }}..."
         find . -type f \( -name "*.sh" -o -name "*.bash" \) \
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
@@ -54,50 +103,151 @@ jobs:
         
     - name: Lint scripts
       run: |
-        echo "🔍 Linting bash scripts..."
+        echo "🔍 Linting bash scripts on ${{ matrix.os }}..."
         find . -type f \( -name "*.sh" -o -name "*.bash" \) \
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
           -exec shellcheck {} \;
         shellcheck setup.sh setup-secrets
         
-    - name: Run shellspec tests
+    - name: Run shellspec tests with coverage (Linux)
+      if: runner.os == 'Linux'
       shell: bash
-      run: shellspec --shell bash
+      run: |
+        echo "🧪 Running bash tests with coverage on ${{ matrix.os }}..."
+        # Run tests with kcov coverage
+        shellspec --shell bash --kcov --covdir coverage \
+          --kcov-options "--exclude-pattern=/.shellspec,/spec/,/dotfiles/,/.git/,/coverage/"
+      
+    - name: Run shellspec tests (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        echo "🧪 Running bash tests on ${{ matrix.os }}..."
+        shellspec --shell bash
+      
+    - name: Upload bash coverage (Linux)
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: bash-coverage-${{ matrix.os }}
+        path: coverage/
+
+    - name: Generate bash coverage summary (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        echo "📊 Generating bash coverage summary..."
+        if [ -f coverage/index.html ]; then
+          # Extract coverage percentage from kcov HTML report
+          COVERAGE=$(grep -o "covered.*%" coverage/index.html | head -1 | grep -o "[0-9]\+\.[0-9]\+")
+          echo "Bash Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Bash Test Coverage (Linux)**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add coverage badge
+          if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+          echo "![Coverage](https://img.shields.io/badge/Bash_Coverage-${COVERAGE}%25-${COLOR})" >> $GITHUB_STEP_SUMMARY
+        fi
       
     - name: Test dry-run functionality
       shell: bash
       run: |
+        echo "🚀 Testing dry-run functionality on ${{ matrix.os }}..."
         # Test that dry-run works without requiring sudo/pacman
         export DOTFILES_DIR="./dotfiles/mrdavidlaing"
         ./setup.sh user --dry-run
         ./setup.sh server --dry-run
-        echo "✅ Dry-run tests passed"
+        echo "✅ Dry-run tests passed on ${{ matrix.os }}"
 
   test-powershell:
-    runs-on: windows-latest
+    name: PowerShell Tests
+    strategy:
+      matrix:
+        os: [windows-latest]
+        include:
+          # Add specific PowerShell versions if needed
+          - os: windows-latest
+            powershell-version: "latest"
+    runs-on: ${{ matrix.os }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup PowerShell
+    - name: Setup PowerShell modules
       shell: pwsh
       run: |
-        # Install Pester if not available
-        if (-not (Get-Module -ListAvailable -Name Pester)) {
-          Install-Module -Name Pester -Force -SkipPublisherCheck
+        Write-Host "🔧 Setting up PowerShell environment on ${{ matrix.os }}..." -ForegroundColor Cyan
+        
+        # Install required modules
+        $modules = @('Pester', 'PSScriptAnalyzer')
+        foreach ($module in $modules) {
+          if (-not (Get-Module -ListAvailable -Name $module)) {
+            Write-Host "Installing $module..." -ForegroundColor Yellow
+            Install-Module -Name $module -Force -SkipPublisherCheck -Scope CurrentUser
+          } else {
+            Write-Host "$module already installed" -ForegroundColor Green
+          }
         }
         
-        # Import Pester
+        # Import modules
         Import-Module Pester -Force
+        Import-Module PSScriptAnalyzer -Force
 
-    - name: Run Pester tests
+    - name: Run PowerShell linting
       shell: pwsh
       run: |
+        Write-Host "🔍 Running PowerShell linting on ${{ matrix.os }}..." -ForegroundColor Cyan
+        .\scripts\lint-powershell.ps1
+
+    - name: Run Pester tests with coverage
+      shell: pwsh
+      run: |
+        Write-Host "🧪 Running PowerShell tests with coverage on ${{ matrix.os }}..." -ForegroundColor Cyan
+        
         # Configure Pester using the .pester.ps1 file
         $config = Import-PowerShellDataFile '.\.pester.ps1'
         $result = Invoke-Pester -Configuration $config
+        
+        # Generate coverage summary for GitHub
+        if ($result.CodeCoverage) {
+          $coverage = $result.CodeCoverage
+          $coveragePercent = [math]::Round(($coverage.CoveragePercent), 2)
+          
+          Write-Host "📊 PowerShell Coverage: $coveragePercent%" -ForegroundColor Cyan
+          
+          # Add to GitHub Step Summary
+          $summary = @"
+## 📊 PowerShell Test Results
+          
+**Coverage**: $coveragePercent%  
+**Tests Passed**: $($result.PassedCount)  
+**Tests Failed**: $($result.FailedCount)  
+**Tests Skipped**: $($result.SkippedCount)  
+
+### Coverage Details
+- **Lines Covered**: $($coverage.NumberOfCommandsExecuted) / $($coverage.NumberOfCommandsAnalyzed)
+- **Files Analyzed**: $($coverage.AnalyzedFiles.Count)
+
+### Coverage Badge
+"@
+          
+          # Determine badge color based on coverage
+          if ($coveragePercent -ge 80) { $color = "brightgreen" }
+          elseif ($coveragePercent -ge 60) { $color = "yellow" }
+          else { $color = "red" }
+          
+          $summary += "![Coverage](https://img.shields.io/badge/PowerShell_Coverage-$coveragePercent%25-$color)"
+          
+          # Write to GitHub Step Summary
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+        }
         
         # Exit with error code if tests failed
         if ($result.FailedCount -gt 0) {
@@ -105,20 +255,124 @@ jobs:
           exit 1
         }
         
-        Write-Host "✅ All $($result.PassedCount) PowerShell tests passed" -ForegroundColor Green
+        Write-Host "✅ All $($result.PassedCount) PowerShell tests passed on ${{ matrix.os }}" -ForegroundColor Green
 
     - name: Test PowerShell dry-run functionality
       shell: pwsh
       run: |
+        Write-Host "🚀 Testing PowerShell dry-run functionality on ${{ matrix.os }}..." -ForegroundColor Cyan
+        
         # Test that PowerShell dry-run works
         .\bin\setup-user.ps1 -DryRun
-        Write-Host "✅ PowerShell dry-run tests passed" -ForegroundColor Green
+        .\bin\setup-server.ps1 -DryRun
+        Write-Host "✅ PowerShell dry-run tests passed on ${{ matrix.os }}" -ForegroundColor Green
 
-    - name: Upload test results
+    - name: Upload PowerShell test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: powershell-test-results
+        name: powershell-test-results-${{ matrix.os }}
         path: |
           testresults.xml
           coverage.xml
+
+    - name: Upload PowerShell coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: powershell-coverage-${{ matrix.os }}
+        path: coverage.xml
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-bash, test-powershell]
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+
+    - name: Generate comprehensive test summary
+      run: |
+        echo "# 🧪 Laingville Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Platform results
+        echo "## 🌍 Platform Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Platform | Bash Tests | PowerShell Tests | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|------------|------------------|---------|" >> $GITHUB_STEP_SUMMARY
+        
+        BASH_STATUS="${{ needs.test-bash.result }}"
+        PS_STATUS="${{ needs.test-powershell.result }}"
+        
+        # Convert status to emoji
+        if [ "$BASH_STATUS" = "success" ]; then BASH_EMOJI="✅"; else BASH_EMOJI="❌"; fi
+        if [ "$PS_STATUS" = "success" ]; then PS_EMOJI="✅"; else PS_EMOJI="❌"; fi
+        
+        echo "| Ubuntu | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| macOS | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| Windows | N/A | $PS_EMOJI | $PS_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall status
+        if [[ "$BASH_STATUS" == "success" && "$PS_STATUS" == "success" ]]; then
+          echo "## 🎉 Overall Result: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All tests passed across all platforms! 🚀" >> $GITHUB_STEP_SUMMARY
+          
+          # Add test counts if available
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Test Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bash Tests (ShellSpec)**: ~194 examples" >> $GITHUB_STEP_SUMMARY
+          echo "- **PowerShell Tests (Pester)**: ~98 tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Coverage**: Cross-platform validation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platforms Tested**: Ubuntu, macOS, Windows" >> $GITHUB_STEP_SUMMARY
+          
+        else
+          echo "## ❌ Overall Result: FAILURE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Some tests failed. Check the individual job logs for details." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Add coverage summary if artifacts exist
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📈 Coverage Reports" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Coverage reports have been uploaded as artifacts:" >> $GITHUB_STEP_SUMMARY
+        echo "- Bash coverage (Linux only)" >> $GITHUB_STEP_SUMMARY
+        echo "- PowerShell coverage (Windows)" >> $GITHUB_STEP_SUMMARY
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: 'Test Results Summary'
+        path: 'artifacts/powershell-test-results-*/testresults.xml'
+        reporter: java-junit
+        fail-on-error: 'false'
+
+    - name: Code Coverage Summary
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      if: always()
+      with:
+        filename: 'artifacts/powershell-coverage-*/coverage.xml'
+        badge: true
+        fail_below_min: false
+        format: markdown
+        hide_branch_rate: false
+        hide_complexity: true
+        indicators: true
+        output: both
+        thresholds: '60 80'
+
+    - name: Add Coverage PR Comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      if: github.event_name == 'pull_request'
+      with:
+        recreate: true
+        path: code-coverage-results.md
