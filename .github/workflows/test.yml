@@ -65,8 +65,7 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/lib/shellspec
-          /usr/local/bin/tmux
-        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-tmux-3.4
+        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2
 
     - name: Install tools (Ubuntu)
       if: matrix.platform == 'ubuntu' && steps.cache-tools-ubuntu.outputs.cache-hit != 'true'
@@ -148,7 +147,16 @@ jobs:
         mkdir -p ~/.local/bin
         
         # Install tmux for configuration testing
+        echo "Installing tmux via brew..."
         brew install tmux
+        
+        # Debug: Show where tmux was installed
+        echo "Tmux installation paths:"
+        which tmux || echo "tmux not found in PATH"
+        ls -la /usr/local/bin/tmux 2>/dev/null || echo "/usr/local/bin/tmux not found"
+        ls -la /opt/homebrew/bin/tmux 2>/dev/null || echo "/opt/homebrew/bin/tmux not found"
+        echo "Brew prefix: $(brew --prefix)"
+        echo "Brew --prefix tmux: $(brew --prefix tmux 2>/dev/null || echo 'not found')"
         
         # Install shellcheck
         wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.darwin.x86_64.tar.xz | tar -xJ
@@ -162,8 +170,23 @@ jobs:
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
+    - name: Debug cache status (macOS)
+      if: matrix.platform == 'macos'
+      run: |
+        echo "Cache hit: ${{ steps.cache-tools-macos.outputs.cache-hit }}"
+        echo "Checking cached tmux locations:"
+        ls -la /usr/local/bin/tmux 2>/dev/null || echo "/usr/local/bin/tmux not found"
+        ls -la /opt/homebrew/bin/tmux 2>/dev/null || echo "/opt/homebrew/bin/tmux not found"
+        which tmux || echo "tmux not found in PATH"
+
     - name: Add tools to PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      run: |
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        # Ensure brew-installed tools are in PATH on macOS
+        if [ "${{ matrix.platform }}" = "macos" ]; then
+          echo "/usr/local/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+        fi
 
     - name: Check formatting
       run: |
