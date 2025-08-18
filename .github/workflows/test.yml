@@ -66,9 +66,7 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/lib/shellspec
-          /opt/homebrew/bin/tmux
-          /opt/homebrew/Cellar/tmux
-        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-tmux-cached
+        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2
 
     - name: Install tools (Ubuntu)
       if: matrix.platform == 'ubuntu' && steps.cache-tools-ubuntu.outputs.cache-hit != 'true'
@@ -149,9 +147,6 @@ jobs:
       run: |
         mkdir -p ~/.local/bin
         
-        # Install tmux for configuration testing
-        brew install tmux
-        
         # Install shellcheck
         wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.darwin.x86_64.tar.xz | tar -xJ
         mv shellcheck-v0.10.0/shellcheck ~/.local/bin/
@@ -164,6 +159,11 @@ jobs:
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
+    - name: Install system dependencies (macOS)
+      if: matrix.platform == 'macos'
+      run: |
+        # Install tmux for configuration testing (always install fresh to avoid library issues)
+        brew install tmux
 
     - name: Add tools to PATH
       run: |
