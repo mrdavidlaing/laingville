@@ -347,7 +347,11 @@ setup_wsl2_arch() {
     # Convert Windows path to WSL2 format for the project root
     local wsl_project_path
     # shellcheck disable=SC2154  # PROJECT_ROOT is set by calling script
-    wsl_project_path=$(wsl -d archlinux -- wslpath "$(cd "${PROJECT_ROOT}" || true && pwd -W || true)")
+    if cd "${PROJECT_ROOT}"; then
+      wsl_project_path=$(wsl -d archlinux -- wslpath "$(pwd -W)")
+    else
+      wsl_project_path=$(wsl -d archlinux -- wslpath "$(pwd -W 2> /dev/null || pwd)")
+    fi
 
     # Run setup-user inside WSL2 Arch - it will use the arch: packages section
 
