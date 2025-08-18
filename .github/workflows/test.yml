@@ -52,9 +52,8 @@ jobs:
           ~/.local/bin/shellspec
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
-          ~/.local/bin/kcov
           ~/.local/lib/shellspec
-        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov-pkg-bc-fixed2
+        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2
 
     - name: Cache tools (macOS)
       if: matrix.platform == 'macos'
@@ -111,23 +110,7 @@ jobs:
         
         # Update package database and install base tools (skip system upgrade for speed)
         pacman -Sy --noconfirm
-        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip tmux bc
-        
-        # Install dependencies for kcov
-        pacman -S --noconfirm libcurl-gnutls elfutils binutils
-        
-        # Install kcov for coverage (try package manager first)
-        pacman -S --noconfirm kcov || {
-          echo "Package kcov not available, building from source..."
-          cd /tmp
-          git clone https://github.com/SimonKagstrom/kcov.git
-          cd kcov
-          mkdir build && cd build
-          cmake -G 'Ninja' ..
-          ninja
-          ninja install
-          cp /usr/local/bin/kcov ~/.local/bin/
-        }
+        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip
         
         # Install shellcheck
         cd /tmp
@@ -159,6 +142,23 @@ jobs:
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
+    - name: Install system dependencies (Arch Linux)
+      if: matrix.platform == 'archlinux'
+      run: |
+        # Install system packages that aren't cacheable (always run to ensure availability)
+        echo "Installing system dependencies for Arch Linux..."
+        pacman -S --noconfirm tmux bc kcov || {
+          echo "kcov package not available, building from source..."
+          pacman -S --noconfirm libcurl-gnutls elfutils binutils
+          cd /tmp
+          git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
+          cd kcov
+          mkdir build && cd build
+          cmake -G 'Ninja' ..
+          ninja
+          ninja install
+        }
+
     - name: Install system dependencies (macOS)
       if: matrix.platform == 'macos'
       run: |
