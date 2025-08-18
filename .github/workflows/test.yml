@@ -174,15 +174,6 @@ jobs:
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
         fi
         
-        # Debug: Show kcov availability on Arch Linux
-        if [ "${{ matrix.platform }}" = "archlinux" ]; then
-          echo "=== KCOV DEBUG ==="
-          which kcov || echo "kcov not in PATH"
-          ls -la ~/.local/bin/kcov || echo "~/.local/bin/kcov not found"
-          ls -la /usr/bin/kcov || echo "/usr/bin/kcov not found"
-          echo "PATH: $PATH"
-          echo "=================="
-        fi
 
     - name: Check formatting
       run: |
@@ -206,9 +197,15 @@ jobs:
       shell: bash
       run: |
         echo "🧪 Running bash tests with coverage on ${{ matrix.platform }}..."
-        # Run tests with kcov coverage
-        shellspec --shell bash --kcov --covdir coverage \
-          --kcov-options "--exclude-pattern=/.shellspec,/spec/,/dotfiles/,/.git/,/coverage/"
+        # Run tests with kcov coverage (skip coverage on Arch Linux if kcov unavailable)
+        if command -v kcov >/dev/null 2>&1; then
+          echo "Running with kcov coverage..."
+          shellspec --shell bash --kcov --covdir coverage \
+            --kcov-options "--exclude-pattern=/.shellspec,/spec/,/dotfiles/,/.git/,/coverage/"
+        else
+          echo "⚠️ kcov not available, running tests without coverage..."
+          shellspec --shell bash
+        fi
       
     - name: Run shellspec tests (macOS)
       if: matrix.platform == 'macos'
