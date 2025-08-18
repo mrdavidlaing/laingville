@@ -85,17 +85,23 @@ jobs:
         # Install shellspec
         curl -fsSL https://git.io/shellspec | sh -s -- --yes
         
-        # Install kcov for coverage (build from source as package not available in Ubuntu 24.04)
+        # Install kcov for coverage (try package first, build from source if unavailable)
         sudo apt-get update
-        sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
-        cd /tmp
-        git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
-        cd kcov
-        mkdir build && cd build
-        cmake -G 'Ninja' ..
-        ninja
-        sudo ninja install
-        cp /usr/local/bin/kcov ~/.local/bin/
+        if sudo apt-get install -y kcov; then
+          echo "Using kcov from apt package"
+          cp /usr/bin/kcov ~/.local/bin/
+        else
+          echo "kcov package not available, building from source..."
+          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
+          cd /tmp
+          git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
+          cd kcov
+          mkdir build && cd build
+          cmake -G 'Ninja' ..
+          ninja
+          sudo ninja install
+          cp /usr/local/bin/kcov ~/.local/bin/
+        fi
 
     - name: Install tools (Arch Linux)
       if: matrix.platform == 'archlinux' && steps.cache-tools-arch.outputs.cache-hit != 'true'
@@ -104,7 +110,7 @@ jobs:
         
         # Update package database and install base tools (skip system upgrade for speed)
         pacman -Sy --noconfirm
-        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip
+        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip tmux
         
         # Install dependencies for kcov
         pacman -S --noconfirm libcurl-gnutls elfutils binutils
