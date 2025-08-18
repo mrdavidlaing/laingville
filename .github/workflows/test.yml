@@ -54,7 +54,7 @@ jobs:
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
           ~/.local/lib/shellspec
-        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov-pkg-bc
+        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov-pkg-bc-fixed
 
     - name: Cache tools (macOS)
       if: matrix.platform == 'macos'
