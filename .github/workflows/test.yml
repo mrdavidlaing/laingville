@@ -445,14 +445,15 @@ jobs:
         echo "- Bash coverage (Linux only)" >> $GITHUB_STEP_SUMMARY
         echo "- PowerShell coverage (Windows)" >> $GITHUB_STEP_SUMMARY
 
-    - name: Publish Test Results
-      uses: dorny/test-reporter@v2
-      if: always()
-      with:
-        name: 'Test Results Summary'
-        path: 'artifacts/powershell-test-results-*/testresults.xml'
-        reporter: dotnet-nunit
-        fail-on-error: 'false'
+    # Disabled: XML parsing issues with Pester-generated NUnit format
+    # - name: Publish Test Results
+    #   uses: dorny/test-reporter@v2
+    #   if: always()
+    #   with:
+    #     name: 'Test Results Summary'
+    #     path: 'artifacts/powershell-test-results-*/testresults.xml'
+    #     reporter: dotnet-nunit
+    #     fail-on-error: 'false'
 
     # Disabled: Format mismatch - Pester outputs JaCoCo, action expects Cobertura
     # - name: Code Coverage Summary
