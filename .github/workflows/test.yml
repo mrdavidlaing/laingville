@@ -39,7 +39,8 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
-        key: tools-ubuntu-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-pkg
+          ~/.local/lib/shellspec
+        key: tools-ubuntu-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov-pkg
 
     - name: Cache tools (Arch Linux)
       if: matrix.platform == 'archlinux'
@@ -51,7 +52,8 @@ jobs:
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
-        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1-kcov-pkg
+          ~/.local/lib/shellspec
+        key: tools-archlinux-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov-pkg
 
     - name: Cache tools (macOS)
       if: matrix.platform == 'macos'
@@ -62,7 +64,8 @@ jobs:
           ~/.local/bin/shellspec
           ~/.local/bin/shellcheck
           ~/.local/bin/shfmt
-        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v1
+          ~/.local/lib/shellspec
+        key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2
 
     - name: Install tools (Ubuntu)
       if: matrix.platform == 'ubuntu' && steps.cache-tools-ubuntu.outputs.cache-hit != 'true'
