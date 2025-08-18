@@ -173,6 +173,16 @@ jobs:
           echo "/usr/local/bin" >> $GITHUB_PATH
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
         fi
+        
+        # Debug: Show kcov availability on Arch Linux
+        if [ "${{ matrix.platform }}" = "archlinux" ]; then
+          echo "=== KCOV DEBUG ==="
+          which kcov || echo "kcov not in PATH"
+          ls -la ~/.local/bin/kcov || echo "~/.local/bin/kcov not found"
+          ls -la /usr/bin/kcov || echo "/usr/bin/kcov not found"
+          echo "PATH: $PATH"
+          echo "=================="
+        fi
 
     - name: Check formatting
       run: |
