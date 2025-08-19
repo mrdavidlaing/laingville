@@ -36,18 +36,6 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-25.05
 
-    - name: Cache tools (Nix-on-Ubuntu)
-      if: matrix.platform == 'nix'
-      id: cache-tools-nix
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.local/bin/shellspec
-          ~/.local/bin/shellcheck
-          ~/.local/bin/shfmt
-          ~/.local/bin/kcov
-          ~/.local/lib/shellspec
-        key: tools-nix-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov
 
 
     - name: Cache tools (Arch Linux)
@@ -75,24 +63,14 @@ jobs:
         key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2
 
     - name: Install tools (Nix-on-Ubuntu)
-      if: matrix.platform == 'nix' && steps.cache-tools-nix.outputs.cache-hit != 'true'
+      if: matrix.platform == 'nix'
       run: |
-        mkdir -p ~/.local/bin
-        
+        echo "Installing tools via Nix (no caching, run directly from Nix profile)..."
         # Install tools via Nix
         nix profile install github:NixOS/nixpkgs/nixos-25.05#shellcheck
         nix profile install github:NixOS/nixpkgs/nixos-25.05#shfmt
         nix profile install github:NixOS/nixpkgs/nixos-25.05#shellspec
         nix profile install github:NixOS/nixpkgs/nixos-25.05#kcov
-        
-        # Link to expected locations for caching
-        ln -sf $(which shellcheck) ~/.local/bin/
-        ln -sf $(which shfmt) ~/.local/bin/
-        ln -sf $(which shellspec) ~/.local/bin/
-        ln -sf $(which kcov) ~/.local/bin/
-        
-        # Copy shellspec lib directory for caching
-        cp -r ~/.nix-profile/lib/shellspec ~/.local/lib/ 2>/dev/null || true
 
     - name: Install tools (Arch Linux)
       if: matrix.platform == 'archlinux' && steps.cache-tools-arch.outputs.cache-hit != 'true'
@@ -136,6 +114,10 @@ jobs:
     - name: Install system dependencies (Arch Linux)
       if: matrix.platform == 'archlinux'
       run: |
+        # Update package database first
+        echo "Updating Arch Linux package database..."
+        pacman -Sy --noconfirm
+        
         # Install system packages that aren't cacheable (always run to ensure availability)
         echo "Installing system dependencies for Arch Linux..."
         pacman -S --noconfirm tmux bc kcov || {
@@ -163,6 +145,10 @@ jobs:
         if [ "${{ matrix.platform }}" = "macos" ]; then
           echo "/usr/local/bin" >> $GITHUB_PATH
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
+        fi
+        # For Nix, add the nix profile bin to PATH
+        if [ "${{ matrix.platform }}" = "nix" ]; then
+          echo "$HOME/.nix-profile/bin" >> $GITHUB_PATH
         fi
         
 
