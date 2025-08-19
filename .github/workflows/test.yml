@@ -223,6 +223,44 @@ jobs:
             COLOR="red"
           fi
           echo "![Coverage](https://img.shields.io/badge/Bash_Coverage-${COVERAGE}%25-${COLOR})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add per-file coverage table for lib/*.bash files
+          echo "### 📋 Coverage by File" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Coverage | Lines | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if files array exists in coverage.json
+          if jq -e '.files' "$COVERAGE_JSON" > /dev/null 2>&1; then
+            # Parse file coverage data and filter for lib/*.bash files
+            jq -r '.files[] | select(.filename | test("lib/.*\\.bash$")) | [.filename, .percent_covered, (.lines_covered|tostring) + "/" + (.lines_total|tostring)] | @tsv' "$COVERAGE_JSON" | while IFS=$'\t' read -r filename percent lines; do
+              # Remove lib/ prefix for cleaner display
+              display_name=${filename#lib/}
+              
+              # Determine status emoji based on coverage percentage
+              coverage_num=${percent%.*}
+              if [ "$coverage_num" -ge 80 ]; then
+                status="✅ Good"
+              elif [ "$coverage_num" -ge 60 ]; then
+                status="⚠️ Fair"
+              else
+                status="❌ Low"
+              fi
+              
+              echo "| $display_name | ${percent}% | $lines | $status |" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            # Fallback: if files array doesn't exist, list expected lib/*.bash files with unknown status
+            for bashfile in lib/*.bash; do
+              if [ -f "$bashfile" ]; then
+                display_name=${bashfile#lib/}
+                echo "| $display_name | N/A | N/A | ❓ No data |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
         else
           echo "⚠️ Coverage JSON file not found" >> $GITHUB_STEP_SUMMARY
         fi
