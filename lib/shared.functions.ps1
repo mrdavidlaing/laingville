@@ -160,7 +160,8 @@ function Install-ScoopPackage {
             
             # Download and install Scoop
             Write-Host "Downloading and installing Scoop..." -ForegroundColor Gray
-            Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+            $installScript = Invoke-RestMethod -Uri https://get.scoop.sh
+            & ([scriptblock]::Create($installScript))
             
             # Verify installation
             if (Get-Command "scoop" -ErrorAction SilentlyContinue) {

@@ -1,6 +1,11 @@
 # PowerShell tests for shared.functions.ps1
 # Uses Pester BDD syntax similar to ShellSpec
 
+# Suppress PSScriptAnalyzer warnings for test mock functions - these are test stubs not production code
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', '')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+param()
+
 BeforeAll {
     # Import the functions to test
     . "$PSScriptRoot/../../lib/shared.functions.ps1"
@@ -15,7 +20,7 @@ BeforeAll {
         function scoop { }
     }
     
-    # Create stubs for PowerShell commands used in Scoop installation
+    # Create stubs for PowerShell commands used in Scoop installation (test mocks only)
     if (-not (Get-Command Set-ExecutionPolicy -ErrorAction SilentlyContinue)) {
         function Set-ExecutionPolicy { }
     }
