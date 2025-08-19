@@ -50,9 +50,20 @@ echo ""
 echo "Tmux color test (if running in tmux):"
 if [ -n "$TMUX" ]; then
   echo "Running inside tmux - checking tmux info:"
-  tmux info | grep -E "(default-terminal|terminal-overrides)"
+  tmux info | grep -E "(default-terminal|terminal-overrides)" || echo "No terminal info found"
+  echo ""
+  echo "tmux show-options output:"
+  tmux show-options -g | grep -E "(default-terminal|terminal-overrides)" || echo "No options found"
 else
   echo "Not running in tmux"
+fi
+echo ""
+
+echo "SSH and terminal detection:"
+echo "SSH_TTY: ${SSH_TTY:-"(not set)"}"
+echo "SSH_CONNECTION: ${SSH_CONNECTION:-"(not set)"}"
+if command -v tput > /dev/null 2>&1; then
+  echo "tput colors: $(tput colors 2> /dev/null || echo 'unknown')"
 fi
 echo ""
 
