@@ -100,21 +100,115 @@ End
 
 # Tests for future implementation
 Describe "server directory structure validation"
-It "validates directory structure (not yet implemented)"
-Skip "Directory structure validation not yet implemented"
+It "validates that servers directory exists and is readable"
+# Set SERVER_DIR to nonexistent directory
+SERVER_DIR="${SHELLSPEC_PROJECT_ROOT}/servers/nonexistent_testhost"
 
-# Should validate that servers/ directory exists
-# Should handle case where servers/[hostname]/ doesn't exist
-# Should provide helpful error messages
+When run bash -c 'export SERVER_DIR="${SHELLSPEC_PROJECT_ROOT}/servers/nonexistent_testhost"; ./bin/setup-server --dry-run'
+The status should be failure
+The stdout should not be blank
+The stderr should include "Server directory"
+The stderr should include "does not exist"
+The stderr should include "mkdir -p"
+End
+
+It "validates directory permissions when directory exists but is not readable"
+# Create test directory structure with no read permissions
+temp_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_readonly_server_$$"
+mkdir -p "${temp_dir}"
+touch "${temp_dir}/packages.yaml"
+chmod 000 "${temp_dir}"
+
+When run bash -c "export SERVER_DIR='$temp_dir'; ./bin/setup-server --dry-run"
+The status should be failure
+The stdout should not be blank
+The stderr should include "not readable"
+
+# Cleanup - restore permissions first
+chmod 755 "${temp_dir}"
+rm -rf "${temp_dir}"
+End
+
+It "provides helpful error messages for missing server directories"
+# Set SERVER_DIR to nonexistent directory with specific name
+SERVER_DIR="${SHELLSPEC_PROJECT_ROOT}/servers/missing_server"
+
+When run bash -c "export SERVER_DIR='$SERVER_DIR'; ./bin/setup-server --dry-run"
+The status should be failure
+The stdout should not be blank
+The stderr should include "Create the directory structure"
+The stderr should include "mkdir -p"
+The stderr should include "touch"
+The stderr should include "packages.yaml"
 End
 End
 
 Describe "shared server configurations"
-It "processes shared configs before host-specific (not yet implemented)"
-Skip "Shared server configuration logic not yet implemented"
+It "processes shared server packages when shared directory exists"
+# Create test structure with shared packages
+temp_shared_dir="${SHELLSPEC_PROJECT_ROOT}/servers/shared"
+temp_host_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_shared_server_$$"
+mkdir -p "${temp_shared_dir}" "${temp_host_dir}"
+echo "nix:
+  nixpkgs-25.05:
+    - shared-package1
+    - shared-package2" > "${temp_shared_dir}/packages.yaml"
+echo "nix:
+  nixpkgs-25.05:
+    - host-package1" > "${temp_host_dir}/packages.yaml"
 
-# Should process servers/shared/ before servers/[hostname]/
-# Similar to how setup-user processes shared dotfiles first
+export SERVER_DIR
+SERVER_DIR="${temp_host_dir}"
+
+When call ./bin/setup-server --dry-run
+The status should be success
+The output should include "Shared Server Configuration"
+The output should include "shared-package1"
+The output should include "host-package1"
+
+# Cleanup
+rm -f "${temp_shared_dir}/packages.yaml"
+rm -rf "${temp_host_dir}"
+End
+
+It "handles absence of shared server configurations gracefully"
+# Create only host-specific directory (no shared)
+temp_host_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_no_shared_$$"
+mkdir -p "${temp_host_dir}"
+echo "nix:
+  nixpkgs-25.05:
+    - host-only-package" > "${temp_host_dir}/packages.yaml"
+
+export SERVER_DIR
+SERVER_DIR="${temp_host_dir}"
+
+When call ./bin/setup-server --dry-run
+The status should be success
+The output should include "No shared server packages found"
+The output should include "host-only-package"
+
+# Cleanup
+rm -rf "${temp_host_dir}"
+End
+
+It "validates shared packages.yaml file security"
+# Create test structure with invalid shared packages
+temp_shared_dir="${SHELLSPEC_PROJECT_ROOT}/servers/shared"
+temp_host_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_invalid_shared_$$"
+mkdir -p "${temp_shared_dir}" "${temp_host_dir}"
+echo "invalid yaml content [" > "${temp_shared_dir}/packages.yaml"
+echo "nix:
+  nixpkgs-25.05:
+    - host-package1" > "${temp_host_dir}/packages.yaml"
+
+When run bash -c "export SERVER_DIR='$temp_host_dir'; ./bin/setup-server --dry-run"
+The status should be failure
+The stdout should not be blank
+The stderr should include "packages.yaml failed validation"
+
+# Cleanup
+rm -f "${temp_shared_dir}/packages.yaml"
+rm -rf "${temp_host_dir}"
 End
 End
 End

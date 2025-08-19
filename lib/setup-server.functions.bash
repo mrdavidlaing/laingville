@@ -19,6 +19,23 @@ get_server_packages() {
   get_packages_from_file "${platform}" "${manager}" "${packages_file}"
 }
 
+# Handle shared server packages
+handle_shared_server_packages() {
+  local platform="$1" dry_run="$2"
+  # shellcheck disable=SC2154  # SERVERS_ROOT is set by calling script
+  local shared_packages_file="${SERVERS_ROOT}/shared/packages.yaml"
+
+  if [ -f "$shared_packages_file" ]; then
+    if ! validate_yaml_file "$shared_packages_file"; then
+      log_error "Shared server packages.yaml failed validation"
+      return 1
+    fi
+    handle_packages_from_file "${platform}" "${dry_run}" "${shared_packages_file}" "SHARED_SERVER"
+    return 0
+  fi
+  return 1
+}
+
 # Handle server package management
 handle_server_packages() {
   local platform="$1" dry_run="$2"

@@ -68,14 +68,45 @@ fi
 log_section "Server Setup for $CURRENT_HOSTNAME"
 log_info "Using server config from: $SERVER_DIR"
 
-# Check if server directory exists
+# Check if server directory exists and validate structure
 log_subsection "Server Directory Validation"
 if [ ! -d "$SERVER_DIR" ]; then
+    # Output errors to stderr immediately for test capture
+    echo "ERROR: Server directory $SERVER_DIR does not exist" >&2
+    echo "ERROR: Create the directory structure with the following commands:" >&2
+    echo "ERROR:   mkdir -p $SERVER_DIR" >&2
+    echo "ERROR:   touch $SERVER_DIR/packages.yaml" >&2
+    echo "ERROR:   mkdir -p $SERVER_DIR/scripts" >&2
+    echo "ERROR:" >&2
+    echo "ERROR: Then add your server-specific packages to packages.yaml" >&2
+    # Also use log_error for consistent formatting in non-test environments
     log_error "Server directory $SERVER_DIR does not exist"
-    log_error "Create the directory and add a packages.yaml file to configure this server"
+    log_error "Create the directory structure with the following commands:"
+    log_error "  mkdir -p $SERVER_DIR"
+    log_error "  touch $SERVER_DIR/packages.yaml"
+    log_error "  mkdir -p $SERVER_DIR/scripts"
+    log_error ""
+    log_error "Then add your server-specific packages to packages.yaml"
     exit 1
 else
     log_success "Server directory found"
+fi
+
+# Validate server directory permissions
+if [ ! -r "$SERVER_DIR" ]; then
+    # Output error to stderr immediately for test capture
+    echo "ERROR: Server directory $SERVER_DIR is not readable" >&2
+    echo "ERROR: Check directory permissions with: ls -la $SERVER_DIR" >&2
+    # Also use log_error for consistent formatting
+    log_error "Server directory $SERVER_DIR is not readable"
+    log_error "Check directory permissions with: ls -la $SERVER_DIR"
+    exit 1
+fi
+
+# Validate servers root directory structure
+if [ ! -w "$SERVERS_ROOT" ]; then
+    log_warning "Servers root directory $SERVERS_ROOT is not writable"
+    log_warning "This may prevent creation of new server directories"
 fi
 
 # Validate packages.yaml exists and is safe
@@ -100,12 +131,36 @@ fi
 log_subsection "Shared Server Configuration"
 SHARED_SERVER_DIR="$SERVERS_ROOT/shared"
 if [ -d "$SHARED_SERVER_DIR" ] && [ "$(ls -A "$SHARED_SERVER_DIR" 2>/dev/null)" ]; then
+    log_info "Processing shared server configurations..."
+    
+    # Handle shared server packages first
+    if [ -n "${PLATFORM:-}" ]; then
+        PLATFORM="$PLATFORM"
+    else
+        PLATFORM="$(detect_platform)"
+    fi
+    
+    # Check if shared packages file exists
+    SHARED_PACKAGES_FILE="$SHARED_SERVER_DIR/packages.yaml"
+    if [ -f "$SHARED_PACKAGES_FILE" ]; then
+        # File exists, so validation failure should exit
+        if handle_shared_server_packages "$PLATFORM" "$DRY_RUN"; then
+            log_success "Shared server packages processed"
+        else
+            # Validation failed - this is a critical error, not just "no packages"
+            exit 1
+        fi
+    else
+        log_info "No shared server packages found"
+    fi
+    
+    # Process shared custom scripts
     if [ "$DRY_RUN" = true ]; then
         echo "SHARED SERVER CONFIG:"
-        log_dry_run "Process shared server configurations from $SHARED_SERVER_DIR"
+        log_dry_run "Process shared server custom scripts from $SHARED_SERVER_DIR"
     else
-        log_info "Processing shared server configurations..."
-        # Future: handle shared config files here
+        # Custom scripts will be processed during the regular server package handling
+        log_info "Shared server configurations ready"
     fi
 else
     log_info "No shared server configurations found"

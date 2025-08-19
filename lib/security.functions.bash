@@ -142,6 +142,28 @@ validate_yaml_file() {
     return 1
   fi
 
+  # Check for unbalanced brackets/braces (common in malformed YAML)
+  local open_brackets=$(grep -o '\[' "${file}" | wc -l)
+  local close_brackets=$(grep -o '\]' "${file}" | wc -l)
+  if [[ "${open_brackets}" -ne "${close_brackets}" ]]; then
+    echo "Error: YAML file has unbalanced square brackets" >&2
+    return 1
+  fi
+
+  local open_braces=$(grep -o '{' "${file}" | wc -l)
+  local close_braces=$(grep -o '}' "${file}" | wc -l)
+  if [[ "${open_braces}" -ne "${close_braces}" ]]; then
+    echo "Error: YAML file has unbalanced curly braces" >&2
+    return 1
+  fi
+
+  # Check for basic YAML structure violations
+  if grep -q '^[[:space:]]*[[:alnum:]_-]*:[[:space:]]*$' "${file}" && grep -q '^\[' "${file}"; then
+    # File has YAML keys but also starts with JSON array syntax - likely malformed
+    echo "Error: YAML file contains mixed or invalid syntax" >&2
+    return 1
+  fi
+
   return 0
 }
 
