@@ -234,9 +234,9 @@ jobs:
           # Check if files array exists in coverage.json
           if jq -e '.files' "$COVERAGE_JSON" > /dev/null 2>&1; then
             # Parse file coverage data and filter for lib/*.bash files
-            jq -r '.files[] | select(.filename | test("lib/.*\\.bash$")) | [.filename, .percent_covered, (.lines_covered|tostring) + "/" + (.lines_total|tostring)] | @tsv' "$COVERAGE_JSON" | while IFS=$'\t' read -r filename percent lines; do
-              # Remove lib/ prefix for cleaner display
-              display_name=${filename#lib/}
+            jq -r '.files[] | select(.file | test("lib/.*\\.bash$")) | [.file, .percent_covered, (.covered_lines|tostring) + "/" + (.total_lines|tostring)] | @tsv' "$COVERAGE_JSON" | while IFS=$'\t' read -r filepath percent lines; do
+              # Extract just the filename from the full path (e.g. /path/to/lib/shared.functions.bash -> shared.functions.bash)
+              filename=$(basename "$filepath")
               
               # Determine status emoji based on coverage percentage
               coverage_num=${percent%.*}
@@ -248,7 +248,7 @@ jobs:
                 status="❌ Low"
               fi
               
-              echo "| $display_name | ${percent}% | $lines | $status |" >> $GITHUB_STEP_SUMMARY
+              echo "| $filename | ${percent}% | $lines | $status |" >> $GITHUB_STEP_SUMMARY
             done
           else
             # Fallback: if files array doesn't exist, list expected lib/*.bash files with unknown status
