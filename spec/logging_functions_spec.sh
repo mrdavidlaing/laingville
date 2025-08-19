@@ -99,6 +99,7 @@ export LOG_NO_COLOR="false"
 When call log_init
 
 The variable LOG_COLOR_ENABLED should equal "true"
+The output should include "Starting"
 End
 
 It "disables colors when LOG_NO_COLOR is true"
@@ -108,6 +109,7 @@ export LOG_NO_COLOR="true"
 When call log_init
 
 The variable LOG_COLOR_ENABLED should equal "false"
+The output should include "Starting"
 End
 
 It "disables colors on dumb terminal"
@@ -117,6 +119,7 @@ export LOG_NO_COLOR="false"
 When call log_init
 
 The variable LOG_COLOR_ENABLED should equal "false"
+The output should include "Starting"
 End
 
 It "enables colors for xterm terminal"
@@ -126,6 +129,7 @@ export LOG_NO_COLOR="false"
 When call log_init
 
 The variable LOG_COLOR_ENABLED should equal "true"
+The output should include "Starting"
 End
 
 It "enables colors for screen terminal"
@@ -135,6 +139,7 @@ export LOG_NO_COLOR="false"
 When call log_init
 
 The variable LOG_COLOR_ENABLED should equal "true"
+The output should include "Starting"
 End
 
 It "displays script start banner"
@@ -677,6 +682,7 @@ basename() { echo "test-script"; }
 When call log_finish "1"
 
 The stderr should include "[ERROR] ERROR: Failed test-script with exit code 1"
+The stdout should equal ""
 End
 End
 
