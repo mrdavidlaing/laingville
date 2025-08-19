@@ -152,8 +152,8 @@ validate_yaml_key() {
 
   [[ -z "${key}" ]] && return 1
 
-  # Only allow lowercase letters, numbers, and underscores
-  [[ "${key}" =~ ^[a-z0-9_]+$ ]] || return 1
+  # Only allow lowercase letters, numbers, underscores, hyphens, and periods (for nixpkgs-X.Y)
+  [[ "${key}" =~ ^[a-z0-9_.-]+$ ]] || return 1
 
   # Check reasonable length
   [[ ${#key} -le 50 ]] || return 1

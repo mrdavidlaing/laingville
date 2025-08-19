@@ -42,6 +42,8 @@ detect_platform() {
       # For Linux, detect the specific distribution/environment
       if grep -qi "microsoft\|wsl" /proc/version 2> /dev/null; then
         echo "wsl"
+      elif command -v nix > /dev/null 2>&1; then
+        echo "nix"
       elif command -v pacman > /dev/null 2>&1; then
         echo "arch"
       else
@@ -59,7 +61,7 @@ detect_username() {
   local system_user
   system_user=$(whoami)
   case "${system_user}" in
-    "david" | "mrdavidlaing" | *"DavidLaing"*)
+    "david" | "mrdavidlaing" | "coder" | *"DavidLaing"*)
       echo "mrdavidlaing"
       ;;
     "timmy")
@@ -119,6 +121,7 @@ process_packages() {
     "yay") packages=$(get_packages_from_file "${platform}" "yay" "${packages_file}") ;;
     "homebrew") packages=$(get_packages_from_file "${platform}" "homebrew" "${packages_file}") ;;
     "cask") packages=$(get_packages_from_file "${platform}" "cask" "${packages_file}") ;;
+    "nixpkgs-"*) packages=$(get_packages_from_file "${platform}" "${manager}" "${packages_file}") ;;
     *)
       log_security_event "UNKNOWN_MANAGER" "Unknown package manager: ${manager}"
       return 1
@@ -160,6 +163,11 @@ process_packages() {
       return
     fi
 
+    if [[ "${manager}" =~ ^nixpkgs- ]] && ! command -v nix > /dev/null 2>&1; then
+      log_warning "nix not found, skipping ${manager} packages"
+      return
+    fi
+
     # Install packages securely - one by one to prevent injection
     local failed_packages=()
     for pkg in "${valid_packages[@]}"; do
@@ -167,8 +175,18 @@ process_packages() {
       local quoted_pkg
       printf -v quoted_pkg '%q' "${pkg}"
 
-      if ! eval "${cmd} ${quoted_pkg}"; then
-        failed_packages+=("${pkg}")
+      # Handle Nix packages specially - need nixpkgs# prefix with version
+      if [[ "${manager}" =~ ^nixpkgs- ]]; then
+        local nix_version="${manager#nixpkgs-}"
+        # Convert version format for GitHub reference (25.05 -> nixos-25.05)
+        local github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
+        if ! eval "${cmd} ${github_ref}#${quoted_pkg}"; then
+          failed_packages+=("${pkg}")
+        fi
+      else
+        if ! eval "${cmd} ${quoted_pkg}"; then
+          failed_packages+=("${pkg}")
+        fi
       fi
     done
 
@@ -271,6 +289,17 @@ handle_packages_from_file() {
     "macos")
       process_packages "homebrew" "brew install" "${platform}" "${dry_run}" "${packages_file}"
       process_packages "cask" "brew install --cask" "${platform}" "${dry_run}" "${packages_file}"
+      ;;
+    "nix")
+      # Process versioned nixpkgs (e.g., nixpkgs-25.05)
+      # Find all nixpkgs-* managers in the file
+      if [[ -f "${packages_file}" ]]; then
+        while IFS= read -r manager; do
+          [[ -n "${manager}" ]] || continue
+          # For modern Nix with flakes, we use nixpkgs# prefix regardless of version
+          process_packages "${manager}" "nix profile install" "${platform}" "${dry_run}" "${packages_file}"
+        done < <(grep -E "^  nixpkgs-[0-9]+\.[0-9]+:" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
+      fi
       ;;
     *)
       log_warning "Unknown platform: ${platform} - skipping package installation"

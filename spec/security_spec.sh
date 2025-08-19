@@ -410,9 +410,9 @@ When call validate_yaml_key "key with spaces"
 The status should be failure
 End
 
-It "rejects key with dashes"
-When call validate_yaml_key "key-with-dashes"
-The status should be failure
+It "accepts key with dashes (for nixpkgs versioning)"
+When call validate_yaml_key "nixpkgs-25.05"
+The status should be success
 End
 
 It "rejects key with caps"
@@ -420,9 +420,9 @@ When call validate_yaml_key "KEY_WITH_CAPS"
 The status should be failure
 End
 
-It "rejects key with dots"
-When call validate_yaml_key "key.with.dots"
-The status should be failure
+It "accepts key with dots (for nixpkgs versioning)"
+When call validate_yaml_key "nixpkgs-24.11"
+The status should be success
 End
 
 It "rejects too long key"

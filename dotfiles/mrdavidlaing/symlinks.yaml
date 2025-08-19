@@ -74,3 +74,16 @@ macos:
   - .config/starship.toml
   # Apps
   - .config/1Password
+
+# Nix - terminal-focused like WSL
+nix:
+  # Shell configs
+  - .bashrc
+  - .bashrc_git_learning
+  - .gitconfig
+  # Terminal tools
+  - .config/tmux
+  - .config/navi
+  - .config/starship.toml
+  # Apps
+  - .config/1Password

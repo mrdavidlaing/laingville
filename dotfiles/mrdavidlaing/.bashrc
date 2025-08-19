@@ -36,6 +36,7 @@ export EDITOR=nvim
 
 eval "$(starship init bash)"
 eval "$(zoxide init bash)"
+eval "$(direnv hook bash)"
 
 # WSL-specific configuration
 if grep -qi microsoft /proc/version 2>/dev/null; then

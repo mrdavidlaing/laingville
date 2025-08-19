@@ -6,7 +6,9 @@ arch:
   yay:
     # Development tools
     - base-devel
+    - make
     - bash
+    - direnv
     - git
     - github-cli
     - tig
@@ -56,7 +58,9 @@ wsl:
   yay:
     # Essential development tools
     - base-devel
+    - make
     - bash
+    - direnv
     - git
     - github-cli
     - tig
@@ -104,6 +108,7 @@ windows:
 macos:
   homebrew:
     - direnv
+    - make
     - git
     - tig
     - gh
@@ -129,5 +134,35 @@ macos:
     - font-jetbrains-mono-nerd-font
     - docker-desktop
     - claude
+  custom:
+    - install_claude_code
+
+# Nix - package management
+nix:
+  nixpkgs-25.05:
+    # Development tools
+    - git
+    - gh  # github-cli
+    - neovim
+    - yq-go
+    - starship
+    - zoxide
+    - ripgrep
+    - bat
+    - eza
+    - fzf
+    - jq
+    - tmux
+    - kubectl
+    - go
+    - nodejs
+    - openssh
+    - shellcheck
+    - shellspec
+    - shfmt
+    - glow
+    - navi
+    - k9s
+    - gnumake
   custom:
     - install_claude_code

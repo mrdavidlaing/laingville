@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: ubuntu
+            platform: nix
             runner: ubuntu-latest
           - os: macos-latest
             platform: macos
@@ -30,9 +30,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Cache tools (Ubuntu)
-      if: matrix.platform == 'ubuntu'
-      id: cache-tools-ubuntu
+    - name: Install Nix
+      if: matrix.platform == 'nix'
+      uses: cachix/install-nix-action@v27
+      with:
+        nix_path: nixpkgs=channel:nixos-25.05
+
+    - name: Cache tools (Nix-on-Ubuntu)
+      if: matrix.platform == 'nix'
+      id: cache-tools-nix
       uses: actions/cache@v4
       with:
         path: |
@@ -41,7 +47,8 @@ jobs:
           ~/.local/bin/shfmt
           ~/.local/bin/kcov
           ~/.local/lib/shellspec
-        key: tools-ubuntu-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov-pkg
+        key: tools-nix-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2-kcov
+
 
     - name: Cache tools (Arch Linux)
       if: matrix.platform == 'archlinux'
@@ -67,41 +74,25 @@ jobs:
           ~/.local/lib/shellspec
         key: tools-macos-shfmt-3.8.0-shellcheck-0.10.0-shellspec-v2
 
-    - name: Install tools (Ubuntu)
-      if: matrix.platform == 'ubuntu' && steps.cache-tools-ubuntu.outputs.cache-hit != 'true'
+    - name: Install tools (Nix-on-Ubuntu)
+      if: matrix.platform == 'nix' && steps.cache-tools-nix.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/.local/bin
         
-        # Install shellcheck
-        cd /tmp
-        wget -qO- https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
-        mv shellcheck-v0.10.0/shellcheck ~/.local/bin/
-        chmod +x ~/.local/bin/shellcheck
+        # Install tools via Nix
+        nix profile install github:NixOS/nixpkgs/nixos-25.05#shellcheck
+        nix profile install github:NixOS/nixpkgs/nixos-25.05#shfmt
+        nix profile install github:NixOS/nixpkgs/nixos-25.05#shellspec
+        nix profile install github:NixOS/nixpkgs/nixos-25.05#kcov
         
-        # Install shfmt
-        wget -qO ~/.local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64
-        chmod +x ~/.local/bin/shfmt
+        # Link to expected locations for caching
+        ln -sf $(which shellcheck) ~/.local/bin/
+        ln -sf $(which shfmt) ~/.local/bin/
+        ln -sf $(which shellspec) ~/.local/bin/
+        ln -sf $(which kcov) ~/.local/bin/
         
-        # Install shellspec
-        curl -fsSL https://git.io/shellspec | sh -s -- --yes
-        
-        # Install kcov for coverage (try package first, build from source if unavailable)
-        sudo apt-get update
-        if sudo apt-get install -y kcov; then
-          echo "Using kcov from apt package"
-          cp /usr/bin/kcov ~/.local/bin/
-        else
-          echo "kcov package not available, building from source..."
-          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
-          cd /tmp
-          git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
-          cd kcov
-          mkdir build && cd build
-          cmake -G 'Ninja' ..
-          ninja
-          sudo ninja install
-          cp /usr/local/bin/kcov ~/.local/bin/
-        fi
+        # Copy shellspec lib directory for caching
+        cp -r ~/.nix-profile/lib/shellspec ~/.local/lib/ 2>/dev/null || true
 
     - name: Install tools (Arch Linux)
       if: matrix.platform == 'archlinux' && steps.cache-tools-arch.outputs.cache-hit != 'true'
@@ -193,7 +184,7 @@ jobs:
         shellcheck setup.sh setup-secrets
         
     - name: Run shellspec tests with coverage (Linux)
-      if: matrix.platform == 'ubuntu' || matrix.platform == 'archlinux'
+      if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
       shell: bash
       run: |
         echo "🧪 Running bash tests with coverage on ${{ matrix.platform }}..."
@@ -215,14 +206,14 @@ jobs:
         shellspec --shell bash
       
     - name: Upload bash coverage (Linux)
-      if: matrix.platform == 'ubuntu' || matrix.platform == 'archlinux'
+      if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
       uses: actions/upload-artifact@v4
       with:
         name: bash-coverage-${{ matrix.platform }}
         path: coverage/
 
     - name: Generate bash coverage summary (Linux)
-      if: matrix.platform == 'ubuntu' || matrix.platform == 'archlinux'
+      if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
       run: |
         echo "📊 Generating bash coverage summary..."
         if [ -f coverage/index.html ]; then
@@ -417,7 +408,7 @@ jobs:
         if [ "$BASH_STATUS" = "success" ]; then BASH_EMOJI="✅"; else BASH_EMOJI="❌"; fi
         if [ "$PS_STATUS" = "success" ]; then PS_EMOJI="✅"; else PS_EMOJI="❌"; fi
         
-        echo "| Ubuntu | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| Nix-on-Ubuntu | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "| Arch Linux | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "| macOS | $BASH_EMOJI | N/A | $BASH_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "| Windows | N/A | $PS_EMOJI | $PS_STATUS |" >> $GITHUB_STEP_SUMMARY
@@ -435,7 +426,7 @@ jobs:
           echo "- **Bash Tests (ShellSpec)**: ~194 examples" >> $GITHUB_STEP_SUMMARY
           echo "- **PowerShell Tests (Pester)**: ~98 tests" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Coverage**: Cross-platform validation" >> $GITHUB_STEP_SUMMARY
-          echo "- **Platforms Tested**: Ubuntu, Arch Linux, macOS, Windows" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platforms Tested**: Nix-on-Ubuntu, Arch Linux, macOS, Windows" >> $GITHUB_STEP_SUMMARY
           
         else
           echo "## ❌ Overall Result: FAILURE" >> $GITHUB_STEP_SUMMARY
