@@ -359,6 +359,58 @@ jobs:
           else { $color = "red" }
           
           "![Coverage](https://img.shields.io/badge/PowerShell_Coverage-$coveragePercent%25-$color)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          
+          # Add per-file coverage table for lib/*.ps1 files
+          "### 📋 Coverage by File" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "| File | Coverage | Commands | Status |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          "|------|----------|----------|--------|" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+          
+          # Process per-file coverage data
+          if ($coverage.AnalyzedFiles -and $coverage.AnalyzedFiles.Count -gt 0) {
+            # Group hit and missed commands by file
+            $hitCommandsByFile = $coverage.HitCommands | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
+            $missedCommandsByFile = $coverage.MissedCommands | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
+            
+            # Get all analyzed lib/*.ps1 files
+            $libFiles = $coverage.AnalyzedFiles | Where-Object { $_ -like "*lib\*.ps1" }
+            
+            foreach ($file in $libFiles) {
+              $fileName = Split-Path -Leaf $file
+              
+              # Calculate file-specific coverage
+              $hitGroup = $hitCommandsByFile | Where-Object { $_.Name -eq $file }
+              $missedGroup = $missedCommandsByFile | Where-Object { $_.Name -eq $file }
+              
+              $hitCommands = if ($hitGroup) { $hitGroup.Count } else { 0 }
+              $missedCommands = if ($missedGroup) { $missedGroup.Count } else { 0 }
+              $totalCommands = $hitCommands + $missedCommands
+              
+              if ($totalCommands -eq 0) {
+                $filePercent = 0
+                $commandsText = "0/0"
+              } else {
+                $filePercent = [math]::Round(($hitCommands / $totalCommands) * 100, 2)
+                $commandsText = "$hitCommands/$totalCommands"
+              }
+              
+              # Determine status emoji based on coverage percentage
+              if ($filePercent -ge 80) { $status = "✅ Good" }
+              elseif ($filePercent -ge 60) { $status = "⚠️ Fair" }
+              else { $status = "❌ Low" }
+              
+              "| $fileName | ${filePercent}% | $commandsText | $status |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+            }
+          } else {
+            # Fallback: if no detailed coverage data, list expected lib/*.ps1 files with unknown status
+            $libFiles = Get-ChildItem -Path "lib\*.ps1" -File | ForEach-Object { $_.Name }
+            foreach ($fileName in $libFiles) {
+              "| $fileName | N/A | N/A | ❓ No data |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
+            }
+          }
+          
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
         }
         
         # Exit with error code if tests failed
