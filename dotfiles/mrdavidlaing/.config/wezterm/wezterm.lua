@@ -307,7 +307,6 @@ config.keys = {
     mods = 'LEADER',
     action = wezterm.action.SplitPane {
       direction = 'Right',
-      top_level = true,
     },
   },
   {
@@ -315,7 +314,6 @@ config.keys = {
     mods = 'LEADER',
     action = wezterm.action.SplitPane {
       direction = 'Right',
-      top_level = true,
     },
   },
   {
@@ -323,7 +321,6 @@ config.keys = {
     mods = 'LEADER',
     action = wezterm.action.SplitPane {
       direction = 'Down',
-      top_level = true,
     },
   },
   
