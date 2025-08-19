@@ -167,7 +167,7 @@ local function format_time(seconds)
   return string.format('%d:%02d', mins, secs)
 end
 
--- Custom status bar with git, pomodoro, and mode info
+-- Custom status bar with git, pomodoro, date/time, and mode info
 wezterm.on('update-status', function(window, pane)
   local hostname = wezterm.hostname() or 'unknown'
   local cwd = pane:get_current_working_dir()
@@ -197,6 +197,9 @@ wezterm.on('update-status', function(window, pane)
     pomodoro_display = '⏱ --:--'
   end
   
+  -- Date and time display
+  local date_time = os.date('%Y-%m-%d %H:%M')
+  
   -- Mode indicator (simplified for now)
   local mode_info = '[NORMAL]'
   local key_table = window:active_key_table()
@@ -210,7 +213,7 @@ wezterm.on('update-status', function(window, pane)
     { Text = ' ' .. hostname .. ' ' },
   }
   
-  -- Status right (mode, pomodoro)
+  -- Status right (mode, pomodoro, date/time)
   local right_status = wezterm.format {
     { Foreground = { Color = '#2d2d2d' } },
     { Background = { Color = '#515151' } },
@@ -222,10 +225,14 @@ wezterm.on('update-status', function(window, pane)
     { Text = '' },
     { Background = { Color = '#686868' } },
     { Text = ' ' .. pomodoro_display .. ' ' },
+    { Background = { Color = '#7a7a7a' } },
+    { Text = '' },
+    { Background = { Color = '#7a7a7a' } },
+    { Text = ' ' .. date_time .. ' ' },
   }
   
-  window:set_left_status(left_status)
   window:set_right_status(right_status)
+  window:set_left_status(left_status)
 end)
 
 -- Custom tab title formatting (matching tmux window-status-format)
@@ -257,6 +264,12 @@ end)
 
 -- Terminal type configuration (using standard compatibility)
 config.term = 'xterm-256color'
+
+-- Enable true color support for SSH + tmux control mode
+config.set_environment_variables = {
+  COLORTERM = 'truecolor',
+  TERM = 'xterm-256color',
+}
 
 -- Performance settings (matching tmux optimizations)
 config.max_fps = 60
