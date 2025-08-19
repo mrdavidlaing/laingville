@@ -157,11 +157,11 @@ log_progress() {
 
 # Indent management for nested operations
 log_indent() {
-  ((LOG_INDENT_LEVEL++))
+  ((LOG_INDENT_LEVEL++)) || true
 }
 
 log_unindent() {
-  ((LOG_INDENT_LEVEL > 0)) && ((LOG_INDENT_LEVEL--))
+  ((LOG_INDENT_LEVEL > 0)) && ((LOG_INDENT_LEVEL--)) || true
 }
 
 # Scoped indentation - auto-unindent after command
