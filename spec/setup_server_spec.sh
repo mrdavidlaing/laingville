@@ -113,6 +113,11 @@ The stderr should include "mkdir -p"
 End
 
 It "validates directory permissions when directory exists but is not readable"
+# Skip this test when running as root, as root can always read directories regardless of permissions
+if [ "$(id -u)" -eq 0 ]; then
+  Skip "Test skipped when running as root (root bypasses directory permissions)"
+fi
+
 # Create test directory structure with no read permissions
 temp_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_readonly_server_$$"
 mkdir -p "${temp_dir}"

@@ -283,7 +283,8 @@ handle_packages_from_file() {
       # Install yay first for unified package management
       install_yay "${dry_run}"
 
-      # Use yay for all packages (official + AUR combined)
+      # Process official packages with pacman first, then AUR packages with yay
+      process_packages "pacman" "pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
       process_packages "yay" "yay -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
       ;;
     "macos")
