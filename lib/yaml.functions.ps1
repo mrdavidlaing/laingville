@@ -24,6 +24,7 @@ function Get-PackagesFromYaml {
         pacman = @()
         aur = @()
         winget = @()
+        scoop = @()
         psmodule = @()
     }
     
@@ -52,6 +53,26 @@ function Get-PackagesFromYaml {
                 } | Where-Object { $_ -and $_.Length -gt 0 }
                 
                 $packages.winget = $wingetPackages
+            }
+            
+            # Extract scoop packages - look for scoop: followed by list items
+            if ($windowsSection -match "scoop:\s*\r?\n((?:\s+-.*\r?\n?)*)") {
+                $scoopList = $Matches[1]
+                $scoopPackages = $scoopList -split "\r?\n" | ForEach-Object {
+                    if ($_ -match '^\s*-\s*(.+)$') {
+                        $Matches[1].Trim().Trim('"').Trim("'")
+                    }
+                } | Where-Object { $_ -and $_.Length -gt 0 }
+                
+                $packages.scoop = $scoopPackages
+            }
+            # Also handle inline array format: scoop: [package1, package2]
+            elseif ($windowsSection -match "scoop:\s*\[(.*?)\]") {
+                $scoopPackages = $Matches[1] -split ',' | ForEach-Object { 
+                    $_.Trim().Trim('"').Trim("'") 
+                } | Where-Object { $_ -and $_.Length -gt 0 }
+                
+                $packages.scoop = $scoopPackages
             }
             
             # Extract PowerShell modules - look for psmodule: followed by list items

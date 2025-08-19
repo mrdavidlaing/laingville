@@ -9,6 +9,22 @@ BeforeAll {
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         function winget { }
     }
+    
+    # Create a stub for scoop if it doesn't exist (for CI environments)
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        function scoop { }
+    }
+    
+    # Create stubs for PowerShell commands used in Scoop installation
+    if (-not (Get-Command Set-ExecutionPolicy -ErrorAction SilentlyContinue)) {
+        function Set-ExecutionPolicy { }
+    }
+    if (-not (Get-Command Invoke-RestMethod -ErrorAction SilentlyContinue)) {
+        function Invoke-RestMethod { }
+    }
+    if (-not (Get-Command Invoke-Expression -ErrorAction SilentlyContinue)) {
+        function Invoke-Expression { }
+    }
 }
 
 Describe "shared.functions.ps1" {
@@ -212,6 +228,173 @@ Describe "shared.functions.ps1" {
                 $result = Expand-WindowsPath $testPath
                 
                 $result | Should -Be $testPath
+            }
+        }
+    }
+    
+    Describe "Install-ScoopPackage" {
+        
+        BeforeEach {
+            # Mock scoop command to avoid actual installations
+            Mock scoop { 
+                $global:LASTEXITCODE = 0
+                return "Successfully installed package"
+            }
+            
+            # Mock Get-Command to simulate scoop being available
+            Mock Get-Command { return $true } -ParameterFilter { $Name -eq "scoop" }
+        }
+        
+        Context "when no packages are provided" {
+            It "returns true for empty array" {
+                $result = Install-ScoopPackage @()
+                $result | Should -Be $true
+            }
+            
+            It "returns true for null input" {
+                $result = Install-ScoopPackage $null
+                $result | Should -Be $true
+            }
+        }
+        
+        Context "when scoop is not installed" {
+            It "automatically installs scoop successfully" {
+                # Mock scoop not being found initially, then found after installation
+                $script:scoopCallCount = 0
+                Mock Get-Command { 
+                    $script:scoopCallCount++
+                    if ($script:scoopCallCount -eq 1) { return $false }  # First call: not found
+                    else { return $true }  # Second call: found after installation
+                } -ParameterFilter { $Name -eq "scoop" }
+                
+                Mock Set-ExecutionPolicy { } 
+                Mock Invoke-RestMethod { } 
+                Mock Invoke-Expression { }
+                
+                $result = Install-ScoopPackage @("git")
+                
+                Should -Invoke Set-ExecutionPolicy -Times 1
+                Should -Invoke Invoke-RestMethod -Times 1
+                $result | Should -Be $true
+            }
+            
+            It "handles scoop installation failure gracefully" {
+                Mock Get-Command { return $false } -ParameterFilter { $Name -eq "scoop" }
+                Mock Set-ExecutionPolicy { throw "Access denied" }
+                
+                $result = Install-ScoopPackage @("git")
+                
+                $result | Should -Be $false
+            }
+            
+            It "handles case where scoop installs but command still not found" {
+                Mock Get-Command { return $false } -ParameterFilter { $Name -eq "scoop" }
+                Mock Set-ExecutionPolicy { } 
+                Mock Invoke-RestMethod { } 
+                Mock Invoke-Expression { }
+                
+                $result = Install-ScoopPackage @("git")
+                
+                $result | Should -Be $false
+            }
+        }
+        
+        Context "when packages are provided" {
+            It "installs each package successfully" {
+                $packages = @("git", "nodejs")
+                
+                $result = Install-ScoopPackage $packages
+                
+                Should -Invoke scoop -Times 2
+                $result | Should -Be $true
+            }
+            
+            It "handles single package installation" {
+                $result = Install-ScoopPackage @("git")
+                
+                Should -Invoke scoop -Times 1
+                $result | Should -Be $true
+            }
+            
+            It "skips empty package strings" {
+                $packages = @("git", "", "nodejs")
+                
+                $result = Install-ScoopPackage $packages
+                
+                Should -Invoke scoop -Times 2
+                $result | Should -Be $true
+            }
+        }
+        
+        Context "when packages have bucket specifications" {
+            It "adds required buckets before installing packages" {
+                $packages = @("versions/wezterm-nightly", "extras/firefox", "git")
+                
+                $result = Install-ScoopPackage $packages
+                
+                # Should add buckets (versions and extras) and install packages
+                Should -Invoke scoop -Times 5  # 2 bucket adds + 3 package installs
+                $result | Should -Be $true
+            }
+            
+            It "handles duplicate buckets correctly" {
+                $packages = @("versions/wezterm-nightly", "versions/some-other-package")
+                
+                $result = Install-ScoopPackage $packages
+                
+                # Should add versions bucket once and install 2 packages
+                Should -Invoke scoop -Times 3  # 1 bucket add + 2 package installs
+                $result | Should -Be $true
+            }
+        }
+        
+        Context "when scoop returns different responses" {
+            It "handles package already installed" {
+                Mock scoop { 
+                    $global:LASTEXITCODE = 0
+                    return "git is already installed"
+                } -ParameterFilter { $args[0] -eq "install" }
+                
+                $result = Install-ScoopPackage @("git")
+                
+                $result | Should -Be $true
+            }
+            
+            It "handles package not found" {
+                Mock scoop { 
+                    $global:LASTEXITCODE = 1
+                    return "Could not find package 'nonexistent'"
+                } -ParameterFilter { $args[0] -eq "install" }
+                
+                $result = Install-ScoopPackage @("nonexistent")
+                
+                $result | Should -Be $true
+            }
+            
+            It "handles bucket already exists" {
+                Mock scoop { 
+                    if ($args[0] -eq "bucket" -and $args[1] -eq "add") {
+                        $global:LASTEXITCODE = 0
+                        return "The versions bucket already exists"
+                    } else {
+                        $global:LASTEXITCODE = 0
+                        return "Successfully installed"
+                    }
+                }
+                
+                $result = Install-ScoopPackage @("versions/wezterm-nightly")
+                
+                $result | Should -Be $true
+            }
+        }
+        
+        Context "when scoop throws exceptions" {
+            It "handles exceptions gracefully" {
+                Mock scoop { throw "Command failed" }
+                
+                $result = Install-ScoopPackage @("git")
+                
+                $result | Should -Be $true
             }
         }
     }

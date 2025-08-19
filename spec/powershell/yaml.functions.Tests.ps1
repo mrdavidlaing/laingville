@@ -105,6 +105,91 @@ arch:
                 
                 $result.winget | Should -Be @()
             }
+            
+            It "extracts scoop packages from list format" {
+                $yamlContent = @"
+windows:
+  scoop:
+    - git
+    - versions/wezterm-nightly
+    - extras/firefox
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+                
+                $result = Get-PackagesFromYaml $script:testYamlFile
+                
+                $result.scoop | Should -HaveCount 3
+                $result.scoop | Should -Contain "git"
+                $result.scoop | Should -Contain "versions/wezterm-nightly"
+                $result.scoop | Should -Contain "extras/firefox"
+            }
+            
+            It "extracts scoop packages from inline array format" {
+                $yamlContent = @"
+windows:
+  scoop: [git, versions/wezterm-nightly]
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+                
+                $result = Get-PackagesFromYaml $script:testYamlFile
+                
+                $result.scoop | Should -HaveCount 2
+                $result.scoop | Should -Contain "git"
+                $result.scoop | Should -Contain "versions/wezterm-nightly"
+            }
+            
+            It "handles quoted scoop package names with buckets" {
+                $yamlContent = @"
+windows:
+  scoop:
+    - "git"
+    - 'versions/wezterm-nightly'
+    - extras/firefox
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+                
+                $result = Get-PackagesFromYaml $script:testYamlFile
+                
+                $result.scoop | Should -HaveCount 3
+                $result.scoop | Should -Contain "git"
+                $result.scoop | Should -Contain "versions/wezterm-nightly"
+                $result.scoop | Should -Contain "extras/firefox"
+            }
+            
+            It "handles empty scoop section" {
+                $yamlContent = @"
+windows:
+  scoop:
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+                
+                $result = Get-PackagesFromYaml $script:testYamlFile
+                
+                $result.scoop | Should -Be @()
+            }
+            
+            It "extracts both winget and scoop packages" {
+                $yamlContent = @"
+windows:
+  winget:
+    - Git.Git
+    - Microsoft.PowerShell
+  scoop:
+    - versions/wezterm-nightly
+    - extras/firefox
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+                
+                $result = Get-PackagesFromYaml $script:testYamlFile
+                
+                $result.winget | Should -HaveCount 2
+                $result.winget | Should -Contain "Git.Git"
+                $result.winget | Should -Contain "Microsoft.PowerShell"
+                
+                $result.scoop | Should -HaveCount 2
+                $result.scoop | Should -Contain "versions/wezterm-nightly"
+                $result.scoop | Should -Contain "extras/firefox"
+            }
         }
         
         Context "when YAML file has parsing errors" {

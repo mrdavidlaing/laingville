@@ -14,7 +14,10 @@
       "WebFetch(domain:pester.dev)",
       "Bash(pwsh.exe:*)",
       "Bash(\"/mnt/c/Program Files/PowerShell/7/pwsh.exe\" -ExecutionPolicy Bypass -File scripts/lint-powershell.ps1)",
-      "Bash(\"/mnt/c/Program Files/PowerShell/7/pwsh.exe\" -ExecutionPolicy Bypass -NoProfile -Command \"Invoke-ScriptAnalyzer -Path ./lib/setup-user.functions.ps1 -Severity Warning,Error\")"
+      "Bash(\"/mnt/c/Program Files/PowerShell/7/pwsh.exe\" -ExecutionPolicy Bypass -NoProfile -Command \"Invoke-ScriptAnalyzer -Path ./lib/setup-user.functions.ps1 -Severity Warning,Error\")",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   },

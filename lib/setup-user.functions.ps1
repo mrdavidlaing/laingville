@@ -447,12 +447,17 @@ function Install-UserPackage {
                 Write-Host "* Would: install winget package: $pkg" -ForegroundColor Cyan
             }
         }
+        if ($packages.scoop.Count -gt 0) {
+            foreach ($pkg in $packages.scoop) {
+                Write-Host "* Would: install scoop package: $pkg" -ForegroundColor Cyan
+            }
+        }
         if ($packages.psmodule.Count -gt 0) {
             foreach ($module in $packages.psmodule) {
                 Write-Host "* Would: install PowerShell module: $module" -ForegroundColor Cyan
             }
         }
-        if ($packages.winget.Count -eq 0 -and $packages.psmodule.Count -eq 0) {
+        if ($packages.winget.Count -eq 0 -and $packages.scoop.Count -eq 0 -and $packages.psmodule.Count -eq 0) {
             Write-Host "* Would: skip (no Windows packages defined)" -ForegroundColor Gray
         }
         return $true
@@ -463,6 +468,15 @@ function Install-UserPackage {
         Write-Step "Installing Windows Packages"
         $wingetResult = Install-WingetPackage $packages.winget
         if (-not $wingetResult) {
+            return $false
+        }
+    }
+    
+    # Install scoop packages
+    if ($packages.scoop.Count -gt 0) {
+        Write-Step "Installing Scoop Packages"
+        $scoopResult = Install-ScoopPackage $packages.scoop
+        if (-not $scoopResult) {
             return $false
         }
     }

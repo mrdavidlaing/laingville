@@ -93,13 +93,14 @@ wsl:
 windows:
   winget:
     - Alacritty.Alacritty
-    - wez.wezterm
     - Mozilla.Firefox
     - Microsoft.PowerToys
     - AgileBits.1Password
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
     - Microsoft.PowerShell
+  scoop:
+    - versions/wezterm-nightly
   psmodule:
     - Pester
     - PSScriptAnalyzer

@@ -129,6 +129,115 @@ function Install-PowerShellModule {
     return $true
 }
 
+<#
+.SYNOPSIS
+    Installs packages using the Scoop package manager
+.PARAMETER Packages
+    Array of package identifiers to install (format: package or bucket/package)
+.DESCRIPTION
+    Installs each package with proper error handling and progress reporting
+    Automatically installs Scoop if it's not already installed
+    Automatically adds required buckets if packages specify them (e.g., versions/wezterm-nightly)
+    Handles common exit codes and scenarios appropriately
+.EXAMPLE
+    Install-ScoopPackage @("git", "versions/wezterm-nightly", "extras/firefox")
+#>
+function Install-ScoopPackage {
+    param([string[]]$Packages)
+    
+    if (-not $Packages -or $Packages.Count -eq 0) {
+        return $true
+    }
+    
+    # Check if Scoop is installed, install if not
+    if (-not (Get-Command "scoop" -ErrorAction SilentlyContinue)) {
+        Write-Host "Scoop is not installed. Installing Scoop..." -ForegroundColor Yellow
+        
+        try {
+            # Set execution policy for current user (required for Scoop installation)
+            Write-Host "Setting execution policy for current user..." -ForegroundColor Gray
+            Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+            
+            # Download and install Scoop
+            Write-Host "Downloading and installing Scoop..." -ForegroundColor Gray
+            Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+            
+            # Verify installation
+            if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
+                Write-Host "[OK] Scoop installed successfully" -ForegroundColor Green
+            } else {
+                Write-Warning "Scoop installation completed but command not found. Please restart your shell."
+                return $false
+            }
+        }
+        catch {
+            Write-Warning "Failed to install Scoop: $($_.Exception.Message)"
+            Write-Warning "Please install Scoop manually: https://scoop.sh"
+            return $false
+        }
+    }
+    
+    Write-Host "Installing scoop packages: $($Packages -join ', ')" -ForegroundColor Cyan
+    
+    # Extract unique buckets from packages
+    $bucketsToAdd = @()
+    foreach ($package in $Packages) {
+        if ($package -and $package.Contains('/')) {
+            $bucket = $package.Split('/')[0]
+            if ($bucket -notin $bucketsToAdd) {
+                $bucketsToAdd += $bucket
+            }
+        }
+    }
+    
+    # Add required buckets
+    foreach ($bucket in $bucketsToAdd) {
+        Write-Host "Adding bucket: $bucket" -ForegroundColor Yellow
+        try {
+            $result = & scoop bucket add $bucket 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "[OK] Added bucket: $bucket" -ForegroundColor Green
+            } elseif ($result -like "*already exists*") {
+                Write-Host "[OK] Bucket already exists: $bucket" -ForegroundColor Green
+            } else {
+                Write-Warning "Failed to add bucket $bucket (exit code: $LASTEXITCODE): $result"
+            }
+        }
+        catch {
+            Write-Warning "Error adding bucket ${bucket}: $($_.Exception.Message)"
+        }
+    }
+    
+    # Install packages
+    foreach ($package in $Packages) {
+        if ($package) {
+            Write-Host "Installing: $package" -ForegroundColor Yellow
+            try {
+                $result = & scoop install $package 2>&1
+                
+                # Handle different scenarios
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "[OK] Installed: $package" -ForegroundColor Green
+                } elseif ($result -like "*already installed*") {
+                    Write-Host "[OK] Already installed: $package" -ForegroundColor Green
+                } elseif ($result -like "*not found*") {
+                    Write-Warning "Package not found: $package"
+                } else {
+                    Write-Warning "Failed to install $package (exit code: $LASTEXITCODE)"
+                    # Only show detailed output for actual errors
+                    if ($result -and $result.ToString().Length -lt 500) {
+                        Write-Host "$result" -ForegroundColor Red
+                    }
+                }
+            }
+            catch {
+                Write-Warning "Error installing ${package}: $($_.Exception.Message)"
+            }
+        }
+    }
+    
+    return $true
+}
 
 <#
 .SYNOPSIS

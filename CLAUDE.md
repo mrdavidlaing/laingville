@@ -64,12 +64,16 @@ This script will automatically configure the current server based on hostname an
 Use dry-run mode to preview what changes will be made before executing them.
 
 ### Package Management
-Each user and server can define packages to install in their respective `packages.yml` files:
+Each user and server can define packages to install in their respective `packages.yaml` files:
 - `arch.pacman` - Official Arch Linux packages
 - `arch.aur` - AUR packages (requires yay)
 - `windows.winget` - Windows packages via winget
+- `windows.scoop` - Windows packages via Scoop package manager
+- `windows.psmodule` - PowerShell modules from PowerShell Gallery
 
-Server package configurations follow the same format but are located in `servers/[hostname]/packages.yml`.
+For Scoop packages, you can specify packages from specific buckets using the format `bucket/package` (e.g., `versions/wezterm-nightly`). The system will automatically install Scoop if it's not already present and add required buckets before installing packages.
+
+Server package configurations follow the same format but are located in `servers/[hostname]/packages.yaml`.
 
 ## Development Notes
 
