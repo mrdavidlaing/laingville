@@ -179,7 +179,7 @@ jobs:
         if command -v kcov >/dev/null 2>&1; then
           echo "Running with kcov coverage..."
           shellspec --shell bash --kcov --covdir coverage \
-            --kcov-options "--exclude-pattern=/.shellspec,/spec/,/dotfiles/,/.git/,/coverage/"
+            --kcov-options "--include-pattern=/home/runner/work/laingville/laingville/lib/"
         else
           echo "⚠️ kcov not available, running tests without coverage..."
           shellspec --shell bash
