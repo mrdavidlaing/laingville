@@ -273,8 +273,7 @@ Describe "shared.functions.ps1" {
                 } -ParameterFilter { $Name -eq "scoop" }
                 
                 Mock Set-ExecutionPolicy { } 
-                Mock Invoke-RestMethod { } 
-                Mock Invoke-Expression { }
+                Mock Invoke-RestMethod { return "# Mock Scoop installation script" }
                 
                 $result = Install-ScoopPackage @("git")
                 
@@ -295,8 +294,7 @@ Describe "shared.functions.ps1" {
             It "handles case where scoop installs but command still not found" {
                 Mock Get-Command { return $false } -ParameterFilter { $Name -eq "scoop" }
                 Mock Set-ExecutionPolicy { } 
-                Mock Invoke-RestMethod { } 
-                Mock Invoke-Expression { }
+                Mock Invoke-RestMethod { return "# Mock Scoop installation script" }
                 
                 $result = Install-ScoopPackage @("git")
                 
