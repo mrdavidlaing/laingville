@@ -367,51 +367,32 @@ jobs:
           "| File | Coverage | Commands | Status |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
           "|------|----------|----------|--------|" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
           
-          # Process per-file coverage data
-          # Debug: Check what coverage data is available
-          Write-Host "Debug: Coverage object properties:" -ForegroundColor Yellow
-          $coverage | Get-Member -MemberType Property | ForEach-Object { Write-Host "  $($_.Name)" -ForegroundColor Cyan }
-          Write-Host "Debug: CoveragePercent: $($coverage.CoveragePercent)" -ForegroundColor Yellow
-          Write-Host "Debug: NumberOfCommandsAnalyzed: $($coverage.NumberOfCommandsAnalyzed)" -ForegroundColor Yellow
-          Write-Host "Debug: NumberOfCommandsExecuted: $($coverage.NumberOfCommandsExecuted)" -ForegroundColor Yellow
-          
-          # Check if CoverageReport exists (Pester 5+ structure)
-          if ($coverage.CoverageReport) {
-            Write-Host "Debug: CoverageReport exists" -ForegroundColor Yellow
-            $coverage.CoverageReport | Get-Member -MemberType Property | ForEach-Object { Write-Host "  CoverageReport.$($_.Name)" -ForegroundColor Cyan }
-          }
-          
-          # Try to get files from the coverage report instead
-          $libFiles = @()
-          if ($coverage.CoverageReport -and $coverage.CoverageReport.Files) {
-            $libFiles = $coverage.CoverageReport.Files | Where-Object { $_.Path -like "*lib\*.ps1" }
-            Write-Host "Debug: Lib files found via CoverageReport: $($libFiles.Count)" -ForegroundColor Yellow
-          } else {
-            Write-Host "Debug: No CoverageReport.Files found" -ForegroundColor Yellow
-          }
+          # Process per-file coverage data using correct Pester 5+ properties
+          # Get all analyzed lib/*.ps1 files
+          $libFiles = $coverage.FilesAnalyzed | Where-Object { $_ -like "*lib\*.ps1" }
           
           if ($libFiles -and $libFiles.Count -gt 0) {
-            # Group hit and missed commands by file
-            $hitCommandsByFile = $coverage.HitCommands | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
-            $missedCommandsByFile = $coverage.MissedCommands | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
+            # Group executed and missed commands by file
+            $executedCommandsByFile = $coverage.CommandsExecuted | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
+            $missedCommandsByFile = $coverage.CommandsMissed | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
             
             foreach ($file in $libFiles) {
               $fileName = Split-Path -Leaf $file
               
               # Calculate file-specific coverage
-              $hitGroup = $hitCommandsByFile | Where-Object { $_.Name -eq $file }
+              $executedGroup = $executedCommandsByFile | Where-Object { $_.Name -eq $file }
               $missedGroup = $missedCommandsByFile | Where-Object { $_.Name -eq $file }
               
-              $hitCommands = if ($hitGroup) { $hitGroup.Count } else { 0 }
+              $executedCommands = if ($executedGroup) { $executedGroup.Count } else { 0 }
               $missedCommands = if ($missedGroup) { $missedGroup.Count } else { 0 }
-              $totalCommands = $hitCommands + $missedCommands
+              $totalCommands = $executedCommands + $missedCommands
               
               if ($totalCommands -eq 0) {
                 $filePercent = 0
                 $commandsText = "0/0"
               } else {
-                $filePercent = [math]::Round(($hitCommands / $totalCommands) * 100, 2)
-                $commandsText = "$hitCommands/$totalCommands"
+                $filePercent = [math]::Round(($executedCommands / $totalCommands) * 100, 2)
+                $commandsText = "$executedCommands/$totalCommands"
               }
               
               # Determine status emoji based on coverage percentage
