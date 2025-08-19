@@ -71,6 +71,7 @@ jobs:
         nix profile install github:NixOS/nixpkgs/nixos-25.05#shfmt
         nix profile install github:NixOS/nixpkgs/nixos-25.05#shellspec
         nix profile install github:NixOS/nixpkgs/nixos-25.05#kcov
+        nix profile install github:NixOS/nixpkgs/nixos-25.05#jq
 
     - name: Install tools (Arch Linux)
       if: matrix.platform == 'archlinux' && steps.cache-tools-arch.outputs.cache-hit != 'true'
@@ -120,7 +121,7 @@ jobs:
         
         # Install system packages that aren't cacheable (always run to ensure availability)
         echo "Installing system dependencies for Arch Linux..."
-        pacman -S --noconfirm tmux bc kcov || {
+        pacman -S --noconfirm jq tmux bc kcov || {
           echo "kcov package not available, building from source..."
           pacman -S --noconfirm libcurl-gnutls elfutils binutils
           cd /tmp
@@ -202,30 +203,28 @@ jobs:
       if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
       run: |
         echo "📊 Generating bash coverage summary..."
-        if [ -f coverage/index.html ]; then
-          # Extract coverage percentage from kcov HTML report
-          COVERAGE=$(grep -o "covered.*%" coverage/index.html | head -1 | grep -o "[0-9]\+\.[0-9]\+" || echo "0.0")
+        # Find the coverage.json file (could be in merged/ or a subdirectory)
+        COVERAGE_JSON=$(find coverage -name "coverage.json" -type f | head -1)
+        
+        if [ -n "$COVERAGE_JSON" ]; then
+          # Extract coverage percentage from kcov JSON report
+          COVERAGE=$(jq -r .percent_covered "$COVERAGE_JSON")
           
-          # Only proceed if we got a valid coverage number
-          if [ -n "$COVERAGE" ] && [ "$COVERAGE" != "0.0" ]; then
-            echo "Bash Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
-            echo "📊 **Bash Test Coverage (${{ matrix.platform }})**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Add coverage badge (use shell arithmetic instead of bc)
-            if [ "${COVERAGE%.*}" -ge 80 ]; then
-              COLOR="brightgreen"
-            elif [ "${COVERAGE%.*}" -ge 60 ]; then
-              COLOR="yellow"
-            else
-              COLOR="red"
-            fi
-            echo "![Coverage](https://img.shields.io/badge/Bash_Coverage-${COVERAGE}%25-${COLOR})" >> $GITHUB_STEP_SUMMARY
+          echo "Bash Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Bash Test Coverage (${{ matrix.platform }})**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add coverage badge (use shell arithmetic instead of bc)
+          if [ "${COVERAGE%.*}" -ge 80 ]; then
+            COLOR="brightgreen"
+          elif [ "${COVERAGE%.*}" -ge 60 ]; then
+            COLOR="yellow"
           else
-            echo "⚠️ Could not extract coverage percentage from kcov report" >> $GITHUB_STEP_SUMMARY
+            COLOR="red"
           fi
+          echo "![Coverage](https://img.shields.io/badge/Bash_Coverage-${COVERAGE}%25-${COLOR})" >> $GITHUB_STEP_SUMMARY
         else
-          echo "⚠️ Coverage report (coverage/index.html) not found" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Coverage JSON file not found" >> $GITHUB_STEP_SUMMARY
         fi
       
     - name: Test dry-run functionality
