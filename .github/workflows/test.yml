@@ -369,13 +369,26 @@ jobs:
           
           # Process per-file coverage data
           # Debug: Check what coverage data is available
-          Write-Host "Debug: AnalyzedFiles count: $($coverage.AnalyzedFiles.Count)" -ForegroundColor Yellow
-          Write-Host "Debug: HitCommands count: $($coverage.HitCommands.Count)" -ForegroundColor Yellow
-          Write-Host "Debug: MissedCommands count: $($coverage.MissedCommands.Count)" -ForegroundColor Yellow
+          Write-Host "Debug: Coverage object properties:" -ForegroundColor Yellow
+          $coverage | Get-Member -MemberType Property | ForEach-Object { Write-Host "  $($_.Name)" -ForegroundColor Cyan }
+          Write-Host "Debug: CoveragePercent: $($coverage.CoveragePercent)" -ForegroundColor Yellow
+          Write-Host "Debug: NumberOfCommandsAnalyzed: $($coverage.NumberOfCommandsAnalyzed)" -ForegroundColor Yellow
+          Write-Host "Debug: NumberOfCommandsExecuted: $($coverage.NumberOfCommandsExecuted)" -ForegroundColor Yellow
           
-          # Get all analyzed lib/*.ps1 files
-          $libFiles = $coverage.AnalyzedFiles | Where-Object { $_ -like "*lib\*.ps1" }
-          Write-Host "Debug: Lib files found: $($libFiles.Count)" -ForegroundColor Yellow
+          # Check if CoverageReport exists (Pester 5+ structure)
+          if ($coverage.CoverageReport) {
+            Write-Host "Debug: CoverageReport exists" -ForegroundColor Yellow
+            $coverage.CoverageReport | Get-Member -MemberType Property | ForEach-Object { Write-Host "  CoverageReport.$($_.Name)" -ForegroundColor Cyan }
+          }
+          
+          # Try to get files from the coverage report instead
+          $libFiles = @()
+          if ($coverage.CoverageReport -and $coverage.CoverageReport.Files) {
+            $libFiles = $coverage.CoverageReport.Files | Where-Object { $_.Path -like "*lib\*.ps1" }
+            Write-Host "Debug: Lib files found via CoverageReport: $($libFiles.Count)" -ForegroundColor Yellow
+          } else {
+            Write-Host "Debug: No CoverageReport.Files found" -ForegroundColor Yellow
+          }
           
           if ($libFiles -and $libFiles.Count -gt 0) {
             # Group hit and missed commands by file
