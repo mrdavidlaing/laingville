@@ -152,9 +152,23 @@ mkdir -p "${temp_shared_dir}" "${temp_host_dir}"
 echo "nix:
   nixpkgs-25.05:
     - shared-package1
+    - shared-package2
+macos:
+  homebrew:
+    - shared-package1
+    - shared-package2
+arch:
+  pacman:
+    - shared-package1
     - shared-package2" > "${temp_shared_dir}/packages.yaml"
 echo "nix:
   nixpkgs-25.05:
+    - host-package1
+macos:
+  homebrew:
+    - host-package1
+arch:
+  pacman:
     - host-package1" > "${temp_host_dir}/packages.yaml"
 
 export SERVER_DIR
@@ -177,6 +191,12 @@ temp_host_dir="${SHELLSPEC_PROJECT_ROOT}/servers/test_no_shared_$$"
 mkdir -p "${temp_host_dir}"
 echo "nix:
   nixpkgs-25.05:
+    - host-only-package
+macos:
+  homebrew:
+    - host-only-package
+arch:
+  pacman:
     - host-only-package" > "${temp_host_dir}/packages.yaml"
 
 export SERVER_DIR
