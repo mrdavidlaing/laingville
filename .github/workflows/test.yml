@@ -368,13 +368,19 @@ jobs:
           "|------|----------|----------|--------|" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
           
           # Process per-file coverage data
-          if ($coverage.AnalyzedFiles -and $coverage.AnalyzedFiles.Count -gt 0) {
+          # Debug: Check what coverage data is available
+          Write-Host "Debug: AnalyzedFiles count: $($coverage.AnalyzedFiles.Count)" -ForegroundColor Yellow
+          Write-Host "Debug: HitCommands count: $($coverage.HitCommands.Count)" -ForegroundColor Yellow
+          Write-Host "Debug: MissedCommands count: $($coverage.MissedCommands.Count)" -ForegroundColor Yellow
+          
+          # Get all analyzed lib/*.ps1 files
+          $libFiles = $coverage.AnalyzedFiles | Where-Object { $_ -like "*lib\*.ps1" }
+          Write-Host "Debug: Lib files found: $($libFiles.Count)" -ForegroundColor Yellow
+          
+          if ($libFiles -and $libFiles.Count -gt 0) {
             # Group hit and missed commands by file
             $hitCommandsByFile = $coverage.HitCommands | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
             $missedCommandsByFile = $coverage.MissedCommands | Where-Object { $_.File -like "*lib\*.ps1" } | Group-Object -Property File
-            
-            # Get all analyzed lib/*.ps1 files
-            $libFiles = $coverage.AnalyzedFiles | Where-Object { $_ -like "*lib\*.ps1" }
             
             foreach ($file in $libFiles) {
               $fileName = Split-Path -Leaf $file
