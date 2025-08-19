@@ -373,48 +373,76 @@ config.keys = {
     action = wezterm.action.ReloadConfiguration,
   },
   
-  -- Switch panes using Alt-arrow without prefix (matching tmux.conf lines 42-45)
+  -- Switch panes using vim-style hjkl with leader (matching vim navigation)
   {
-    key = 'LeftArrow',
-    mods = 'ALT',
+    key = 'h',
+    mods = 'LEADER',
     action = wezterm.action.ActivatePaneDirection 'Left',
   },
   {
-    key = 'RightArrow',
-    mods = 'ALT',
+    key = 'l',
+    mods = 'LEADER',
     action = wezterm.action.ActivatePaneDirection 'Right',
   },
   {
-    key = 'UpArrow',
-    mods = 'ALT',
+    key = 'k',
+    mods = 'LEADER',
     action = wezterm.action.ActivatePaneDirection 'Up',
   },
   {
-    key = 'DownArrow',
-    mods = 'ALT',
+    key = 'j',
+    mods = 'LEADER',
     action = wezterm.action.ActivatePaneDirection 'Down',
   },
   
-  -- Resize panes with prefix + arrow keys (matching tmux.conf lines 48-51)
+  -- Enter resize mode with vim-style Shift+hjkl
   {
-    key = 'LeftArrow',
+    key = 'H',
     mods = 'LEADER',
-    action = wezterm.action.AdjustPaneSize { 'Left', 5 },
+    action = wezterm.action.Multiple {
+      wezterm.action.AdjustPaneSize { 'Left', 2 },
+      wezterm.action.ActivateKeyTable {
+        name = 'resize_pane',
+        one_shot = false,
+        timeout_milliseconds = 3000,
+      },
+    },
   },
   {
-    key = 'RightArrow',
+    key = 'L',
     mods = 'LEADER',
-    action = wezterm.action.AdjustPaneSize { 'Right', 5 },
+    action = wezterm.action.Multiple {
+      wezterm.action.AdjustPaneSize { 'Right', 2 },
+      wezterm.action.ActivateKeyTable {
+        name = 'resize_pane',
+        one_shot = false,
+        timeout_milliseconds = 3000,
+      },
+    },
   },
   {
-    key = 'UpArrow',
+    key = 'K',
     mods = 'LEADER',
-    action = wezterm.action.AdjustPaneSize { 'Up', 5 },
+    action = wezterm.action.Multiple {
+      wezterm.action.AdjustPaneSize { 'Up', 2 },
+      wezterm.action.ActivateKeyTable {
+        name = 'resize_pane',
+        one_shot = false,
+        timeout_milliseconds = 3000,
+      },
+    },
   },
   {
-    key = 'DownArrow',
+    key = 'J',
     mods = 'LEADER',
-    action = wezterm.action.AdjustPaneSize { 'Down', 5 },
+    action = wezterm.action.Multiple {
+      wezterm.action.AdjustPaneSize { 'Down', 2 },
+      wezterm.action.ActivateKeyTable {
+        name = 'resize_pane',
+        one_shot = false,
+        timeout_milliseconds = 3000,
+      },
+    },
   },
   
   -- Tab navigation with number keys (1-9) like tmux
@@ -521,9 +549,9 @@ config.keys = {
     end),
   },
   
-  -- Launcher menu access
+  -- Launcher menu access (changed to 'm' for menu)
   {
-    key = 'l',
+    key = 'm',
     mods = 'LEADER',
     action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS|TABS' },
   },
@@ -543,22 +571,71 @@ config.keys = {
     action = wezterm.action.PasteFrom 'Clipboard',
   },
   
-  -- Help popup
+  -- Help popup (changed from 'h' to avoid vim navigation conflict)
   {
-    key = 'h',
+    key = '/',
     mods = 'LEADER',
     action = wezterm.action.SplitPane {
       direction = 'Right',
       size = { Percent = 50 },
       command = {
-        args = { 'pwsh.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "Alt+arrows: Navigate panes"; Write-Host "Ldr+arrows: Resize panes"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "l       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- COPY/PASTE --" -ForegroundColor Cyan; Write-Host "Ctrl+Shift+C: Copy"; Write-Host "Ctrl+Shift+V: Paste"; Write-Host "Double-click: Copy word"; Write-Host "Triple-click: Copy line"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "h       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
+        args = { 'pwsh.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "h/j/k/l : Navigate panes (vim-style)"; Write-Host "H/J/K/L : Enter resize mode (then hjkl/HJKL)"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "m       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- COPY/PASTE --" -ForegroundColor Cyan; Write-Host "Ctrl+Shift+C: Copy"; Write-Host "Ctrl+Shift+V: Paste"; Write-Host "Double-click: Copy word"; Write-Host "Triple-click: Copy line"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "/       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
       },
     },
   },
 }
 
--- Copy mode key bindings (enhanced vi-style like tmux)
+-- Copy mode and resize mode key bindings (enhanced vi-style like tmux)
 config.key_tables = {
+  resize_pane = {
+    -- Resize with hjkl (no modifiers needed in resize mode)
+    {
+      key = 'h',
+      action = wezterm.action.AdjustPaneSize { 'Left', 2 },
+    },
+    {
+      key = 'l',
+      action = wezterm.action.AdjustPaneSize { 'Right', 2 },
+    },
+    {
+      key = 'k',
+      action = wezterm.action.AdjustPaneSize { 'Up', 2 },
+    },
+    {
+      key = 'j',
+      action = wezterm.action.AdjustPaneSize { 'Down', 2 },
+    },
+    -- Capital letters for bigger adjustments
+    {
+      key = 'H',
+      action = wezterm.action.AdjustPaneSize { 'Left', 5 },
+    },
+    {
+      key = 'L',
+      action = wezterm.action.AdjustPaneSize { 'Right', 5 },
+    },
+    {
+      key = 'K',
+      action = wezterm.action.AdjustPaneSize { 'Up', 5 },
+    },
+    {
+      key = 'J',
+      action = wezterm.action.AdjustPaneSize { 'Down', 5 },
+    },
+    -- Exit resize mode
+    {
+      key = 'Escape',
+      action = 'PopKeyTable',
+    },
+    {
+      key = 'Enter',
+      action = 'PopKeyTable',
+    },
+    {
+      key = 'q',
+      action = 'PopKeyTable',
+    },
+  },
   copy_mode = {
     -- Vi navigation
     {
