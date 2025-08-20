@@ -134,6 +134,8 @@ local pomodoro_state = {
   start_time = nil
 }
 
+
+
 -- Helper function to get git info
 local function get_git_info(cwd)
   if not cwd then return nil end
@@ -245,9 +247,13 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
     foreground = '#ffffff'
   end
   
-  local title = tab.active_pane.title
-  if title == '' then
-    title = tab.active_pane.foreground_process_name or 'shell'
+  -- Use custom tab title if set, otherwise fall back to pane title
+  local title = tab.tab_title
+  if title == '' or title == nil then
+    title = tab.active_pane.title
+    if title == '' then
+      title = tab.active_pane.foreground_process_name or 'shell'
+    end
   end
   
   -- Trim title if too long
@@ -546,6 +552,45 @@ config.keys = {
     end),
   },
   
+  -- Rename current tab (matching tmux rename-window)
+  {
+    key = ',',
+    mods = 'LEADER',
+    action = wezterm.action_callback(function(window, pane)
+      local tab = window:active_tab()
+      local current_title = tab:get_title()
+      
+      -- Get the display title (what's currently shown)
+      local initial_title = ''
+      if current_title ~= '' then
+        initial_title = current_title
+      else
+        -- Fall back to the process name if no custom title
+        local process_name = tab:active_pane():get_foreground_process_name()
+        if process_name then
+          initial_title = process_name
+        else
+          initial_title = 'shell'
+        end
+      end
+      
+      window:perform_action(wezterm.action.PromptInputLine {
+        description = 'Rename Tab:',
+        initial_value = initial_title,
+        action = wezterm.action_callback(function(inner_window, inner_pane, line)
+          if line ~= nil then
+            if line == '' then
+              -- Empty string resets to default
+              inner_window:active_tab():set_title('')
+            else
+              inner_window:active_tab():set_title(line)
+            end
+          end
+        end),
+      }, pane)
+    end),
+  },
+  
   -- Launcher menu access (changed to 'm' for menu)
   {
     key = 'm',
@@ -576,7 +621,7 @@ config.keys = {
       direction = 'Right',
       size = { Percent = 50 },
       command = {
-        args = { 'pwsh.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "h/j/k/l : Navigate panes (vim-style)"; Write-Host "H/J/K/L : Enter resize mode (then hjkl/HJKL)"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "m       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- COPY/PASTE --" -ForegroundColor Cyan; Write-Host "Ctrl+Shift+C: Copy"; Write-Host "Ctrl+Shift+V: Paste"; Write-Host "Double-click: Copy word"; Write-Host "Triple-click: Copy line"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "/       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
+        args = { 'pwsh.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "h/j/k/l : Navigate panes (vim-style)"; Write-Host "H/J/K/L : Enter resize mode (then hjkl/HJKL)"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host ",       : Rename current tab"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "m       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- COPY/PASTE --" -ForegroundColor Cyan; Write-Host "Ctrl+Shift+C: Copy"; Write-Host "Ctrl+Shift+V: Paste"; Write-Host "Double-click: Copy word"; Write-Host "Triple-click: Copy line"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "/       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
       },
     },
   },
