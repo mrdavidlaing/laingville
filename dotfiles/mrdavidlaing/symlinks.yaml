@@ -12,6 +12,8 @@ arch:
   - .config/navi
   - .config/alacritty
   - .config/starship.toml
+  # Editor
+  - .config/nvim
   # Desktop environment
   - .config/hypr
   - .config/waybar
@@ -31,6 +33,8 @@ wsl:
   - .config/tmux
   - .config/navi
   - .config/starship.toml
+  # Editor
+  - .config/nvim
   # Alacritty config (for Windows Alacritty to read)
   - .config/alacritty
   # Apps
@@ -54,6 +58,9 @@ windows:
   # WezTerm
   - source: .config/wezterm/wezterm.lua
     target: $USERPROFILE/.config/wezterm/wezterm.lua
+  # Neovim
+  - source: .config/nvim
+    target: $LOCALAPPDATA/nvim
   # Starship
   - source: .config/starship.toml
     target: $USERPROFILE/.config/starship.toml
@@ -72,6 +79,8 @@ macos:
   - .config/navi
   - .config/alacritty
   - .config/starship.toml
+  # Editor
+  - .config/nvim
   # Apps
   - .config/1Password
 
@@ -85,5 +94,7 @@ nix:
   - .config/tmux
   - .config/navi
   - .config/starship.toml
+  # Editor
+  - .config/nvim
   # Apps
   - .config/1Password

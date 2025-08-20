@@ -13,6 +13,9 @@ arch:
     - github-cli
     - tig
     - neovim
+    - lua-language-server
+    - bash-language-server
+    - marksman
     - go-yq
     - starship
     - zoxide
@@ -65,6 +68,9 @@ wsl:
     - github-cli
     - tig
     - neovim
+    - lua-language-server
+    - bash-language-server
+    - marksman
     - starship
     - zoxide
     - ripgrep
@@ -114,6 +120,9 @@ macos:
     - tig
     - gh
     - neovim
+    - lua-language-server
+    - bash-language-server
+    - marksman
     - jq
     - tree
     - zoxide
@@ -145,6 +154,9 @@ nix:
     - git
     - gh  # github-cli
     - neovim
+    - lua-language-server
+    - bash-language-server
+    - marksman
     - yq-go
     - starship
     - zoxide
