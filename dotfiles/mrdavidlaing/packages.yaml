@@ -12,6 +12,7 @@ arch:
     - git
     - github-cli
     - tig
+    - lazygit
     - neovim
     - lua-language-server
     - bash-language-server
@@ -67,6 +68,7 @@ wsl:
     - git
     - github-cli
     - tig
+    - lazygit
     - neovim
     - lua-language-server
     - bash-language-server
@@ -107,6 +109,7 @@ windows:
     - Microsoft.PowerShell
   scoop:
     - versions/wezterm-nightly
+    - lazygit
   psmodule:
     - Pester
     - PSScriptAnalyzer
@@ -118,6 +121,7 @@ macos:
     - make
     - git
     - tig
+    - lazygit
     - gh
     - neovim
     - lua-language-server
@@ -153,6 +157,7 @@ nix:
     # Development tools
     - git
     - gh  # github-cli
+    - lazygit
     - neovim
     - lua-language-server
     - bash-language-server

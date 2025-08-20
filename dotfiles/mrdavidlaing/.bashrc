@@ -9,8 +9,11 @@ alias ls='eza --icons --group-directories-first'
 alias ll='eza -la --icons --group-directories-first'
 alias la='eza -a --icons'
 
-# Git integration
-alias lg='eza -la --icons --git'
+# Git integration (eza with git info)
+alias lzg='eza -la --icons --git'
+
+# Lazygit aliases optimized for AI monitoring workflow
+alias lg='lazygit'
 
 # Tree views for project exploration
 alias lt='eza --tree --icons --level=2'
