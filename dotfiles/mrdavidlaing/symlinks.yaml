@@ -20,8 +20,6 @@ arch:
   - .config/systemd
   - .config/dynamic-wallpaper.yml
   - .config/dconf
-  # Apps
-  - .config/1Password
 
 # WSL - terminal-focused, no GUI
 wsl:
@@ -37,8 +35,6 @@ wsl:
   - .config/nvim
   # Alacritty config (for Windows Alacritty to read)
   - .config/alacritty
-  # Apps
-  - .config/1Password
   # Note: No desktop environment configs (hypr, waybar, dynamic-wallpaper, dconf, systemd)
 
 # Windows - minimal config with custom paths
@@ -64,9 +60,6 @@ windows:
   # Starship
   - source: .config/starship.toml
     target: $USERPROFILE/.config/starship.toml
-  # 1Password
-  - source: .config/1Password/settings
-    target: $LOCALAPPDATA/1Password/settings
 
 # macOS - Unix-like with some differences
 macos:
@@ -81,8 +74,6 @@ macos:
   - .config/starship.toml
   # Editor
   - .config/nvim
-  # Apps
-  - .config/1Password
 
 # Nix - terminal-focused like WSL
 nix:
@@ -96,5 +87,3 @@ nix:
   - .config/starship.toml
   # Editor
   - .config/nvim
-  # Apps
-  - .config/1Password

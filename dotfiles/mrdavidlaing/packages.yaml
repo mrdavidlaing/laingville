@@ -52,7 +52,6 @@ arch:
     - gimp
     - ttf-jetbrains-mono-nerd
     - vivaldi
-    - 1password
     - 1password-cli
   custom:
     - install_claude_code
@@ -103,7 +102,6 @@ windows:
     - Alacritty.Alacritty
     - Mozilla.Firefox
     - Microsoft.PowerToys
-    - AgileBits.1Password
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
     - Microsoft.PowerShell
