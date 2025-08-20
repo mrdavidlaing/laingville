@@ -9,18 +9,8 @@ vim.cmd.filetype('off')
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
--- Ensure we're using the correct data directory (not config dir)
--- This prevents issues with symlinked config directories
-local data_dir = vim.fn.stdpath("data")
-local config_dir = vim.fn.stdpath("config")
-
--- Debug: ensure paths are correct
-if data_dir == config_dir then
-  vim.notify("WARNING: data dir equals config dir - this will cause problems", vim.log.levels.ERROR)
-end
-
--- Bootstrap lazy.nvim plugin manager
-local lazypath = data_dir .. "/lazy/lazy.nvim"
+-- Bootstrap lazy.nvim plugin manager  
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   vim.fn.system({
     "git",
