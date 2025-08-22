@@ -159,6 +159,7 @@ jobs:
         find . -type f \( -name "*.sh" -o -name "*.bash" \) \
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
+          -not -name "*_spec.sh" \
           -exec shfmt -d {} \;
         
     - name: Lint scripts

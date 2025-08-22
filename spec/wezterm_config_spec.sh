@@ -1,12 +1,12 @@
 #!/bin/bash
 
 Describe 'WezTerm configuration validation'
-Describe 'dotfiles/mrdavidlaing/.config/wezterm/wezterm.lua'
-It 'should have valid WezTerm syntax and load without errors'
-Skip if "wezterm is not available" test ! -x "$(command -v wezterm 2> /dev/null)"
-When call wezterm --config-file dotfiles/mrdavidlaing/.config/wezterm/wezterm.lua ls-fonts --list-system
-The status should be success
-The stderr should eq ""
-End
-End
+  Describe 'dotfiles/mrdavidlaing/.config/wezterm/wezterm.lua'
+    It 'should have valid WezTerm syntax and load without errors'
+      Skip if "wezterm is not available" test ! -x "$(command -v wezterm 2>/dev/null)"
+      When call wezterm --config-file dotfiles/mrdavidlaing/.config/wezterm/wezterm.lua ls-fonts --list-system
+      The status should be success
+      The stderr should eq ""
+    End
+  End
 End

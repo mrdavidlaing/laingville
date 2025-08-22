@@ -7,19 +7,22 @@
 all: format lint test
 	@echo "✅ All checks passed!"
 
-# Format all bash scripts using shfmt
+# Format all bash scripts using shfmt (excluding ShellSpec tests)
 format:
 	@echo "🎨 Formatting bash scripts..."
 	@if command -v shfmt >/dev/null 2>&1; then \
 		find . -type f \( -name "*.sh" -o -name "*.bash" \) \
 			-not -path "./.git/*" \
 			-not -path "./dotfiles/*/.*" \
+			-not -name "*_spec.sh" \
 			-exec shfmt -w {} \; ; \
-		echo "✅ Formatting complete"; \
+		echo "✅ Bash formatting complete"; \
 	else \
-		echo "⚠️  shfmt not found. Skipping formatting"; \
-		exit 1; \
+		echo "⚠️  shfmt not found. Skipping bash formatting"; \
 	fi
+	@echo "🎨 Formatting ShellSpec tests..."
+	@./scripts/format-shellspec.sh
+	@echo "✅ All formatting complete"
 
 # Lint all bash scripts using shellcheck
 lint:
