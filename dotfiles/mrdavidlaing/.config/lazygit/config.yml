@@ -27,12 +27,13 @@ git:
   commit:
     autoWrapCommitMessage: true
     autoWrapWidth: 72
+    showBranchHeads: true
   
   # Logging
   log:
     order: 'topo-order'
     showGraph: 'always'
-    showWholeGraph: false
+    showWholeGraph: true
   
   # Skip hooks for WIP commits (useful when AI makes temporary commits)
   skipHookPrefix: 'WIP'
