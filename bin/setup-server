@@ -40,7 +40,7 @@ CURRENT_HOSTNAME="$(get_hostname)"
 
 # Ensure servers root exists
 log_subsection "Validation"
-SERVERS_ROOT="$PROJECT_ROOT/servers"
+SERVERS_ROOT="${SERVERS_ROOT:-$PROJECT_ROOT/servers}"
 if [ ! -d "$SERVERS_ROOT" ]; then
     log_error "Servers directory not found: $SERVERS_ROOT"
     exit 1
