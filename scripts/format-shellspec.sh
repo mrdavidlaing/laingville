@@ -1,82 +1,122 @@
 #!/bin/bash
-
 # format-shellspec.sh
 # Formats ShellSpec test files with proper indentation
-# Part of the Laingville project formatting pipeline
 
-set -euo pipefail
+echo "🎨 Formatting ShellSpec tests..."
 
-# Find all ShellSpec test files
-spec_files=$(find spec -name "*_spec.sh" -type f 2> /dev/null || true)
-
-if [[ -z "$spec_files" ]]; then
-  echo "No ShellSpec files found to format"
-  exit 0
-fi
-
-format_shellspec_file() {
+# Use awk for robust text processing
+format_file() {
   local file="$1"
-  local temp_file
-  temp_file=$(mktemp)
-  local indent=0
-  local formatted=0
+  local temp_file="${file}.tmp"
 
-  while IFS= read -r line; do
-    # Skip empty lines and comments (preserve as-is)
-    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
-      echo "$line" >> "$temp_file"
-      continue
-    fi
+  awk '
+  BEGIN { 
+    indent = 0
+    in_heredoc = 0
+    heredoc_marker = ""
+    in_quoted_string = 0
+  }
+  
+  # Detect heredoc start
+  /<<[[:space:]]*['\''"]?[A-Za-z_][A-Za-z0-9_]*['\''"]?/ {
+    if (!in_heredoc && match($0, /<<[[:space:]]*['\''"]?([A-Za-z_][A-Za-z0-9_]*)['\''"]?/, arr)) {
+      heredoc_marker = arr[1]
+      in_heredoc = 1
+    }
+  }
+  
+  # Pass through heredoc content unchanged
+  in_heredoc == 1 {
+    print $0
+    if ($0 == heredoc_marker) {
+      in_heredoc = 0
+      heredoc_marker = ""
+    }
+    next
+  }
+  
+  # Detect multi-line quoted strings (echo "content...)
+  /echo[[:space:]]+"/ && !/echo[[:space:]]+"[^"]*"[[:space:]]*$/ {
+    in_quoted_string = 1
+  }
+  
+  # Pass through quoted string content unchanged
+  in_quoted_string == 1 {
+    print $0
+    if (/"[[:space:]]*>/) {
+      in_quoted_string = 0
+    }
+    next
+  }
+  
+  # Pass through empty lines and comments unchanged
+  /^[[:space:]]*$/ || /^[[:space:]]*#/ {
+    print $0
+    next
+  }
+  
+  # Remove leading whitespace to get the content
+  {
+    content = $0
+    sub(/^[[:space:]]+/, "", content)
+  }
+  
+  # Handle End keyword - decrease indent before printing
+  content ~ /^End[[:space:]]*$/ {
+    if (indent > 0) indent -= 2
+    printf "%*sEnd\n", indent, ""
+    next
+  }
+  
+  # Print line with current indentation
+  {
+    if (length(content) > 0) {
+      printf "%*s%s\n", indent, "", content
+    } else {
+      print ""
+    }
+  }
+  
+  # Increase indent after block-opening keywords
+  content ~ /^(Describe|Context|It|Specify|Example|Before|After|BeforeAll|AfterAll)[[:space:]]/ {
+    indent += 2
+  }
+  ' "$file" > "$temp_file"
 
-    # Handle End statements (decrease indent before printing)
-    if [[ "$line" =~ ^[[:space:]]*End[[:space:]]*$ ]]; then
-      ((indent -= 2))
-      if [[ $indent -lt 0 ]]; then
-        indent=0
-      fi
-      printf "%*s%s\n" "$indent" "" "End" >> "$temp_file"
-      continue
-    fi
-
-    # Remove existing indentation
-    line=$(echo "$line" | sed 's/^[[:space:]]*//')
-
-    # Print line with current indentation
-    printf "%*s%s\n" "$indent" "" "$line" >> "$temp_file"
-
-    # Increase indent after Describe/It statements
-    if [[ "$line" =~ ^(Describe|It)[[:space:]] ]]; then
-      ((indent += 2))
-    fi
-
-  done < "$file"
-
-  # Check if file changed
+  # Only update if file changed
   if ! cmp -s "$file" "$temp_file"; then
     mv "$temp_file" "$file"
-    echo "  ✓ Formatted $file"
-    formatted=1
+    return 0
   else
-    rm "$temp_file"
+    rm -f "$temp_file"
+    return 1
   fi
-
-  return $formatted
 }
 
-echo "Formatting ShellSpec test files..."
+# Process all spec files
+formatted=0
+total=0
 
-total_formatted=0
-file_count=0
+for file in spec/*_spec.sh; do
+  [ -f "$file" ] || continue
+  total=$((total + 1))
 
-for file in $spec_files; do
-  ((file_count++))
-  if format_shellspec_file "$file"; then
-    ((total_formatted++))
+  echo -n "  Formatting $(basename "$file")... "
+  if format_file "$file"; then
+    echo "✓"
+    formatted=$((formatted + 1))
+  else
+    echo "already formatted"
   fi
 done
 
-if [[ $total_formatted -eq 0 ]]; then
-  echo "  All $file_count ShellSpec files already properly formatted"
+# Summary
+if [ $total -eq 0 ]; then
+  echo "  No ShellSpec files found"
+elif [ $formatted -eq 0 ]; then
+  echo "  All $total files already properly formatted"
 else
-  echo "  Formatted $total_formatted of $file_count ShellSpec files"
+  echo "  ✅ Formatted $formatted of $total ShellSpec files"
 fi
+
+exit 0
