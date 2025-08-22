@@ -6,6 +6,7 @@ Describe 'WezTerm configuration validation'
       Skip if "wezterm is not available" test ! -x "$(command -v wezterm 2>/dev/null)"
       When call wezterm --config-file dotfiles/mrdavidlaing/.config/wezterm/wezterm.lua ls-fonts --list-system
       The status should be success
+      The stdout should not be blank
       The stderr should eq ""
     End
   End

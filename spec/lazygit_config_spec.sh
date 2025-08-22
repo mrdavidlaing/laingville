@@ -3,7 +3,7 @@
 Describe 'Lazygit configuration validation'
   Describe 'dotfiles/mrdavidlaing/.config/lazygit/config.yml'
     It 'should have valid YAML syntax and be parseable by lazygit'
-      Skip if "lazygit is not available" ! command -v lazygit > /dev/null 2>&1
+      Skip if "lazygit is not available" test ! -x "$(command -v lazygit 2>/dev/null)"
 
 # Test that the config can be loaded without errors by checking config validation
 # This validates both YAML syntax and lazygit-specific configuration including migrations
