@@ -11,9 +11,11 @@ autocmd("BufWritePre", {
   group = general,
   pattern = "*",
   callback = function()
-    local save_cursor = vim.fn.getpos(".")
-    vim.cmd([[%s/\s\+$//e]])
-    vim.fn.setpos(".", save_cursor)
+    if vim.bo.modifiable then
+      local save_cursor = vim.fn.getpos(".")
+      vim.cmd([[%s/\s\+$//e]])
+      vim.fn.setpos(".", save_cursor)
+    end
   end,
   desc = "Remove trailing whitespace on save",
 })

@@ -52,3 +52,11 @@ opt.conceallevel = 0
 -- Completion
 opt.completeopt = { "menuone", "noselect" }
 opt.shortmess:append("c")
+
+-- UTF-8 locale
+vim.env.LANG = "en_US.UTF-8"
+
+-- Disable unused providers to reduce warnings
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_perl_provider = 0

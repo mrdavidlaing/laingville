@@ -23,6 +23,7 @@ arch:
     - ripgrep
     - bat
     - eza
+    - fd
     - fzf
     - jq
     - tmux
@@ -77,6 +78,7 @@ wsl:
     - ripgrep
     - bat
     - eza
+    - fd
     - fzf
     - jq
     - tmux
@@ -131,6 +133,7 @@ macos:
     - bat
     - eza
     - starship
+    - fd
     - fzf
     - ripgrep
     - tmux
@@ -166,6 +169,7 @@ nix:
     - ripgrep
     - bat
     - eza
+    - fd
     - fzf
     - jq
     - tmux
