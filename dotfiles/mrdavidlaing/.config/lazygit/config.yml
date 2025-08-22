@@ -54,22 +54,8 @@ os:
   open: 'open {{filename}}'
   openLink: 'open {{link}}'
 
-# Custom commands for AI monitoring workflow
+# Custom commands
 customCommands:
-  # Note: 'S' removed - use built-in 'a' to stage all
-  # Note: 'e' removed - built-in edit works fine
-    
-  # Quick commit for AI changes
-  - key: 'C'
-    context: 'files'
-    prompts:
-      - type: 'input'
-        title: 'Commit message:'
-        key: 'CommitMessage'
-        initialValue: 'AI: '
-    command: 'git add -A && git commit -m "{{.Form.CommitMessage}}"'
-    description: 'Stage all and commit with message'
-    
   # Update all submodules
   - key: 'u'
     context: 'submodules'
@@ -83,12 +69,6 @@ customCommands:
     command: 'git diff {{.SelectedFile.Name}} | nvim -R -'
     description: 'View diff in nvim'
     output: terminal
-    
-  # Quick amend (useful for fixing AI commits)
-  - key: 'A'
-    context: 'commits'
-    command: 'git commit --amend --no-edit'
-    description: 'Amend last commit (no edit)'
     
   # Push with force-with-lease (safer than force push)
   - key: 'P'

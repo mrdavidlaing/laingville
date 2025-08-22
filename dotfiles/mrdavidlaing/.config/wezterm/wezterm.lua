@@ -598,6 +598,12 @@ config.keys = {
     action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS|TABS' },
   },
   
+  -- Close current pane (like tmux)
+  {
+    key = 'x',
+    mods = 'LEADER',
+    action = wezterm.action.CloseCurrentPane { confirm = true },
+  },
   
   -- Standard copy/paste shortcuts
   {
