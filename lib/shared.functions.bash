@@ -284,8 +284,11 @@ handle_packages_from_file() {
       install_yay "${dry_run}"
 
       # Process official packages with pacman first, then AUR packages with yay
-      process_packages "pacman" "pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
-      process_packages "yay" "yay -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
+      # For WSL, use 'arch' as the YAML platform key since WSL uses Arch packages
+      local yaml_platform="${platform}"
+      [[ "${platform}" = "wsl" ]] && yaml_platform="arch"
+      process_packages "pacman" "pacman -S --needed --noconfirm" "${yaml_platform}" "${dry_run}" "${packages_file}"
+      process_packages "yay" "yay -S --needed --noconfirm" "${yaml_platform}" "${dry_run}" "${packages_file}"
       ;;
     "macos")
       process_packages "homebrew" "brew install" "${platform}" "${dry_run}" "${packages_file}"
