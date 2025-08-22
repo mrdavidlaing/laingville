@@ -121,7 +121,7 @@ jobs:
         
         # Install system packages that aren't cacheable (always run to ensure availability)
         echo "Installing system dependencies for Arch Linux..."
-        pacman -S --noconfirm jq tmux bc kcov || {
+        pacman -S --noconfirm jq tmux bc wezterm kcov || {
           echo "kcov package not available, building from source..."
           pacman -S --noconfirm libcurl-gnutls elfutils binutils
           cd /tmp

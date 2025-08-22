@@ -598,29 +598,6 @@ config.keys = {
     action = wezterm.action.ShowLauncherArgs { flags = 'LAUNCH_MENU_ITEMS|TABS' },
   },
   
-  -- Lazygit integrations
-  {
-    key = 'g',
-    mods = 'LEADER',
-    action = wezterm.action.SpawnCommandInNewPane {
-      args = { 'lazygit' },
-    },
-  },
-  {
-    key = 'G',
-    mods = 'LEADER|SHIFT',
-    action = wezterm.action.SpawnCommandInNewTab {
-      args = { 'lazygit' },
-    },
-  },
-  {
-    key = 'g',
-    mods = 'LEADER|CTRL',
-    action = wezterm.action.Multiple {
-      wezterm.action.SplitPane { direction = 'Right', size = 0.4 },
-      wezterm.action.SendString 'lazygit\n',
-    },
-  },
   
   -- Standard copy/paste shortcuts
   {
