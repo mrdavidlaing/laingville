@@ -2,72 +2,31 @@
 # Optimized for monitoring AI assistant changes in tmux/WezTerm environment
 
 gui:
-  # Theme matching WezTerm Solarized Dark
+  # Theme matching WezTerm Solarized Dark (only essential overrides)
   theme:
     activeBorderColor:
       - cyan
       - bold
-    inactiveBorderColor:
-      - blue
-    optionsTextColor:
-      - blue
     selectedLineBgColor:
-      - black
+      - blue
       - bold
-    cherryPickedCommitBgColor:
-      - cyan
-    markedBaseCommitBgColor:
-      - yellow
-    unstagedChangesColor:
-      - red
-    defaultFgColor:
-      - white
   
   # UI preferences for AI monitoring workflow
   showFileTree: true
-  showListFooter: true
   showRandomTip: false
   showBranchCommitHash: true
   showBottomLine: false
   showCommandLog: false
-  showIcons: true
-  nerdFontsVersion: "3"
-  
-  # Commit length indicator
-  commitLength:
-    show: true
-  
-  # Mouse support for pane navigation
   mouseEvents: true
-  
-  # Scrolling behavior
   scrollHeight: 2
-  scrollPastBottom: true
   sidePanelWidth: 0.3333
-  expandFocusedSidePanel: false
-  mainPanelSplitMode: flexible
-  
-  # Window size
-  windowSize: normal
 
 git:
-  # Auto-refresh for real-time AI change monitoring
-  autoFetch: true
-  autoRefresh: true
-  refresher:
-    refreshInterval: 2  # Refresh every 2 seconds
-    fetchInterval: 60   # Fetch from remote every minute
   
-  # Commit preferences
+  # Commit preferences (only non-defaults)
   commit:
-    signOff: false
     autoWrapCommitMessage: true
     autoWrapWidth: 72
-  
-  # Merging
-  merging:
-    manualCommit: false
-    args: ''
   
   # Logging
   log:
@@ -97,18 +56,8 @@ os:
 
 # Custom commands for AI monitoring workflow
 customCommands:
-  # Quick stage all changes (useful for AI-generated code)
-  - key: 'S'
-    context: 'files'
-    command: 'git add -A'
-    description: 'Stage all changes'
-    
-  # Open file in nvim from lazygit
-  - key: 'e'
-    context: 'files'
-    command: 'nvim {{.SelectedFile.Name}}'
-    description: 'Edit file in nvim'
-    output: terminal
+  # Note: 'S' removed - use built-in 'a' to stage all
+  # Note: 'e' removed - built-in edit works fine
     
   # Quick commit for AI changes
   - key: 'C'
@@ -154,153 +103,11 @@ customCommands:
     description: 'Show file history'
     output: terminal
 
-# Keybinding overrides
-keybinding:
-  universal:
-    quit: 'q'
-    quit-alt1: '<c-c>'
-    return: '<esc>'
-    quitWithoutChangingDirectory: 'Q'
-    togglePanel: '<tab>'
-    prevItem: '<up>'
-    nextItem: '<down>'
-    prevItem-alt: 'k'
-    nextItem-alt: 'j'
-    prevPage: ','
-    nextPage: '.'
-    scrollLeft: 'H'
-    scrollRight: 'L'
-    gotoTop: 'g'
-    gotoBottom: 'G'
-    prevBlock: '<left>'
-    nextBlock: '<right>'
-    prevBlock-alt: 'h'
-    nextBlock-alt: 'l'
-    nextMatch: 'n'
-    prevMatch: 'N'
-    optionMenu: 'x'
-    select: '<space>'
-    goInto: '<enter>'
-    confirm: '<enter>'
-    remove: 'd'
-    new: 'n'
-    edit: 'e'
-    openFile: 'o'
-    scrollUpMain: 'K'
-    scrollDownMain: 'J'
-    scrollUpMain-alt1: '<c-u>'
-    scrollDownMain-alt1: '<c-d>'
-    scrollUpMain-alt2: '<c-b>'
-    scrollDownMain-alt2: '<c-f>'
-    executeCustomCommand: ':'
-    createRebaseOptionsMenu: 'm'
-    pushFiles: 'p'
-    pullFiles: 'p'
-    refresh: 'r'
-    createPatchOptionsMenu: '<c-p>'
-    nextTab: ']'
-    prevTab: '['
-    nextScreenMode: '+'
-    prevScreenMode: '_'
-    undo: 'z'
-    redo: '<c-z>'
-    filteringMenu: '<c-s>'
-    diffingMenu: 'W'
-    diffingMenu-alt: '<c-e>'
-    copyToClipboard: '<c-o>'
-    openRecentRepos: '<c-r>'
-    submitEditorText: '<enter>'
-    extrasMenu: '@'
-    toggleWhitespaceInDiffView: '<c-w>'
-    increaseContextInDiffView: '}'
-    decreaseContextInDiffView: '{'
-  
-  status:
-    checkForUpdate: 'u'
-    recentRepos: '<enter>'
-    allBranchesLogGraph: 'a'
-  
-  files:
-    commitChanges: 'c'
-    commitChangesWithoutHook: 'w'
-    amendLastCommit: 'A'
-    commitChangesWithEditor: 'C'
-    ignoreFile: 'i'
-    refreshFiles: 'r'
-    stashAllChanges: 's'
-    viewStashOptions: 'S'
-    toggleStagedAll: 'a'
-    viewResetOptions: 'D'
-    fetch: 'f'
-    toggleTreeView: '`'
-    openMergeTool: 'M'
-    openStatusFilter: '<c-b>'
-  
-  branches:
-    createPullRequest: 'o'
-    viewGitFlowOptions: 'i'
-    fastForward: 'f'
-    createTag: 'T'
-    pushTag: 'P'
-    setUpstream: 'u'
-    fetchRemote: 'f'
-  
-  commits:
-    squashDown: 's'
-    renameCommit: 'r'
-    renameCommitWithEditor: 'R'
-    viewResetOptions: 'g'
-    markCommitAsFixup: 'f'
-    createFixupCommit: 'F'
-    squashAboveCommits: 'S'
-    moveDownCommit: '<c-j>'
-    moveUpCommit: '<c-k>'
-    amendToCommit: 'A'
-    pickCommit: 'p'
-    revertCommit: 't'
-    cherryPickCopy: 'c'
-    cherryPickCopyRange: 'C'
-    pasteCommits: 'v'
-    tagCommit: 'T'
-    checkoutCommit: '<space>'
-    resetCherryPick: '<c-R>'
-    copyCommitMessageToClipboard: '<c-y>'
-    openLogMenu: '<c-l>'
-    viewBisectOptions: 'b'
-  
-  stash:
-    popStash: 'g'
-    renameStash: 'r'
-  
-  commitFiles:
-    checkoutCommitFile: 'c'
-  
-  main:
-    toggleSelectHunk: 'a'
-    selectPrevHunk: 'k'
-    selectNextHunk: 'j'
-    selectPrevConflict: 'K'
-    selectNextConflict: 'J'
-    toggleDragSelect: 'v'
-    toggleDragSelect-alt: 'V'
-    toggleSelectHunk: 'a'
-    pickBothHunks: 'b'
-  
-  submodules:
-    init: 'i'
-    update: 'u'
-    bulkMenu: 'b'
+# Keybinding overrides (only non-defaults)
+# keybinding section removed - using all defaults
 
-# Disable update checks
-update:
-  method: never
-
-# Disable analytics
-reporting: off
-
-# Disable confirmation for most actions (faster workflow)
-confirmOnQuit: false
-quitOnTopLevelReturn: true
+# Update and reporting (defaults are fine)
+# update.method: never and reporting: off are defaults
 
 # Enhanced diff view
 paging:

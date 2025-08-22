@@ -12,6 +12,7 @@ arch:
   - .config/navi
   - .config/alacritty
   - .config/starship.toml
+  - .config/lazygit
   # Editor
   - .config/nvim
   # Desktop environment
@@ -31,6 +32,7 @@ wsl:
   - .config/tmux
   - .config/navi
   - .config/starship.toml
+  - .config/lazygit
   # Editor
   - .config/nvim
   # Alacritty config (for Windows Alacritty to read)
@@ -54,6 +56,9 @@ windows:
   # WezTerm
   - source: .config/wezterm/wezterm.lua
     target: $USERPROFILE/.config/wezterm/wezterm.lua
+  # Lazygit
+  - source: .config/lazygit
+    target: $USERPROFILE/.config/lazygit
   # Neovim
   - source: .config/nvim
     target: $LOCALAPPDATA/nvim
@@ -72,6 +77,7 @@ macos:
   - .config/navi
   - .config/alacritty
   - .config/starship.toml
+  - .config/lazygit
   # Editor
   - .config/nvim
 
@@ -85,5 +91,6 @@ nix:
   - .config/tmux
   - .config/navi
   - .config/starship.toml
+  - .config/lazygit
   # Editor
   - .config/nvim
