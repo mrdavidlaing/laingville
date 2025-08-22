@@ -7,7 +7,7 @@ Describe 'Lazygit configuration validation'
 
 # Test that the config can be loaded without errors by checking config validation
 # This validates both YAML syntax and lazygit-specific configuration including migrations
-      When call bash -c "env HOME=/tmp/lazygit-test XDG_CONFIG_HOME=/tmp/lazygit-test/.config lazygit --use-config-file dotfiles/mrdavidlaing/.config/lazygit/config.yml --config 2>&1 || true"
+      When call lazygit --use-config-file dotfiles/mrdavidlaing/.config/lazygit/config.yml --config
       The status should be success
       The stdout should include "gui:"
       The stderr should not include "Couldn't migrate"
