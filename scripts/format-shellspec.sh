@@ -17,11 +17,15 @@ format_file() {
     in_heredoc = 0
     heredoc_marker = ""
     in_quoted_string = 0
+    pre_heredoc_indent = 0
   }
   
   # Detect heredoc start - simplified pattern without complex regex
   # Look for << followed by optional spaces and an identifier
   /<</ && !in_heredoc {
+    # Store current indent level before entering heredoc
+    pre_heredoc_indent = indent
+    
     # Extract heredoc marker using basic string functions (portable)
     heredoc_line = $0
     # Find the position of <<
@@ -51,6 +55,8 @@ format_file() {
     if ($0 == heredoc_marker) {
       in_heredoc = 0
       heredoc_marker = ""
+      # Restore indent to pre-heredoc level
+      indent = pre_heredoc_indent
     }
     next
   }

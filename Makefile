@@ -14,6 +14,7 @@ format:
 		find . -type f \( -name "*.sh" -o -name "*.bash" \) \
 			-not -path "./.git/*" \
 			-not -path "./dotfiles/*/.*" \
+			-not -path "./spec/fixtures/*" \
 			-not -name "*_spec.sh" \
 			-exec shfmt -w {} \; ; \
 		echo "✅ Bash formatting complete"; \
