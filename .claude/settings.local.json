@@ -17,7 +17,9 @@
       "Bash(\"/mnt/c/Program Files/PowerShell/7/pwsh.exe\" -ExecutionPolicy Bypass -NoProfile -Command \"Invoke-ScriptAnalyzer -Path ./lib/setup-user.functions.ps1 -Severity Warning,Error\")",
       "Bash(gh run view:*)",
       "Bash(gh run list:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(make:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   },
