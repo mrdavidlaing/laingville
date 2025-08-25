@@ -125,7 +125,7 @@ format_file() {
   ' "$file" > "$temp_file"
 
   # Only update if file changed and temp file is not empty
-  if [ -s "$temp_file" ] && ! cmp -s "$file" "$temp_file"; then
+  if [ -s "$temp_file" ] && ! diff -q "$file" "$temp_file" > /dev/null 2>&1; then
     mv "$temp_file" "$file"
     return 0
   else
