@@ -15,9 +15,9 @@ validate_package_name() {
   # Check length limit (reasonable package name length)
   [[ ${#pkg} -gt 200 ]] && return 1
 
-  # Allow alphanumeric characters, dots, hyphens, underscores, plus signs, and slashes
-  # This covers most legitimate package naming conventions including Homebrew taps
-  [[ "${pkg}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+/-]*$ ]] || return 1
+  # Allow alphanumeric characters, dots, hyphens, underscores, plus signs, slashes, and @ symbols
+  # This covers most legitimate package naming conventions including Homebrew taps and version specifiers
+  [[ "${pkg}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+/@-]*$ ]] || return 1
 
   # Reject obviously malicious patterns
   case "${pkg}" in
