@@ -76,6 +76,7 @@ macos:
   - .config/tmux
   - .config/navi
   - .config/alacritty
+  - .config/wezterm
   - .config/starship.toml
   - .config/lazygit
   # Editor

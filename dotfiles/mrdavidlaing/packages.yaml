@@ -144,7 +144,7 @@ macos:
   cask:
     - nikitabobko/tap/aerospace
     - alacritty
-    - wezterm
+    - wezterm@nightly
     - 1password-cli
     - font-jetbrains-mono-nerd-font
     - docker-desktop
