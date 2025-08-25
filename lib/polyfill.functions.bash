@@ -187,3 +187,46 @@ resolve_path() {
   # This is a simplified approach - not as robust as real canonicalization
   echo "${path}" | sed -e 's|/\./|/|g' -e 's|/[^/]*/\.\./|/|g' -e 's|//|/|g'
 }
+
+# Cross-platform function to get user's login shell
+# Args: $1 - username (optional, defaults to current user)
+# Returns: path to user's login shell or empty string on failure
+get_user_shell() {
+  local username="${1:-${USER:-$(whoami)}}"
+  [[ -z "${username}" ]] && return 1
+
+  local os_type
+  os_type=$(detect_os)
+
+  case "${os_type}" in
+    "linux")
+      # Linux: use getent if available
+      if command -v getent > /dev/null 2>&1; then
+        getent passwd "${username}" 2> /dev/null | cut -d: -f7
+      else
+        # Fallback: read /etc/passwd directly
+        grep "^${username}:" /etc/passwd 2> /dev/null | cut -d: -f7
+      fi
+      ;;
+    "macos")
+      # macOS: use dscl (Directory Service Command Line)
+      if command -v dscl > /dev/null 2>&1; then
+        dscl . -read "/Users/${username}" UserShell 2> /dev/null | cut -d' ' -f2
+      else
+        # Fallback: try reading from NetInfo (older macOS)
+        niutil -readprop . "/users/${username}" shell 2> /dev/null || echo ""
+      fi
+      ;;
+    *)
+      # Unknown platform - try both approaches
+      if command -v getent > /dev/null 2>&1; then
+        getent passwd "${username}" 2> /dev/null | cut -d: -f7
+      elif command -v dscl > /dev/null 2>&1; then
+        dscl . -read "/Users/${username}" UserShell 2> /dev/null | cut -d' ' -f2
+      else
+        # Final fallback: try /etc/passwd
+        grep "^${username}:" /etc/passwd 2> /dev/null | cut -d: -f7
+      fi
+      ;;
+  esac
+}
