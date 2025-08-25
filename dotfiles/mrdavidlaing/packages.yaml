@@ -140,6 +140,7 @@ macos:
     - navi
     - laio
     - shellcheck
+    - shellspec
     - shfmt
   cask:
     - nikitabobko/tap/aerospace
