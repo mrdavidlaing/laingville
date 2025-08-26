@@ -158,9 +158,9 @@ for file in spec/*_spec.sh; do
 done
 
 # Summary
-if [ $total -eq 0 ]; then
+if [ "$total" -eq 0 ]; then
   echo "  No ShellSpec files found"
-elif [ $formatted -eq 0 ]; then
+elif [ "$formatted" -eq 0 ]; then
   echo "  All $total files already properly formatted"
 else
   echo "  ✅ Formatted $formatted of $total ShellSpec files"

@@ -43,7 +43,7 @@ Describe "format-shellspec.sh script"
       local result=$?
         
       rm -f "$temp_file"
-      return $result
+      return "$result"
       }
 
       It "preserves YAML structure in heredocs"

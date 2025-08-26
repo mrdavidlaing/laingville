@@ -26,7 +26,7 @@ if ! grep -Fxq "${bash_path}" /etc/shells 2> /dev/null; then
 fi
 
 # Check if default shell is bash
-if [[ ! "${user_shell}" == *"/bash"* ]]; then
+if [[ "${user_shell}" != *"/bash"* ]]; then
   echo "Error: Your login shell is not bash (current: ${user_shell})" >&2
   echo "To fix: chsh -s ${bash_path}" >&2
   exit 1

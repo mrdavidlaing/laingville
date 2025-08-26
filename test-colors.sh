@@ -13,12 +13,12 @@ echo ""
 
 echo "Testing 256 colors:"
 for i in {0..15}; do
-  printf "\033[48;5;${i}m  "
+  printf "\033[48;5;%sm  " "$i"
 done
 echo -e "\033[0m"
 
 for i in {16..231}; do
-  printf "\033[48;5;${i}m "
+  printf "\033[48;5;%sm " "$i"
   if [ $(((i - 15) % 36)) -eq 0 ]; then
     echo -e "\033[0m"
   fi
@@ -26,7 +26,7 @@ done
 echo -e "\033[0m"
 
 for i in {232..255}; do
-  printf "\033[48;5;${i}m  "
+  printf "\033[48;5;%sm  " "$i"
 done
 echo -e "\033[0m"
 echo ""

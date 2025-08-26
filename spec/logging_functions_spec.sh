@@ -34,6 +34,7 @@ Describe "logging.functions.bash"
 
   # Mock external commands for complete isolation
         mock_logger_unavailable() {
+        # shellcheck disable=SC2329
         command() {
         case "$*" in
         "-v logger") return 1 ;; # logger not available
@@ -43,6 +44,7 @@ Describe "logging.functions.bash"
         }
 
         mock_date() {
+        # shellcheck disable=SC2329
         date() {
         case "$1" in
         "+%H:%M:%S") echo "12:34:56" ;;
@@ -54,6 +56,7 @@ Describe "logging.functions.bash"
         }
 
         mock_basename() {
+        # shellcheck disable=SC2329
         basename() {
         echo "test-script"
         }
@@ -146,7 +149,8 @@ Describe "logging.functions.bash"
               export TERM="xterm"
               export LOG_NO_COLOR="true" # No colors for predictable output
 # Override basename mock for this specific test
-              basename() { echo "test-script"; }
+              # shellcheck disable=SC2329
+        basename() { echo "test-script"; }
 
               When call log_init
 
@@ -185,7 +189,8 @@ Describe "logging.functions.bash"
           Describe "_log_timestamp helper function"
             It "returns formatted timestamp"
 # Override date mock for this specific test
-              date() {
+              # shellcheck disable=SC2329
+        date() {
               case "$1" in
               "+%H:%M:%S") echo "12:34:56" ;;
               *) echo "12:34:56" ;;
@@ -606,8 +611,10 @@ Describe "logging.functions.bash"
               LOG_INDENT_LEVEL=0
 
 # Mock logger command to not exist and date command
-              command() { return 1; }
-              date() {
+              # shellcheck disable=SC2329
+        command() { return 1; }
+              # shellcheck disable=SC2329
+        date() {
               case "$1" in
               "+%Y-%m-%d %H:%M:%S") echo "2024-01-01 12:34:56" ;;
               *) echo "2024-01-01 12:34:56" ;;
@@ -624,14 +631,16 @@ Describe "logging.functions.bash"
               LOG_INDENT_LEVEL=0
 
 # Mock logger command to exist and capture its call
-              command() {
+              # shellcheck disable=SC2329
+        command() {
               case "$*" in
               "-v logger") return 0 ;;
               *) return 1 ;;
               esac
               }
 
-              date() {
+              # shellcheck disable=SC2329
+        date() {
               case "$1" in
               "+%Y-%m-%d %H:%M:%S") echo "2024-01-01 12:34:56" ;;
               *) echo "2024-01-01 12:34:56" ;;
@@ -665,7 +674,8 @@ Describe "logging.functions.bash"
         unset SHELLSPEC_RUNNING
         export LOG_NO_COLOR="true"
 # Override basename mock for this specific test
-              basename() { echo "test-script"; }
+              # shellcheck disable=SC2329
+        basename() { echo "test-script"; }
 
               When call log_finish "0"
 
@@ -677,7 +687,8 @@ Describe "logging.functions.bash"
               unset SHELLSPEC_RUNNING
               export LOG_NO_COLOR="true"
 # Override basename mock for this specific test
-              basename() { echo "test-script"; }
+              # shellcheck disable=SC2329
+        basename() { echo "test-script"; }
 
               When call log_finish "1"
 

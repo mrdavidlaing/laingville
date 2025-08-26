@@ -333,11 +333,13 @@ EOF
   Describe "create_symlink_force (cross-platform polyfill)"
     It "uses -sfh flags on macOS"
       # Mock ln command to capture arguments
+      # shellcheck disable=SC2329
       ln() {
       LN_CALLED_WITH="$*"
       }
       
       # Mock detect_os to return macOS  
+      # shellcheck disable=SC2329
       detect_os() { echo "macos"; }
       
       When call create_symlink_force "source_path" "target_path"
@@ -346,11 +348,13 @@ EOF
 
     It "uses -sfn flags on Linux"
       # Mock ln command to capture arguments
+      # shellcheck disable=SC2329
       ln() {
         LN_CALLED_WITH="$*"
       }
       
       # Mock detect_os to return Linux
+      # shellcheck disable=SC2329
       detect_os() { echo "linux"; }
       
       When call create_symlink_force "source_path" "target_path" 
@@ -368,6 +372,7 @@ EOF
       }
       
       # Mock ln command to capture arguments
+      # shellcheck disable=SC2329
       ln() {
         LN_CALLED_WITH="$*"
       }
