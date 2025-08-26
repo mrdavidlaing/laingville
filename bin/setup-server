@@ -140,6 +140,11 @@ if [ -d "$SHARED_SERVER_DIR" ] && [ "$(ls -A "$SHARED_SERVER_DIR" 2>/dev/null)" 
         PLATFORM="$(detect_platform)"
     fi
     
+    # Source macOS-specific functions if running on macOS
+    if [ "$PLATFORM" = "macos" ]; then
+        source "$LIB_DIR/macos.functions.bash"
+    fi
+    
     # Check if shared packages file exists
     SHARED_PACKAGES_FILE="$SHARED_SERVER_DIR/packages.yaml"
     if [ -f "$SHARED_PACKAGES_FILE" ]; then
@@ -172,6 +177,11 @@ if [ -n "${PLATFORM:-}" ]; then
     PLATFORM="$PLATFORM"
 else
     PLATFORM="$(detect_platform)"
+fi
+
+# Source macOS-specific functions if running on macOS
+if [ "$PLATFORM" = "macos" ]; then
+    source "$LIB_DIR/macos.functions.bash"
 fi
 handle_server_packages "$PLATFORM" "$DRY_RUN"
 

@@ -1,5 +1,5 @@
 Describe "macos.functions.bash"
-# shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
+  # shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
     Before "source ./lib/polyfill.functions.bash"
       Before "source ./lib/logging.functions.bash"
@@ -10,13 +10,13 @@ Describe "macos.functions.bash"
 
                 Describe "install_homebrew function"
                   It "shows correct dry-run output when brew not installed"
-# Mock command -v to return failure for brew
-# shellcheck disable=SC2329  # Mock function for testing
+      # Mock command -v to return failure for brew
+      # shellcheck disable=SC2329  # Mock function for testing
                     command() {
                     if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
                     return 1
                     fi
-  # Fall back to real command for other calls
+        # Fall back to real command for other calls
                     /usr/bin/command "${@}"
                     }
 
@@ -28,13 +28,13 @@ Describe "macos.functions.bash"
                   End
 
                   It "shows correct dry-run output when brew already installed"
-# Mock command -v to return success for brew
-# shellcheck disable=SC2329  # Mock function for testing
+      # Mock command -v to return success for brew
+      # shellcheck disable=SC2329  # Mock function for testing
                     command() {
                     if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
                     return 0
                     fi
-  # Fall back to real command for other calls
+        # Fall back to real command for other calls
                     /usr/bin/command "${@}"
                     }
 
@@ -60,106 +60,278 @@ Describe "macos.functions.bash"
                   End
                 End
 
-                Describe "macOS functions handle non-dry-run mode gracefully"
-                  It "handles non-dry-run mode without actual system changes"
-# Mock command -v to simulate brew not being available
-# shellcheck disable=SC2329  # Mock function for testing
-                    command() {
-                    if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
-                    return 1
-                    fi
-  # Fall back to real command for other calls
-                    /usr/bin/command "${@}"
-                    }
+                Describe "generate_brewfile function"
+    # Create a test packages file
+                  Before 'TEST_PACKAGES_FILE="$(mktemp)"'
+                    After 'rm -f "$TEST_PACKAGES_FILE"'
 
-# Mock curl to prevent actual Homebrew installation
-# shellcheck disable=SC2329  # Mock function for testing
-                    curl() {
-                    echo "# Mock Homebrew installer script"
-                    echo "echo 'Mock Homebrew installation'"
-                    }
+                      It "generates correct Brewfile format with homebrew and cask packages"
+      # Create test packages.yaml with both homebrew and cask packages
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+    - git
+    - neovim
+    - jq
+  cask:
+    - alacritty
+    - docker-desktop
+EOF
 
-# Mock defaults to prevent actual system changes
-# shellcheck disable=SC2329  # Mock function for testing
-                    defaults() {
-                    echo "Mock defaults command: ${*}"
-                    }
+                        When call generate_brewfile "$TEST_PACKAGES_FILE" "macos" false
+      
+                        The status should be success
+      # Check that a Brewfile path is returned (extract just stdout, ignore stderr logging)
+                        The output should match pattern "*/laingville_brewfile.*" 
+      
+      # Read the generated Brewfile and check its content
+                        brewfile_path="$(generate_brewfile "$TEST_PACKAGES_FILE" "macos" false 2>/dev/null)"
+                        The path "$brewfile_path" should be file
+                        The contents of file "$brewfile_path" should include "# Generated Brewfile for macos packages"
+                        The contents of file "$brewfile_path" should include 'brew "git"'
+                        The contents of file "$brewfile_path" should include 'brew "neovim"'
+                        The contents of file "$brewfile_path" should include 'brew "jq"'
+                        The contents of file "$brewfile_path" should include 'cask "alacritty"'
+                        The contents of file "$brewfile_path" should include 'cask "docker-desktop"'
+                      End
 
-# Mock osascript to prevent actual login item changes
-# shellcheck disable=SC2329  # Mock function for testing
-                    osascript() {
-                    echo "exists"
-                    }
+                      It "handles empty packages gracefully"
+      # Create test packages.yaml with no packages
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+  cask:
+EOF
 
-# Test install_homebrew
-                    When call install_homebrew false
+                        When call generate_brewfile "$TEST_PACKAGES_FILE" "macos" false
+      
+                        The status should be success
+      # Expect stdout to contain the brewfile path
+                        The output should match pattern "*/laingville_brewfile.*"
+      # Check that a Brewfile is still generated
+                        brewfile_path="$(generate_brewfile "$TEST_PACKAGES_FILE" "macos" false 2>/dev/null)"
+                        The path "$brewfile_path" should be file
+                        The contents of file "$brewfile_path" should include "# Generated Brewfile for macos packages"
+                      End
 
-                    The status should be success
-                    The output should include "Installing Homebrew"
-                  End
+                      It "shows correct dry-run output"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+    - git
+  cask:
+    - alacritty
+EOF
 
-                  It "configure_macos_system handles non-dry-run mode"
-# Mock defaults to prevent actual system changes
-# shellcheck disable=SC2329  # Mock function for testing
-                    defaults() {
-                    echo "Mock defaults command: ${*}"
-                    }
+                        When call generate_brewfile "$TEST_PACKAGES_FILE" "macos" true
+      
+                        The status should be success
+                        The output should include "generate Brewfile from packages.yaml"
+                      End
 
-# Mock osascript to prevent actual login item changes
-# shellcheck disable=SC2329  # Mock function for testing
-                    osascript() {
-                    echo "exists"
-                    }
+                      It "validates invalid YAML file"
+      # Create invalid YAML
+      echo "invalid: yaml: content: [" > "$TEST_PACKAGES_FILE"
+      
+                        When call generate_brewfile "$TEST_PACKAGES_FILE" "macos" false
+      
+                        The status should be failure
+                        # Expect stderr to contain security validation messages
+                        The stderr should include "YAML file has unbalanced square brackets"
+                        The stderr should include "SECURITY"
+                        The stderr should include "INVALID_YAML"
+                      End
 
-                    When call configure_macos_system false
+                      It "validates invalid platform"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+    - git
+EOF
 
-                    The status should be success
-                    The output should include "Configuring macOS system settings"
-                  End
-                End
+                        When call generate_brewfile "$TEST_PACKAGES_FILE" "invalid../platform" false
+      
+                        The status should be failure
+                        # Expect stderr to contain security validation messages
+                        The stderr should include "SECURITY"
+                        The stderr should include "INVALID_PLATFORM"
+                      End
+                    End
 
-                Describe "macOS functions are properly exported and callable"
-                  It "install_homebrew function exists"
-                    When run type install_homebrew
+                    Describe "install_packages_with_brewfile function"
+                      Before 'TEST_PACKAGES_FILE="$(mktemp)"'
+                        After 'rm -f "$TEST_PACKAGES_FILE"'
 
-                    The status should be success
-                    The output should include "is a function"
-                  End
+                          It "shows correct dry-run output for both package types"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+    - git
+    - neovim
+  cask:
+    - alacritty
+    - docker-desktop
+EOF
 
-                  It "configure_macos_system function exists"
-                    When run type configure_macos_system
+                            When call install_packages_with_brewfile "$TEST_PACKAGES_FILE" "macos" true
+      
+                            The status should be success
+                            The output should include "install via homebrew: git, neovim"
+                            The output should include "install via cask: alacritty, docker-desktop"
+                          End
 
-                    The status should be success
-                    The output should include "is a function"
-                  End
-                End
+                          It "handles empty packages in dry-run mode"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+  cask:
+EOF
 
-                Describe "setup_systemd_services skips systemd on macOS"
-                  It "skips systemd on macOS in dry-run mode"
-# Mock detect_platform to return macos
-# shellcheck disable=SC2329  # Mock function for testing
-                    detect_platform() {
-                    echo "macos"
-                    }
+                            When call install_packages_with_brewfile "$TEST_PACKAGES_FILE" "macos" true
+      
+                            The status should be success
+                            The output should not include "install via homebrew:"
+                            The output should not include "install via cask:"
+                          End
 
-                    When call setup_systemd_services true
+                          It "skips installation when no packages found"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  homebrew:
+  cask:
+EOF
 
-                    The status should be success
-                    The output should include "SYSTEM SERVICES:"
-                    The output should include "skip systemd services (not supported on macos)"
-                  End
+      # Mock brew to detect if called
+                            brew_called=false
+      # shellcheck disable=SC2329
+                            brew() {
+                            brew_called=true
+                            return 0
+                            }
+      
+                            When call install_packages_with_brewfile "$TEST_PACKAGES_FILE" "macos" false
+      
+                            The status should be success
+                            The output should include "No packages to install"
+      # Verify brew bundle was not called
+                            The variable brew_called should equal false
+                          End
+                        End
 
-                  It "skips systemd on macOS in normal mode"
-# Mock detect_platform to return macos
-# shellcheck disable=SC2329  # Mock function for testing
-                    detect_platform() {
-                    echo "macos"
-                    }
+                        Describe "macOS functions handle non-dry-run mode gracefully"
+                          It "handles non-dry-run mode without actual system changes"
+      # Mock command -v to simulate brew not being available
+      # shellcheck disable=SC2329  # Mock function for testing
+                            command() {
+                            if [[ "${1}" = "-v" ]] && [[ "${2}" = "brew" ]]; then
+                            return 1
+                            fi
+        # Fall back to real command for other calls
+                            /usr/bin/command "${@}"
+                            }
 
-                    When call setup_systemd_services false
+      # Mock curl to prevent actual Homebrew installation
+      # shellcheck disable=SC2329  # Mock function for testing
+                            curl() {
+                            echo "# Mock Homebrew installer script"
+                            echo "echo 'Mock Homebrew installation'"
+                            }
 
-                    The status should be success
-                    The output should include "Skipping systemd services (not supported on macos)"
-                  End
-                End
-              End
+      # Mock defaults to prevent actual system changes
+      # shellcheck disable=SC2329  # Mock function for testing
+                            defaults() {
+                            echo "Mock defaults command: ${*}"
+                            }
+
+      # Mock osascript to prevent actual login item changes
+      # shellcheck disable=SC2329  # Mock function for testing
+                            osascript() {
+                            echo "exists"
+                            }
+
+      # Test install_homebrew
+                            When call install_homebrew false
+
+                            The status should be success
+                            The output should include "Installing Homebrew"
+                          End
+
+                          It "configure_macos_system handles non-dry-run mode"
+      # Mock defaults to prevent actual system changes
+      # shellcheck disable=SC2329  # Mock function for testing
+                            defaults() {
+                            echo "Mock defaults command: ${*}"
+                            }
+
+      # Mock osascript to prevent actual login item changes
+      # shellcheck disable=SC2329  # Mock function for testing
+                            osascript() {
+                            echo "exists"
+                            }
+
+                            When call configure_macos_system false
+
+                            The status should be success
+                            The output should include "Configuring macOS system settings"
+                          End
+                        End
+
+                        Describe "macOS functions are properly exported and callable"
+                          It "install_homebrew function exists"
+                            When run type install_homebrew
+
+                            The status should be success
+                            The output should include "is a function"
+                          End
+
+                          It "configure_macos_system function exists"
+                            When run type configure_macos_system
+
+                            The status should be success
+                            The output should include "is a function"
+                          End
+
+                          It "generate_brewfile function exists"
+                            When run type generate_brewfile
+      
+                            The status should be success
+                            The output should include "is a function"
+                          End
+
+                          It "install_packages_with_brewfile function exists"
+                            When run type install_packages_with_brewfile
+      
+                            The status should be success
+                            The output should include "is a function"
+                          End
+                        End
+
+                        Describe "setup_systemd_services skips systemd on macOS"
+                          It "skips systemd on macOS in dry-run mode"
+      # Mock detect_platform to return macos
+      # shellcheck disable=SC2329  # Mock function for testing
+                            detect_platform() {
+                            echo "macos"
+                            }
+
+                            When call setup_systemd_services true
+
+                            The status should be success
+                            The output should include "SYSTEM SERVICES:"
+                            The output should include "skip systemd services (not supported on macos)"
+                          End
+
+                          It "skips systemd on macOS in normal mode"
+      # Mock detect_platform to return macos
+      # shellcheck disable=SC2329  # Mock function for testing
+                            detect_platform() {
+                            echo "macos"
+                            }
+
+                            When call setup_systemd_services false
+
+                            The status should be success
+                            The output should include "Skipping systemd services (not supported on macos)"
+                          End
+                        End
+                      End

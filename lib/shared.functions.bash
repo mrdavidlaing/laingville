@@ -291,8 +291,8 @@ handle_packages_from_file() {
       process_packages "yay" "yay -S --needed --noconfirm" "${yaml_platform}" "${dry_run}" "${packages_file}"
       ;;
     "macos")
-      process_packages "homebrew" "brew install" "${platform}" "${dry_run}" "${packages_file}"
-      process_packages "cask" "brew install --cask" "${platform}" "${dry_run}" "${packages_file}"
+      # Use Brewfile for batch installation on macOS
+      install_packages_with_brewfile "${packages_file}" "${platform}" "${dry_run}"
       ;;
     "nix")
       # Process versioned nixpkgs (e.g., nixpkgs-25.05)
