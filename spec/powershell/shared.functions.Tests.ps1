@@ -10,15 +10,7 @@ BeforeAll {
     # Import the functions to test
     . "$PSScriptRoot/../../lib/shared.functions.ps1"
     
-    # Create a stub for winget if it doesn't exist (for CI environments)
-    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-        function winget { }
-    }
-    
-    # Create a stub for scoop if it doesn't exist (for CI environments)
-    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        function scoop { }
-    }
+    # Note: We now mock Invoke-Winget and Invoke-Scoop wrapper functions instead of external commands
     
     # Create stubs for PowerShell commands used in Scoop installation (test mocks only)
     if (-not (Get-Command Set-ExecutionPolicy -ErrorAction SilentlyContinue)) {
@@ -50,8 +42,8 @@ Describe "shared.functions.ps1" {
         
         Context "when packages are provided" {
             BeforeEach {
-                # Mock winget command to avoid actual installations
-                Mock winget { 
+                # Mock Invoke-Winget wrapper function to avoid actual installations
+                Mock Invoke-Winget { 
                     $global:LASTEXITCODE = 0
                     return "Successfully installed package"
                 }
@@ -62,14 +54,14 @@ Describe "shared.functions.ps1" {
                 
                 $result = Install-WingetPackage $packages
                 
-                Should -Invoke winget -Times 2
+                Should -Invoke Invoke-Winget -Times 2
                 $result | Should -Be $true
             }
             
             It "handles single package installation" {
                 $result = Install-WingetPackage @("Git.Git")
                 
-                Should -Invoke winget -Times 1
+                Should -Invoke Invoke-Winget -Times 1
                 $result | Should -Be $true
             }
             
@@ -78,14 +70,14 @@ Describe "shared.functions.ps1" {
                 
                 $result = Install-WingetPackage $packages
                 
-                Should -Invoke winget -Times 2
+                Should -Invoke Invoke-Winget -Times 2
                 $result | Should -Be $true
             }
         }
         
         Context "when winget returns different exit codes" {
             It "handles package already installed" {
-                Mock winget { 
+                Mock Invoke-Winget { 
                     $global:LASTEXITCODE = -1978335189
                     return "Package already installed"
                 }
@@ -96,7 +88,7 @@ Describe "shared.functions.ps1" {
             }
             
             It "handles package not found" {
-                Mock winget { 
+                Mock Invoke-Winget { 
                     $global:LASTEXITCODE = -1978335212
                     return "Package not found"
                 }
@@ -107,7 +99,7 @@ Describe "shared.functions.ps1" {
             }
             
             It "handles other error codes" {
-                Mock winget { 
+                Mock Invoke-Winget { 
                     $global:LASTEXITCODE = 1
                     return "Some error occurred"
                 }
@@ -120,7 +112,7 @@ Describe "shared.functions.ps1" {
         
         Context "when winget throws exceptions" {
             It "handles exceptions gracefully" {
-                Mock winget { throw "Command not found" }
+                Mock Invoke-Winget { throw "Command not found" }
                 
                 $result = Install-WingetPackage @("Any.Package")
                 
@@ -240,10 +232,26 @@ Describe "shared.functions.ps1" {
     Describe "Install-ScoopPackage" {
         
         BeforeEach {
-            # Mock scoop command to avoid actual installations
-            Mock scoop { 
+            # Mock Invoke-Scoop wrapper function to avoid actual installations
+            Mock Invoke-Scoop { 
                 $global:LASTEXITCODE = 0
-                return "Successfully installed package"
+                if ($Arguments[0] -eq "list" -and $Arguments.Count -eq 1) {
+                    # bucket list (no package name)
+                    return $null  # Default: no packages installed
+                } elseif ($Arguments[0] -eq "list" -and $Arguments.Count -eq 2) {
+                    # package list (with package name)
+                    return $null  # Default: package not installed
+                } elseif ($Arguments[0] -eq "bucket" -and $Arguments[1] -eq "list") {
+                    # bucket list command - return empty array (no buckets)
+                    return @()
+                } elseif ($Arguments[0] -eq "bucket" -and $Arguments[1] -eq "add") {
+                    return "Successfully added bucket"
+                } elseif ($Arguments[0] -eq "install") {
+                    return "Successfully installed package"
+                } elseif ($Arguments[0] -eq "update") {
+                    return "Successfully updated package"
+                }
+                return "Default scoop response"
             }
             
             # Mock Get-Command to simulate scoop being available
@@ -308,14 +316,16 @@ Describe "shared.functions.ps1" {
                 
                 $result = Install-ScoopPackage $packages
                 
-                Should -Invoke scoop -Times 2
+                # Should call Invoke-Scoop list for each package, then install for each
+                Should -Invoke Invoke-Scoop -Times 4  # 2 list calls + 2 install calls
                 $result | Should -Be $true
             }
             
             It "handles single package installation" {
                 $result = Install-ScoopPackage @("git")
                 
-                Should -Invoke scoop -Times 1
+                # Should call Invoke-Scoop list once, then install once
+                Should -Invoke Invoke-Scoop -Times 2  # 1 list + 1 install
                 $result | Should -Be $true
             }
             
@@ -324,7 +334,8 @@ Describe "shared.functions.ps1" {
                 
                 $result = Install-ScoopPackage $packages
                 
-                Should -Invoke scoop -Times 2
+                # Should call Invoke-Scoop list for non-empty packages, then install
+                Should -Invoke Invoke-Scoop -Times 4  # 2 list calls + 2 install calls
                 $result | Should -Be $true
             }
         }
@@ -335,8 +346,8 @@ Describe "shared.functions.ps1" {
                 
                 $result = Install-ScoopPackage $packages
                 
-                # Should add buckets (versions and extras) and install packages
-                Should -Invoke scoop -Times 5  # 2 bucket adds + 3 package installs
+                # Should list buckets, add buckets, call list for each package, then install
+                Should -Invoke Invoke-Scoop -Times 9  # 1 bucket list + 2 bucket adds + 3 package list calls + 3 install calls
                 $result | Should -Be $true
             }
             
@@ -345,29 +356,80 @@ Describe "shared.functions.ps1" {
                 
                 $result = Install-ScoopPackage $packages
                 
-                # Should add versions bucket once and install 2 packages
-                Should -Invoke scoop -Times 3  # 1 bucket add + 2 package installs
+                # Should list buckets, add versions bucket once, call list twice, then install twice
+                Should -Invoke Invoke-Scoop -Times 6  # 1 bucket list + 1 bucket add + 2 package list calls + 2 install calls
+                $result | Should -Be $true
+            }
+            
+            It "skips adding buckets that already exist" {
+                # Mock bucket list to return existing buckets
+                Mock Invoke-Scoop { 
+                    $global:LASTEXITCODE = 0
+                    return @(
+                        @{Name="versions"; Source="https://github.com/ScoopInstaller/Versions"},
+                        @{Name="extras"; Source="https://github.com/ScoopInstaller/Extras"}
+                    )
+                } -ParameterFilter { $Arguments[0] -eq "bucket" -and $Arguments[1] -eq "list" }
+                
+                $result = Install-ScoopPackage @("versions/wezterm-nightly", "extras/firefox")
+                
+                # Should list buckets, skip adding (since they exist), check packages, then install
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "bucket" -and $Arguments[1] -eq "list" } -Times 1
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "bucket" -and $Arguments[1] -eq "add" } -Times 0
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "list" -and $Arguments.Count -eq 2 } -Times 2
                 $result | Should -Be $true
             }
         }
         
         Context "when scoop returns different responses" {
-            It "handles package already installed" {
-                Mock scoop { 
+            It "updates package when already installed" {
+                # Mock Invoke-Scoop list to return that git is installed
+                Mock Invoke-Scoop { 
                     $global:LASTEXITCODE = 0
-                    return "git is already installed"
-                } -ParameterFilter { $args[0] -eq "install" }
+                    return @{Name="git"; Version="2.45.0"}
+                } -ParameterFilter { $Arguments[0] -eq "list" -and $Arguments[1] -eq "git" }
+                
+                # Mock Invoke-Scoop update
+                Mock Invoke-Scoop { 
+                    $global:LASTEXITCODE = 0
+                    return "git updated successfully"
+                } -ParameterFilter { $Arguments[0] -eq "update" }
                 
                 $result = Install-ScoopPackage @("git")
                 
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "list" } -Times 1
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "update" } -Times 1
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "install" } -Times 0
+                $result | Should -Be $true
+            }
+            
+            It "updates bucket package when already installed" {
+                # Mock Invoke-Scoop list to return that wezterm-nightly is installed
+                Mock Invoke-Scoop { 
+                    $global:LASTEXITCODE = 0
+                    return @{Name="wezterm-nightly"; Version="nightly-20250815"}
+                } -ParameterFilter { $Arguments[0] -eq "list" -and $Arguments[1] -eq "wezterm-nightly" }
+                
+                # Mock Invoke-Scoop update
+                Mock Invoke-Scoop { 
+                    $global:LASTEXITCODE = 0
+                    return "wezterm-nightly updated successfully"
+                } -ParameterFilter { $Arguments[0] -eq "update" }
+                
+                $result = Install-ScoopPackage @("versions/wezterm-nightly")
+                
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "bucket" } -Times 2  # bucket list + bucket add
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "list" } -Times 1     # check if installed
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "update" } -Times 1   # update existing
+                Should -Invoke Invoke-Scoop -ParameterFilter { $Arguments[0] -eq "install" } -Times 0  # should not install
                 $result | Should -Be $true
             }
             
             It "handles package not found" {
-                Mock scoop { 
+                Mock Invoke-Scoop { 
                     $global:LASTEXITCODE = 1
                     return "Could not find package 'nonexistent'"
-                } -ParameterFilter { $args[0] -eq "install" }
+                } -ParameterFilter { $Arguments[0] -eq "install" }
                 
                 $result = Install-ScoopPackage @("nonexistent")
                 
@@ -375,8 +437,8 @@ Describe "shared.functions.ps1" {
             }
             
             It "handles bucket already exists" {
-                Mock scoop { 
-                    if ($args[0] -eq "bucket" -and $args[1] -eq "add") {
+                Mock Invoke-Scoop { 
+                    if ($Arguments[0] -eq "bucket" -and $Arguments[1] -eq "add") {
                         $global:LASTEXITCODE = 0
                         return "The versions bucket already exists"
                     } else {
@@ -393,7 +455,7 @@ Describe "shared.functions.ps1" {
         
         Context "when scoop throws exceptions" {
             It "handles exceptions gracefully" {
-                Mock scoop { throw "Command failed" }
+                Mock Invoke-Scoop { throw "Command failed" }
                 
                 $result = Install-ScoopPackage @("git")
                 

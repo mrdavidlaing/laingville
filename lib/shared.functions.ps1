@@ -9,6 +9,17 @@ param()
 . "$PSScriptRoot\security.functions.ps1"
 . "$PSScriptRoot\yaml.functions.ps1"
 
+# Wrapper functions for external commands (enables better testing/mocking)
+function Invoke-Scoop {
+    param([array]$Arguments)
+    & scoop @Arguments
+}
+
+function Invoke-Winget {
+    param([array]$Arguments) 
+    & winget @Arguments
+}
+
 <#
 .SYNOPSIS
     Installs packages using the Windows Package Manager (winget)
@@ -33,7 +44,7 @@ function Install-WingetPackage {
         if ($package) {
             Write-Host "Installing: $package" -ForegroundColor Yellow
             try {
-                $result = & winget install --id $package -e --silent --accept-package-agreements --accept-source-agreements 2>&1
+                $result = Invoke-Winget @("install", "--id", $package, "-e", "--silent", "--accept-package-agreements", "--accept-source-agreements") 2>&1
                 
                 # Handle different exit codes
                 switch ($LASTEXITCODE) {
@@ -191,48 +202,95 @@ function Install-ScoopPackage {
         }
     }
     
-    # Add required buckets
-    foreach ($bucket in $bucketsToAdd) {
-        Write-Host "Adding bucket: $bucket" -ForegroundColor Yellow
+    # Get list of existing buckets to avoid unnecessary add attempts
+    $existingBuckets = @()
+    if ($bucketsToAdd.Count -gt 0) {
         try {
-            $result = & scoop bucket add $bucket 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "[OK] Added bucket: $bucket" -ForegroundColor Green
-            } elseif ($result -like "*already exists*") {
-                Write-Host "[OK] Bucket already exists: $bucket" -ForegroundColor Green
-            } else {
-                Write-Warning "Failed to add bucket $bucket (exit code: $LASTEXITCODE): $result"
+            $bucketList = Invoke-Scoop @("bucket", "list") 2>$null
+            if ($LASTEXITCODE -eq 0 -and $bucketList) {
+                $existingBuckets = $bucketList | Where-Object { $_.Name } | Select-Object -ExpandProperty Name
             }
         }
         catch {
-            Write-Warning "Error adding bucket ${bucket}: $($_.Exception.Message)"
+            # If listing fails, continue with empty list (will attempt to add all buckets)
+            # This is intentionally silent to avoid noise when scoop is not available
+            Write-Debug "Failed to list buckets: $($_.Exception.Message)"
+        }
+    }
+    
+    # Add required buckets (only if they don't already exist)
+    foreach ($bucket in $bucketsToAdd) {
+        if ($bucket -in $existingBuckets) {
+            Write-Host "[OK] Bucket already exists: $bucket" -ForegroundColor Green
+        } else {
+            Write-Host "Adding bucket: $bucket" -ForegroundColor Yellow
+            try {
+                $result = Invoke-Scoop @("bucket", "add", $bucket) 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "[OK] Added bucket: $bucket" -ForegroundColor Green
+                } else {
+                    Write-Warning "Failed to add bucket $bucket (exit code: $LASTEXITCODE): $result"
+                }
+            }
+            catch {
+                Write-Warning "Error adding bucket ${bucket}: $($_.Exception.Message)"
+            }
         }
     }
     
     # Install packages
     foreach ($package in $Packages) {
         if ($package) {
-            Write-Host "Installing: $package" -ForegroundColor Yellow
+            # Check if package is already installed
+            $packageName = if ($package -match '/') { 
+                ($package -split '/')[-1] 
+            } else { 
+                $package 
+            }
+            
             try {
-                $result = & scoop install $package 2>&1
-                
-                # Handle different scenarios
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host "[OK] Installed: $package" -ForegroundColor Green
-                } elseif ($result -like "*already installed*") {
-                    Write-Host "[OK] Already installed: $package" -ForegroundColor Green
-                } elseif ($result -like "*not found*") {
-                    Write-Warning "Package not found: $package"
-                } else {
-                    Write-Warning "Failed to install $package (exit code: $LASTEXITCODE)"
-                    # Only show detailed output for actual errors
-                    if ($result -and $result.ToString().Length -lt 500) {
-                        Write-Host "$result" -ForegroundColor Red
-                    }
-                }
+                $listResult = Invoke-Scoop @("list", $packageName) 2>$null
+                $isInstalled = $LASTEXITCODE -eq 0 -and $listResult
             }
             catch {
-                Write-Warning "Error installing ${package}: $($_.Exception.Message)"
+                # If listing fails, assume package is not installed
+                $isInstalled = $false
+            }
+            
+            if ($isInstalled) {
+                Write-Host "Updating existing package: $package" -ForegroundColor Cyan
+                try {
+                    $null = Invoke-Scoop @("update", $package) 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "[OK] Updated: $package" -ForegroundColor Green
+                    } else {
+                        Write-Host "[OK] Already up-to-date: $package" -ForegroundColor Green
+                    }
+                }
+                catch {
+                    Write-Host "[OK] Already installed (update failed): $package" -ForegroundColor Green
+                }
+            } else {
+                Write-Host "Installing: $package" -ForegroundColor Yellow
+                try {
+                    $result = Invoke-Scoop @("install", $package) 2>&1
+                    
+                    # Handle different scenarios
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "[OK] Installed: $package" -ForegroundColor Green
+                    } elseif ($result -like "*not found*") {
+                        Write-Warning "Package not found: $package"
+                    } else {
+                        Write-Warning "Failed to install $package (exit code: $LASTEXITCODE)"
+                        # Only show detailed output for actual errors
+                        if ($result -and $result.ToString().Length -lt 500) {
+                            Write-Host "$result" -ForegroundColor Red
+                        }
+                    }
+                }
+                catch {
+                    Write-Warning "Error installing ${package}: $($_.Exception.Message)"
+                }
             }
         }
     }

@@ -522,12 +522,12 @@ function Invoke-WSLSetup {
     if ($DryRun) {
         Write-Host "WSL SETUP:" -ForegroundColor White
         Write-LogInfo "To see what would be done in WSL, run:"
-        Write-Host "  wsl.exe bash `"$setupScript`" --dry-run" -ForegroundColor Cyan
+        Write-Host "  wsl.exe -d archlinux bash `"$setupScript`" --dry-run" -ForegroundColor Cyan
         return $true
     }
     
     Write-LogInfo "To complete setup in WSL, run:"
-    Write-Host "  wsl.exe bash `"$setupScript`"" -ForegroundColor Cyan
+    Write-Host "  wsl.exe -d archlinux bash `"$setupScript`"" -ForegroundColor Cyan
     return $true
 }
 
