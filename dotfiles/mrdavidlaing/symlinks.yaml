@@ -4,6 +4,8 @@
 # Arch Linux - full desktop environment
 arch:
   # Shell configs
+  - .profile
+  - .bash_profile
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
@@ -25,6 +27,8 @@ arch:
 # WSL - terminal-focused, no GUI
 wsl:
   # Shell configs
+  - .profile
+  - .bash_profile
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
@@ -69,6 +73,8 @@ windows:
 # macOS - Unix-like with some differences
 macos:
   # Shell configs
+  - .profile
+  - .bash_profile
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
@@ -85,6 +91,8 @@ macos:
 # Nix - terminal-focused like WSL
 nix:
   # Shell configs
+  - .profile
+  - .bash_profile
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig

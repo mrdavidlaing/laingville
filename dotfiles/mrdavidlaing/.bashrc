@@ -28,45 +28,20 @@ alias vi='nvim'
 alias cd='z'
 PS1='[\u@\h \W]\$ '
 
-# Homebrew initialization for Apple Silicon Macs
-if [[ -f "/opt/homebrew/bin/brew" ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-
-# Add ~/.local/bin to PATH
-export PATH="$HOME/.local/bin:$PATH"
-
-# Set default editor
-export EDITOR=nvim
-
-# Ensure proper terminal capabilities for color support
-# Set COLORTERM for true color support if not already set
-if [[ -z "$COLORTERM" && "$TERM" =~ 256color|truecolor|24bit ]]; then
-    export COLORTERM=truecolor
-fi
-
-# Force proper TERM for SSH sessions when using capable terminals
-if [[ -n "$SSH_TTY" && "$TERM" == "xterm-256color" && -z "$TMUX" ]]; then
-    # We're in an SSH session with a 256-color terminal
-    export COLORTERM=truecolor
-fi
-
-# Load 1Password environment secrets if available
-[ -f "$HOME/.config/env.secrets.local" ] && source "$HOME/.config/env.secrets.local"
+# Interactive tool initialization
+# These tools provide enhanced interactive shell experience
 
 eval "$(starship init bash)"
 eval "$(zoxide init bash)"
 eval "$(direnv hook bash)"
 
-# WSL-specific configuration
+# WSL-specific interactive configuration
 if grep -qi microsoft /proc/version 2>/dev/null; then
-    # 1Password SSH Agent integration for WSL
-    # Uses Windows ssh.exe to access 1Password agent
+    # 1Password SSH Agent integration for WSL (interactive aliases)
+    # Note: GIT_SSH_COMMAND is set in ~/.profile for script compatibility
     if command -v ssh.exe &> /dev/null && command -v ssh-add.exe &> /dev/null; then
         alias ssh='ssh.exe'
         alias ssh-add='ssh-add.exe'
-        # Configure Git to use Windows SSH for 1Password agent
-        export GIT_SSH_COMMAND="ssh.exe"
     else
         echo "Warning: ssh.exe not found. 1Password SSH agent forwarding unavailable." >&2
         echo "Ensure Windows OpenSSH is installed and in PATH." >&2
