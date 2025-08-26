@@ -16,7 +16,7 @@ else
   user_shell="${SHELL}"
 fi
 
-bash_path=$(command -v bash)
+bash_path="${SHELL}"
 
 # Check if bash is in /etc/shells
 if ! grep -Fxq "${bash_path}" /etc/shells 2> /dev/null; then
