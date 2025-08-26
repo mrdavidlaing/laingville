@@ -8,29 +8,20 @@ set -e
 
 DRY_RUN="${1:-false}"
 
-# Function to remove npm installations in user's home directory
-remove_npm_installations() {
-  echo "[Claude Code] Checking for npm installations in ${HOME}..."
+# Function to warn about npm installations
+warn_npm_installations() {
+  echo "[Claude Code] Checking for npm installations..."
 
   # List of possible package names to check
   packages=("@anthropic/claude-cli" "claude-code" "@anthropic-ai/claude-code")
-  removed_any=false
+  found_any=false
 
   # Check global npm installations (user-level)
   for package in "${packages[@]}"; do
     if npm list -g "${package}" &> /dev/null; then
-      echo "[Claude Code] Removing global npm package: ${package}"
-      npm uninstall -g "${package}" 2> /dev/null || true
-      removed_any=true
-    fi
-  done
-
-  # Check system-wide npm installations (requires sudo)
-  for package in "${packages[@]}"; do
-    if sudo npm list -g "${package}" &> /dev/null; then
-      echo "[Claude Code] Removing system-wide npm package: ${package}"
-      sudo npm uninstall -g "${package}" 2> /dev/null || true
-      removed_any=true
+      echo "[Claude Code] WARNING: Found global npm package: ${package}"
+      echo "[Claude Code] Consider uninstalling with: npm uninstall -g ${package}"
+      found_any=true
     fi
   done
 
@@ -39,28 +30,27 @@ remove_npm_installations() {
     cd "${HOME}"
     for package in "${packages[@]}"; do
       if npm list "${package}" &> /dev/null; then
-        echo "[Claude Code] Removing local npm package: ${package} from ${HOME}"
-        npm uninstall "${package}" 2> /dev/null || true
-        removed_any=true
+        echo "[Claude Code] WARNING: Found local npm package: ${package} in ${HOME}"
+        echo "[Claude Code] Consider uninstalling with: npm uninstall ${package}"
+        found_any=true
       fi
     done
   fi
 
-  if [[ "${removed_any}" = false ]]; then
-    echo "[Claude Code] No npm installations found to remove"
+  if [[ "${found_any}" = false ]]; then
+    echo "[Claude Code] No npm installations found"
   fi
 }
 
+# Warn about any existing npm installations
+warn_npm_installations
+
 if [[ "${DRY_RUN}" = "true" ]]; then
-  echo "[Claude Code] Would check for existing npm installations and remove if found"
-  echo "[Claude Code] Would install native binary via curl installer"
+  echo "[Claude Code] [DRY RUN] Would install native binary via curl installer"
   exit 0
 fi
 
 echo -n "[Claude Code] "
-
-# Remove any existing npm installations
-remove_npm_installations
 
 # Check if claude binary is already installed and working
 claude_binary_path="${HOME}/.local/bin/claude"
