@@ -80,7 +80,7 @@ jobs:
         
         # Update package database and install base tools (skip system upgrade for speed)
         pacman -Sy --noconfirm
-        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip diffutils
+        pacman -S --noconfirm base-devel git cmake ninja curl wget tar gzip
         
         # Install shellcheck
         cd /tmp
@@ -121,9 +121,9 @@ jobs:
         
         # Install system packages that aren't cacheable (always run to ensure availability)
         echo "Installing system dependencies for Arch Linux..."
-        pacman -S --noconfirm jq tmux bc wezterm kcov || {
+        pacman -S --noconfirm jq tmux bc wezterm kcov diffutils || {
           echo "kcov package not available, building from source..."
-          pacman -S --noconfirm libcurl-gnutls elfutils binutils
+          pacman -S --noconfirm libcurl-gnutls elfutils binutils diffutils
           cd /tmp
           git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
           cd kcov
