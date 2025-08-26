@@ -173,6 +173,10 @@ arch:
   pacman:
     - shared-package1
     - shared-package2
+wsl:
+  yay:
+    - shared-package1
+    - shared-package2
 EOF
                     cat > "${temp_host_dir}/packages.yaml" << 'EOF'
 nix:
@@ -183,6 +187,9 @@ macos:
     - host-package1
 arch:
   pacman:
+    - host-package1
+wsl:
+  yay:
     - host-package1
 EOF
 
@@ -214,6 +221,9 @@ macos:
     - host-only-package
 arch:
   pacman:
+    - host-only-package
+wsl:
+  yay:
     - host-only-package
 EOF
 

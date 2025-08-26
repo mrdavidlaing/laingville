@@ -123,6 +123,11 @@ if [ "$PLATFORM" = "macos" ]; then
     install_homebrew "$DRY_RUN"
 fi
 
+# WSL-specific setup
+if [ "$PLATFORM" = "wsl" ]; then
+    source "$LIB_DIR/wsl.functions.bash"
+fi
+
 handle_packages "$PLATFORM" "$DRY_RUN"
 
 # Setup systemd user services (like dynamic wallpaper timer)
