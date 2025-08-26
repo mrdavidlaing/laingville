@@ -2,6 +2,7 @@
 
 Describe "symlinks configuration in symlinks.yaml"
   Include lib/shared.functions.bash
+  Include lib/logging.functions.bash
   Include lib/setup-user.functions.bash
   Include lib/symlinks.functions.bash
 
@@ -146,30 +147,252 @@ EOF
   End
 
   Describe "create_symlink_with_target"
-    It "creates symlink with default target"
-      temp_dir=$(mktemp -d)
-      mkdir -p "${temp_dir}/dotfiles/.config"
-      echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+    Describe "dry-run mode (existing tests)"
+      It "creates symlink with default target"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
 
-      When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "" "${temp_dir}/home" true
-      The status should be success
-      The output should include "Would: create: ${temp_dir}/home/.config/test.conf"
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "" "${temp_dir}/home" true
+        The status should be success
+        The output should include "Would: create: ${temp_dir}/home/.config/test.conf"
 
-      rm -rf "${temp_dir}"
+        rm -rf "${temp_dir}"
+      End
+
+      It "creates symlink with custom target"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+        mkdir -p "${temp_dir}/custom"
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "${temp_dir}/custom/test.conf" "${temp_dir}/home" true
+        The status should be success
+        The output should include "Would: create: ${temp_dir}/custom/test.conf"
+
+        rm -rf "${temp_dir}"
+      End
     End
 
-    It "creates symlink with custom target"
-      temp_dir=$(mktemp -d)
-      mkdir -p "${temp_dir}/dotfiles/.config"
-      echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
-      mkdir -p "${temp_dir}/custom"
+    Describe "actual symlink creation"
+      It "creates symlink with default target when target doesn't exist"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
 
-      When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "${temp_dir}/custom/test.conf" "${temp_dir}/home" true
-      The status should be success
-      The output should include "Would: create: ${temp_dir}/custom/test.conf"
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "" "${temp_dir}/home" false
+        The status should be success
+        The output should include "Created: ${temp_dir}/home/.config/test.conf"
+        The path "${temp_dir}/home/.config/test.conf" should be symlink
+        The contents of file "${temp_dir}/home/.config/test.conf" should equal "test content"
 
-      rm -rf "${temp_dir}"
+        rm -rf "${temp_dir}"
+      End
+
+      It "creates symlink with custom target when target doesn't exist"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "${temp_dir}/custom/test.conf" "${temp_dir}/home" false
+        The status should be success
+        The output should include "Created: ${temp_dir}/custom/test.conf"
+        The path "${temp_dir}/custom/test.conf" should be symlink
+        The contents of file "${temp_dir}/custom/test.conf" should equal "test content"
+
+        rm -rf "${temp_dir}"
+      End
+
+      It "replaces existing symlink"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "old content" > "${temp_dir}/dotfiles/.config/old.conf"
+        echo "new content" > "${temp_dir}/dotfiles/.config/new.conf"
+        mkdir -p "${temp_dir}/home/.config"
+        ln -s "${temp_dir}/dotfiles/.config/old.conf" "${temp_dir}/home/.config/test.conf"
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/new.conf" "" "${temp_dir}/home" false
+        The status should be success
+        The output should include "Created: ${temp_dir}/home/.config/new.conf"
+        The path "${temp_dir}/home/.config/new.conf" should be symlink
+        The contents of file "${temp_dir}/home/.config/new.conf" should equal "new content"
+
+        rm -rf "${temp_dir}"
+      End
+
+      It "replaces existing regular file"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "symlink content" > "${temp_dir}/dotfiles/.config/test.conf"
+        mkdir -p "${temp_dir}/home/.config"
+        echo "regular file content" > "${temp_dir}/home/.config/test.conf"
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "" "${temp_dir}/home" false
+        The status should be success
+        The output should include "Created: ${temp_dir}/home/.config/test.conf"
+        The path "${temp_dir}/home/.config/test.conf" should be symlink
+        The contents of file "${temp_dir}/home/.config/test.conf" should equal "symlink content"
+
+        rm -rf "${temp_dir}"
+      End
+
+      It "recreates identical directory symlink without creating cyclic links"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config/testdir"
+        echo "test content" > "${temp_dir}/dotfiles/.config/testdir/config.txt"
+        mkdir -p "${temp_dir}/home/.config"
+        
+        # Create initial symlink (simulating first run of setup-user)
+        ln -s "${temp_dir}/dotfiles/.config/testdir" "${temp_dir}/home/.config/testdir"
+        
+        # Try to create the same symlink again (simulating second run of setup-user)
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/testdir" "" "${temp_dir}/home" false
+        The status should be success
+        The output should include "Created: ${temp_dir}/home/.config/testdir"
+        
+        # Verify target is correct symlink
+        The path "${temp_dir}/home/.config/testdir" should be symlink
+        The contents of file "${temp_dir}/home/.config/testdir/config.txt" should equal "test content"
+        
+        # CRITICAL: Verify no cyclic symlink was created in source directory
+        The path "${temp_dir}/dotfiles/.config/testdir/testdir" should not be exist
+
+        rm -rf "${temp_dir}"
+      End
+    End
+
+    Describe "existing directory scenarios"
+      It "fails when target exists as directory"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+        mkdir -p "${temp_dir}/home/.config/test.conf"  # Create as directory
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "" "${temp_dir}/home" false
+        The status should be failure
+        The error should include "Target '${temp_dir}/home/.config/test.conf' already exists as a directory"
+        The error should include "Cannot create symlink"
+        The path "${temp_dir}/home/.config/test.conf" should be directory
+        The path "${temp_dir}/home/.config/test.conf/test.conf" should not be exist
+
+        rm -rf "${temp_dir}"
+      End
+
+      It "fails when custom target exists as directory"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+        mkdir -p "${temp_dir}/custom/test.conf"  # Create target as directory
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "${temp_dir}/custom/test.conf" "${temp_dir}/home" false
+        The status should be failure
+        The error should include "Target '${temp_dir}/custom/test.conf' already exists as a directory"
+        The error should include "Cannot create symlink"
+        The path "${temp_dir}/custom/test.conf" should be directory
+        The path "${temp_dir}/custom/test.conf/test.conf" should not be exist
+
+        rm -rf "${temp_dir}"
+      End
+
+      It "fails when target exists as directory in dry-run mode"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+        mkdir -p "${temp_dir}/home/.config/test.conf"  # Create as directory
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "" "${temp_dir}/home" true
+        The status should be failure
+        The error should include "Target '${temp_dir}/home/.config/test.conf' already exists as a directory"
+        The error should include "Cannot create symlink"
+        The path "${temp_dir}/home/.config/test.conf" should be directory
+
+        rm -rf "${temp_dir}"
+      End
+    End
+
+    Describe "environment variable expansion in custom targets"
+      It "expands environment variables in custom target paths"
+        temp_dir=$(mktemp -d)
+        mkdir -p "${temp_dir}/dotfiles/.config"
+        echo "test content" > "${temp_dir}/dotfiles/.config/test.conf"
+        export TEST_TARGET_DIR="${temp_dir}/expanded"
+
+        When call create_symlink_with_target "${temp_dir}/dotfiles/.config/test.conf" "\${TEST_TARGET_DIR}/test.conf" "${temp_dir}/home" false
+        The status should be success
+        The output should include "Created: ${temp_dir}/expanded/test.conf"
+        The path "${temp_dir}/expanded/test.conf" should be symlink
+        The contents of file "${temp_dir}/expanded/test.conf" should equal "test content"
+
+        unset TEST_TARGET_DIR
+        rm -rf "${temp_dir}"
+      End
     End
 
   End
+
+  Describe "create_symlink_force (cross-platform polyfill)"
+    It "uses -sfh flags on macOS"
+      # Mock ln command to capture arguments
+      ln() {
+      LN_CALLED_WITH="$*"
+      }
+      
+      # Mock detect_os to return macOS  
+      detect_os() { echo "macos"; }
+      
+      When call create_symlink_force "source_path" "target_path"
+      The variable LN_CALLED_WITH should equal "-sfh source_path target_path"
+    End
+
+    It "uses -sfn flags on Linux"
+      # Mock ln command to capture arguments
+      ln() {
+        LN_CALLED_WITH="$*"
+      }
+      
+      # Mock detect_os to return Linux
+      detect_os() { echo "linux"; }
+      
+      When call create_symlink_force "source_path" "target_path" 
+      The variable LN_CALLED_WITH should equal "-sfn source_path target_path"
+    End
+
+    It "uses fallback with rm+ln on unknown platforms when target exists"
+      temp_dir=$(mktemp -d)
+      # Create actual target file to satisfy the [[ -e ]] condition
+      touch "${temp_dir}/target_path"
+      
+      # Mock rm command to capture arguments (don't actually remove)
+      rm() {
+        RM_CALLED_WITH="$*"
+      }
+      
+      # Mock ln command to capture arguments
+      ln() {
+        LN_CALLED_WITH="$*"
+      }
+      
+      # Mock detect_os to return unknown platform
+      detect_os() { echo "unknown"; }
+      
+      When call create_symlink_force "source_path" "${temp_dir}/target_path"
+      The variable RM_CALLED_WITH should equal "-f ${temp_dir}/target_path"
+      The variable LN_CALLED_WITH should equal "-s source_path ${temp_dir}/target_path"
+      
+      command rm -rf "${temp_dir}"  # Use command to bypass our mock
+    End
+
+    It "validates required arguments"
+      When call create_symlink_force "" "target_path"
+      The status should be failure
+      The stderr should include "create_symlink_force requires source and target arguments"
+    End
+
+    It "validates both arguments are provided"
+      When call create_symlink_force "source_path" ""
+      The status should be failure
+      The stderr should include "create_symlink_force requires source and target arguments"
+    End
+  End
+
 End

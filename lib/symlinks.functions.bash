@@ -131,20 +131,29 @@ create_symlink_with_target() {
   # Create parent directory if needed
   local target_dir
   target_dir=$(dirname "${target}")
+
+  # Check if target exists as a directory (but not a symlink) - problematic case
+  if [[ -d "${target}" && ! -L "${target}" ]]; then
+    echo "Error: Target '${target}' already exists as a directory. Cannot create symlink." >&2
+    echo "This would result in a symlink being created inside the directory instead of replacing it." >&2
+    echo "Please remove or rename the existing directory first." >&2
+    return 1
+  fi
+
   if [[ "${dry_run}" = "true" ]] || [[ "${dry_run}" = "false" ]]; then
     # Ensure dry_run is true for testing
     if [[ "${dry_run}" != "false" ]]; then
       echo "Would: create: ${target} -> ${source}"
     else
       mkdir -p "${target_dir}" 2> /dev/null
-      ln -sf "${source}" "${target}"
+      create_symlink_force "${source}" "${target}"
       echo "Created: ${target} -> ${source}"
     fi
   else
     # Handle boolean values passed as 0/1
     if [[ "${dry_run}" -eq 0 ]]; then
       mkdir -p "${target_dir}" 2> /dev/null
-      ln -sf "${source}" "${target}"
+      create_symlink_force "${source}" "${target}"
       echo "Created: ${target} -> ${source}"
     else
       echo "Would: create: ${target} -> ${source}"

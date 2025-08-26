@@ -420,3 +420,36 @@ validate_script_name() {
   fi
   return 0
 }
+
+# Cross-platform symlink creation that prevents cyclic links
+# Args: source_path target_path
+# Uses -h on BSD/macOS, -n on GNU/Linux to avoid following existing symlinks
+create_symlink_force() {
+  local source="$1"
+  local target="$2"
+
+  if [[ -z "${source}" || -z "${target}" ]]; then
+    log_error "create_symlink_force requires source and target arguments"
+    return 1
+  fi
+
+  # Detect OS to use appropriate ln flags
+  local os
+  os=$(detect_os)
+
+  case "${os}" in
+    "macos")
+      # BSD ln uses -h to not follow symlinks when replacing
+      ln -sfh "${source}" "${target}"
+      ;;
+    "linux")
+      # GNU ln uses -n to treat symlink targets as normal files
+      ln -sfn "${source}" "${target}"
+      ;;
+    *)
+      # Fallback: remove existing target first for unknown systems
+      [[ -e "${target}" || -L "${target}" ]] && rm -f "${target}"
+      ln -s "${source}" "${target}"
+      ;;
+  esac
+}
