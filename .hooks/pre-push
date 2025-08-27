@@ -1,0 +1,22 @@
+#!/bin/bash
+# Pre-push hook for Laingville repository
+# Runs all tests before allowing push to remote
+
+set -e
+
+echo "🚀 Running pre-push checks..."
+echo
+
+# Run all tests (bash + PowerShell)
+echo "🧪 Running all tests (make test)..."
+if ! make test; then
+    echo
+    echo "❌ Tests failed. Push aborted."
+    echo "💡 Fix the issues above, or use 'git push --no-verify' to skip this hook."
+    exit 1
+fi
+
+echo
+
+echo "✅ All pre-push checks passed! Proceeding with push..."
+echo

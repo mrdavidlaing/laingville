@@ -13,6 +13,7 @@ source "$LIB_DIR/logging.functions.bash"
 source "$LIB_DIR/security.functions.bash"
 source "$LIB_DIR/shared.functions.bash"
 source "$LIB_DIR/symlinks.functions.bash"
+source "$LIB_DIR/git.functions.bash"
 source "$LIB_DIR/setup-user.functions.bash"
 
 # Simple argument parsing
@@ -144,6 +145,10 @@ if [ "$PLATFORM" = "macos" ]; then
     log_subsection "macOS System Configuration"
     configure_macos_system "$DRY_RUN"
 fi
+
+# Git hooks setup
+log_subsection "Git Hooks"
+setup_git_hooks "$DRY_RUN"
 
 # Final completion handled by log_init trap
 
