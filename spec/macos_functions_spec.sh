@@ -57,6 +57,7 @@ Describe "macos.functions.bash"
                     The output should include "set WezTerm as default terminal"
                     The output should include "disable press-and-hold for VSCode and Cursor"
                     The output should include "set system locale to en_IE.UTF-8"
+                    The output should include "enable separate spaces for each display"
                   End
                 End
 

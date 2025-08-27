@@ -44,6 +44,7 @@ configure_macos_system() {
     log_dry_run "set WezTerm as default terminal for shell executables"
     log_dry_run "disable press-and-hold for VSCode and Cursor"
     log_dry_run "set system locale to en_IE.UTF-8"
+    log_dry_run "enable separate spaces for each display"
     return
   fi
 
@@ -71,6 +72,10 @@ configure_macos_system() {
   log_info "Setting system locale to en_IE.UTF-8"
   defaults write NSGlobalDomain AppleLocale -string "en_IE"
   defaults write NSGlobalDomain AppleLanguages -array "en-IE" "en"
+
+  # Enable separate spaces for each display (for multiple monitors)
+  log_info "Enabling separate spaces for each display"
+  defaults write com.apple.spaces "spans-displays" -bool false
 
   log_success "macOS system configuration complete"
 }
