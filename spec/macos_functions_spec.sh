@@ -54,7 +54,7 @@ Describe "macos.functions.bash"
                     The output should include "MACOS SYSTEM CONFIG:"
                     The output should include "set keyboard repeat rate"
                     The output should include "enable font smoothing"
-                    The output should include "set Alacritty as default terminal"
+                    The output should include "set WezTerm as default terminal"
                     The output should include "disable press-and-hold for VSCode and Cursor"
                     The output should include "set system locale to en_IE.UTF-8"
                   End
