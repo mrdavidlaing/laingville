@@ -275,7 +275,7 @@ handle_packages_from_file() {
   if [[ "${dry_run}" = true ]]; then
     echo "${context} PACKAGES (${platform}):"
   else
-    log_info "Installing ${context,,} packages for ${platform}..."
+    log_info "Installing $(echo "${context}" | tr '[:upper:]' '[:lower:]') packages for ${platform}..."
   fi
 
   case "${platform}" in
