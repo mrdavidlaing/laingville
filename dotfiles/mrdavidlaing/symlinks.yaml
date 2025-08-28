@@ -87,9 +87,6 @@ macos:
   - .config/lazygit
   # Editor
   - .config/nvim
-  # Window management
-  - source: .config/rectangle/com.knollsoft.Rectangle.plist
-    target: ${HOME}/Library/Preferences/com.knollsoft.Rectangle.plist
 
 # Nix - terminal-focused like WSL
 nix:

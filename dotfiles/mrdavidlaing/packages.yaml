@@ -169,6 +169,7 @@ macos:
   custom:
     - install_claude_code
     - install_nil
+    - configure_rectangle
 
 # Nix - package management
 nix:
