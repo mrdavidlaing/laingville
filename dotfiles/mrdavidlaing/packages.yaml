@@ -159,6 +159,7 @@ macos:
     - shfmt
   cask:
     - nikitabobko/tap/aerospace
+    - rectangle
     - alacritty
     - wezterm@nightly
     - 1password-cli

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- General Settings -->
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUHasLaunchedBefore</key>
+	<true/>
+	<key>allowAnyShortcut</key>
+	<true/>
+	<key>alternateDefaultShortcuts</key>
+	<false/>
+	<key>internalTilingNotified</key>
+	<true/>
+	<key>lastVersion</key>
+	<string>93</string>
+	<key>subsequentExecutionMode</key>
+	<integer>1</integer>
+	
+	<!-- Windows-like shortcuts using Command key (like Windows key) -->
+	
+	<!-- Basic Window Snapping - Command + Arrow (like Win + Arrow) -->
+	<key>leftHalf</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>123</integer>
+		<key>modifierFlags</key>
+		<integer>1048576</integer>
+	</dict>
+	
+	<key>rightHalf</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>124</integer>
+		<key>modifierFlags</key>
+		<integer>1048576</integer>
+	</dict>
+	
+	<key>maximize</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>126</integer>
+		<key>modifierFlags</key>
+		<integer>1048576</integer>
+	</dict>
+	
+	<key>restore</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>125</integer>
+		<key>modifierFlags</key>
+		<integer>1048576</integer>
+	</dict>
+	
+	<!-- Quarter Snapping - Command + Shift + Arrow -->
+	<key>topLeft</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>123</integer>
+		<key>modifierFlags</key>
+		<integer>1179648</integer>
+	</dict>
+	
+	<key>topRight</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>124</integer>
+		<key>modifierFlags</key>
+		<integer>1179648</integer>
+	</dict>
+	
+	<key>bottomLeft</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>123</integer>
+		<key>modifierFlags</key>
+		<integer>1179648</integer>
+	</dict>
+	
+	<key>bottomRight</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>124</integer>
+		<key>modifierFlags</key>
+		<integer>1179648</integer>
+	</dict>
+	
+	<!-- Text Editor Friendly - Vim-like hjkl shortcuts with Command + Option -->
+	<!-- These avoid conflicts with vim's hjkl since they require modifier keys -->
+	
+	<!-- Vim-style positioning using Command + Option + hjkl -->
+	<key>leftHalfVim</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>4</integer>
+		<key>modifierFlags</key>
+		<integer>1572864</integer>
+	</dict>
+	
+	<key>bottomHalfVim</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>38</integer>
+		<key>modifierFlags</key>
+		<integer>1572864</integer>
+	</dict>
+	
+	<key>topHalfVim</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>40</integer>
+		<key>modifierFlags</key>
+		<integer>1572864</integer>
+	</dict>
+	
+	<key>rightHalfVim</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>37</integer>
+		<key>modifierFlags</key>
+		<integer>1572864</integer>
+	</dict>
+	
+	<!-- Multi-Monitor Movement - Command + Option + Shift + Arrow -->
+	<key>nextDisplay</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>124</integer>
+		<key>modifierFlags</key>
+		<integer>1703936</integer>
+	</dict>
+	
+	<key>previousDisplay</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>123</integer>
+		<key>modifierFlags</key>
+		<integer>1703936</integer>
+	</dict>
+	
+	<!-- Keep your Claude Desktop integration -->
+	<key>todo</key>
+	<integer>1</integer>
+	<key>todoApplication</key>
+	<string>com.anthropic.claudefordesktop</string>
+	<key>todoMode</key>
+	<false/>
+	<key>todoSidebarSide</key>
+	<integer>1</integer>
+	<key>todoSidebarWidth</key>
+	<real>250</real>
+	<key>toggleTodo</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>11</integer>
+		<key>modifierFlags</key>
+		<integer>786432</integer>
+	</dict>
+	<key>reflowTodo</key>
+	<dict>
+		<key>keyCode</key>
+		<integer>45</integer>
+		<key>modifierFlags</key>
+		<integer>786432</integer>
+	</dict>
+</dict>
+</plist>

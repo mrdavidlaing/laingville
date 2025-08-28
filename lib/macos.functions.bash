@@ -41,6 +41,7 @@ configure_macos_system() {
     echo "MACOS SYSTEM CONFIG:"
     log_dry_run "set keyboard repeat rate (KeyRepeat=1, InitialKeyRepeat=15)"
     log_dry_run "enable font smoothing (AppleFontSmoothing=1)"
+    log_dry_run "show hidden files and folders in Finder"
     log_dry_run "set WezTerm as default terminal for shell executables"
     log_dry_run "disable press-and-hold for VSCode and Cursor"
     log_dry_run "set system locale to en_IE.UTF-8"
@@ -58,6 +59,12 @@ configure_macos_system() {
   # Enable font smoothing for better terminal font rendering
   log_info "Enabling font smoothing (AppleFontSmoothing=1)"
   defaults write NSGlobalDomain AppleFontSmoothing -int 1
+
+  # Show hidden files and folders in Finder and file dialogs
+  log_info "Showing hidden files and folders in Finder and file dialogs"
+  defaults write com.apple.finder AppleShowAllFiles -bool true
+  defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+  defaults write NSGlobalDomain AppleShowAllFiles -bool true
 
   # Set WezTerm as default terminal for shell executables
   log_info "Setting WezTerm as default terminal for shell executables"
