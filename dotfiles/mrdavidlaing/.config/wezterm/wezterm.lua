@@ -305,6 +305,80 @@ config.launch_menu = {
 -- Leader key configuration
 config.leader = { key = 'b', mods = 'CTRL', timeout_milliseconds = 2000 }
 
+-- Help data structure for searchable key bindings
+local help_bindings = {
+  -- PANES
+  { category = 'PANES', key = "Ctrl+b '", desc = 'Split pane horizontally (right)' },
+  { category = 'PANES', key = 'Ctrl+b |', desc = 'Split pane horizontally (right)' },
+  { category = 'PANES', key = 'Ctrl+b -', desc = 'Split pane vertically (down)' },
+  { category = 'PANES', key = 'Ctrl+b "', desc = 'Horizontal split with shell menu' },
+  { category = 'PANES', key = 'Ctrl+b %', desc = 'Vertical split with shell menu' },
+  { category = 'PANES', key = 'Ctrl+b h', desc = 'Navigate to left pane' },
+  { category = 'PANES', key = 'Ctrl+b j', desc = 'Navigate to pane below' },
+  { category = 'PANES', key = 'Ctrl+b k', desc = 'Navigate to pane above' },
+  { category = 'PANES', key = 'Ctrl+b l', desc = 'Navigate to right pane' },
+  { category = 'PANES', key = 'Ctrl+b H', desc = 'Resize pane left (enter resize mode)' },
+  { category = 'PANES', key = 'Ctrl+b J', desc = 'Resize pane down (enter resize mode)' },
+  { category = 'PANES', key = 'Ctrl+b K', desc = 'Resize pane up (enter resize mode)' },
+  { category = 'PANES', key = 'Ctrl+b L', desc = 'Resize pane right (enter resize mode)' },
+  { category = 'PANES', key = 'Ctrl+b q', desc = 'Show pane numbers for selection' },
+  { category = 'PANES', key = 'Ctrl+b }', desc = 'Swap panes clockwise' },
+  { category = 'PANES', key = 'Ctrl+b {', desc = 'Swap panes counterclockwise' },
+  { category = 'PANES', key = 'Ctrl+b x', desc = 'Close current pane (with confirmation)' },
+  { category = 'PANES', key = 'Ctrl+b s', desc = 'Toggle pane zoom' },
+  
+  -- TABS
+  { category = 'TABS', key = 'Ctrl+b c', desc = 'Create new tab' },
+  { category = 'TABS', key = 'Ctrl+b C', desc = 'Create new tab with shell menu' },
+  { category = 'TABS', key = 'Ctrl+b ,', desc = 'Rename current tab' },
+  { category = 'TABS', key = 'Ctrl+b 1', desc = 'Go to tab 1' },
+  { category = 'TABS', key = 'Ctrl+b 2', desc = 'Go to tab 2' },
+  { category = 'TABS', key = 'Ctrl+b 3', desc = 'Go to tab 3' },
+  { category = 'TABS', key = 'Ctrl+b 4', desc = 'Go to tab 4' },
+  { category = 'TABS', key = 'Ctrl+b 5', desc = 'Go to tab 5' },
+  { category = 'TABS', key = 'Ctrl+b 6', desc = 'Go to tab 6' },
+  { category = 'TABS', key = 'Ctrl+b 7', desc = 'Go to tab 7' },
+  { category = 'TABS', key = 'Ctrl+b 8', desc = 'Go to tab 8' },
+  { category = 'TABS', key = 'Ctrl+b 9', desc = 'Go to tab 9' },
+  
+  -- TOOLS
+  { category = 'TOOLS', key = 'Ctrl+b m', desc = 'Launch shell menu' },
+  { category = 'TOOLS', key = 'Ctrl+b r', desc = 'Reload WezTerm configuration' },
+  { category = 'TOOLS', key = 'Ctrl+b [', desc = 'Enter copy mode (vi-style navigation)' },
+  { category = 'TOOLS', key = 'Ctrl+b p', desc = 'Paste from clipboard' },
+  
+  -- COPY/PASTE
+  { category = 'COPY/PASTE', key = 'Ctrl+Shift+C', desc = 'Copy selection to clipboard' },
+  { category = 'COPY/PASTE', key = 'Ctrl+Shift+V', desc = 'Paste from clipboard' },
+  { category = 'COPY/PASTE', key = 'Double-click', desc = 'Select and copy word' },
+  { category = 'COPY/PASTE', key = 'Triple-click', desc = 'Select and copy line' },
+  
+  -- COPY MODE
+  { category = 'COPY MODE', key = 'h/j/k/l', desc = 'Navigate (vi-style)' },
+  { category = 'COPY MODE', key = 'w/b/e', desc = 'Word movement (vi-style)' },
+  { category = 'COPY MODE', key = '0/^/$', desc = 'Line movement (vi-style)' },
+  { category = 'COPY MODE', key = 'Ctrl+u/d', desc = 'Page up/down' },
+  { category = 'COPY MODE', key = 'g/G', desc = 'Go to top/bottom' },
+  { category = 'COPY MODE', key = 'v/V/Ctrl+v', desc = 'Visual select (cell/line/block)' },
+  { category = 'COPY MODE', key = 'y', desc = 'Copy selection and exit' },
+  { category = 'COPY MODE', key = '/', desc = 'Search' },
+  { category = 'COPY MODE', key = 'n/N', desc = 'Next/previous search match' },
+  { category = 'COPY MODE', key = 'Escape/q', desc = 'Exit copy mode' },
+  
+  -- RESIZE MODE
+  { category = 'RESIZE MODE', key = 'h/j/k/l', desc = 'Resize by 2 units' },
+  { category = 'RESIZE MODE', key = 'H/J/K/L', desc = 'Resize by 5 units' },
+  { category = 'RESIZE MODE', key = 'Escape/Enter/q', desc = 'Exit resize mode' },
+  
+  -- POMODORO
+  { category = 'POMODORO', key = 'Ctrl+b P', desc = 'Start work timer (25 minutes)' },
+  { category = 'POMODORO', key = 'Ctrl+b B', desc = 'Start break timer (5 minutes)' },
+  { category = 'POMODORO', key = 'Ctrl+b S', desc = 'Stop current timer' },
+  
+  -- HELP
+  { category = 'HELP', key = 'Ctrl+b ?', desc = 'Show this searchable help' },
+}
+
 -- Key bindings
 config.keys = {
   -- Split panes using ' (for Windows compatibility) and | (matching tmux)
@@ -632,17 +706,34 @@ config.keys = {
     action = wezterm.action.PasteFrom 'Clipboard',
   },
   
-  -- Help popup (changed from 'h' to avoid vim navigation conflict)
+  -- Searchable help (matching tmux ? key)
   {
-    key = '/',
+    key = '?',
     mods = 'LEADER',
-    action = wezterm.action.SplitPane {
-      direction = 'Right',
-      size = { Percent = 50 },
-      command = {
-        args = { 'pwsh.exe', '-Command', 'Write-Host "=== WEZTERM KEY BINDINGS ===" -ForegroundColor Yellow; Write-Host ""; Write-Host "Leader: Ctrl+b" -ForegroundColor Green; Write-Host ""; Write-Host "-- PANES --" -ForegroundColor Cyan; Write-Host "\' or |  : Split horizontal"; Write-Host "-       : Split vertical"; Write-Host "h/j/k/l : Navigate panes (vim-style)"; Write-Host "H/J/K/L : Enter resize mode (then hjkl/HJKL)"; Write-Host "q       : Show pane numbers"; Write-Host ""; Write-Host "-- TABS --" -ForegroundColor Cyan; Write-Host "c       : New tab"; Write-Host "C       : New tab (shell menu)"; Write-Host ",       : Rename current tab"; Write-Host "1-9     : Go to tab N"; Write-Host ""; Write-Host "-- TOOLS --" -ForegroundColor Cyan; Write-Host "m       : Launch shell menu"; Write-Host "r       : Reload config"; Write-Host "[       : Enter copy mode"; Write-Host "p       : Paste"; Write-Host ""; Write-Host "-- COPY/PASTE --" -ForegroundColor Cyan; Write-Host "Ctrl+Shift+C: Copy"; Write-Host "Ctrl+Shift+V: Paste"; Write-Host "Double-click: Copy word"; Write-Host "Triple-click: Copy line"; Write-Host ""; Write-Host "-- POMODORO --" -ForegroundColor Cyan; Write-Host "P       : Start work timer (25 min)"; Write-Host "B       : Start break (5 min)"; Write-Host "S       : Stop timer"; Write-Host ""; Write-Host "-- HELP --" -ForegroundColor Cyan; Write-Host "/       : Show this help"; Write-Host ""; Write-Host "[Press Enter to close]" -ForegroundColor Red; Read-Host' },
-      },
-    },
+    action = wezterm.action_callback(function(window, pane)
+      -- Convert help_bindings to InputSelector choices format
+      local choices = {}
+      for _, binding in ipairs(help_bindings) do
+        table.insert(choices, {
+          id = binding.key,
+          label = string.format("[%s] %s - %s", binding.category, binding.key, binding.desc)
+        })
+      end
+      
+      -- Show searchable help overlay
+      window:perform_action(wezterm.action.InputSelector {
+        action = wezterm.action_callback(function(inner_window, inner_pane, id, label)
+          if id then
+            -- Show a brief notification of the selected binding
+            inner_window:toast_notification('WezTerm Help', 'Key binding: ' .. id, nil, 3000)
+          end
+        end),
+        title = 'WezTerm Key Bindings (Leader: Ctrl+b) - Type to search',
+        choices = choices,
+        fuzzy = true,
+        description = 'Searchable help for all WezTerm key bindings. Press Escape to close.',
+      }, pane)
+    end),
   },
 }
 
