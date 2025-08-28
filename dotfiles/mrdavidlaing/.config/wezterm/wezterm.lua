@@ -519,6 +519,18 @@ config.keys = {
     },
   },
   
+  -- Swap panes (matching tmux)
+  {
+    key = '}',
+    mods = 'LEADER',
+    action = wezterm.action.RotatePanes 'Clockwise',
+  },
+  {
+    key = '{',
+    mods = 'LEADER',
+    action = wezterm.action.RotatePanes 'CounterClockwise',
+  },
+  
   -- Pomodoro timer controls
   {
     key = 'P',
