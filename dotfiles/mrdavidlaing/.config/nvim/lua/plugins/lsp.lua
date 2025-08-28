@@ -74,6 +74,46 @@ return {
       else
         vim.notify("nil not found - install via package manager", vim.log.levels.WARN)
       end
+
+      if vim.fn.executable("terraform-ls") == 1 then
+        lspconfig.terraformls.setup({ capabilities = capabilities })
+      end
+
+      if vim.fn.executable("gopls") == 1 then
+        lspconfig.gopls.setup({
+          capabilities = capabilities,
+          settings = {
+            gopls = {
+              analyses = {
+                unusedparams = true,
+              },
+              staticcheck = true,
+              gofumpt = true,
+            },
+          },
+        })
+      end
+
+      if vim.fn.executable("yaml-language-server") == 1 then
+        lspconfig.yamlls.setup({
+          capabilities = capabilities,
+          settings = {
+            yaml = {
+              schemas = {
+                kubernetes = "*.yaml",
+                ["http://json.schemastore.org/github-workflow"] = ".github/workflows/*",
+                ["http://json.schemastore.org/github-action"] = ".github/action.{yml,yaml}",
+                ["http://json.schemastore.org/kustomization"] = "kustomization.{yml,yaml}",
+                ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] = "*docker-compose*.{yml,yaml}",
+              },
+            },
+          },
+        })
+      end
+
+      if vim.fn.executable("docker-langserver") == 1 then
+        lspconfig.dockerls.setup({ capabilities = capabilities })
+      end
     end,
   },
 

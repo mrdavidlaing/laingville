@@ -49,7 +49,7 @@ This configuration prioritizes **simplicity, reliability, and consistency** with
 
 ### 🌳 **Syntax Highlighting**
 - **Treesitter-powered** - modern, fast, accurate
-- **Repository languages** - bash, lua, yaml, markdown, json, nix
+- **Repository languages** - bash, lua, yaml, markdown, json, nix, terraform, go, kubernetes, docker
 - **No vim syntax conflicts** - eliminates E1155 errors
 
 ### 🔍 **File Navigation**
@@ -63,6 +63,10 @@ This configuration prioritizes **simplicity, reliability, and consistency** with
   - `bash-language-server` - Bash (for scripts)  
   - `marksman` - Markdown (for documentation)
   - `nil` - Nix (for nix expressions and configurations)
+  - `terraform-ls` - Terraform (for infrastructure as code)
+  - `gopls` - Go (for golang applications)
+  - `yaml-language-server` - YAML (with K8s, GitHub Actions, Docker Compose schemas)
+  - `docker-langserver` - Docker (for Dockerfiles and containerization)
 - **Auto-completion** with nvim-cmp
 - **Graceful degradation** when LSP servers aren't available
 
@@ -104,6 +108,10 @@ This configuration prioritizes **simplicity, reliability, and consistency** with
 - `bash-language-server` - Bash LSP support  
 - `marksman` - Markdown LSP support
 - `nil` - Nix LSP support
+- `terraform-ls` - Terraform LSP support
+- `gopls` - Go LSP support
+- `yaml-language-server` - YAML LSP support
+- `dockerfile-language-server-nodejs` - Docker LSP support
 
 All LSP servers are automatically installed via `./setup-user` from `packages.yaml`
 

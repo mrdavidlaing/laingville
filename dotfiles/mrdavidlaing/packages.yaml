@@ -18,6 +18,10 @@ arch:
     - bash-language-server
     - marksman
     - nil-git
+    - terraform-ls
+    - gopls
+    - yaml-language-server
+    - dockerfile-language-server-nodejs
     - go-yq
     - starship
     - zoxide
@@ -75,6 +79,10 @@ wsl:
     - bash-language-server
     - marksman
     - nil-git
+    - terraform-ls
+    - gopls
+    - yaml-language-server
+    - dockerfile-language-server-nodejs
     - starship
     - zoxide
     - ripgrep
@@ -130,6 +138,10 @@ macos:
     - bash-language-server
     - marksman
     - rust  # Required for cargo install nil
+    - terraform-ls
+    - gopls
+    - yaml-language-server
+    - dockerfile-language-server
     - jq
     - tree
     - zoxide
@@ -169,6 +181,10 @@ nix:
     - bash-language-server
     - marksman
     - nil
+    - terraform-ls
+    - gopls
+    - yaml-language-server
+    - dockerfile-language-server-nodejs
     - yq-go
     - starship
     - zoxide

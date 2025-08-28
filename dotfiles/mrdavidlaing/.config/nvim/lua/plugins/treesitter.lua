@@ -26,6 +26,8 @@ return {
         ensure_installed = {
           "bash", "lua", "yaml", "markdown", "json",
           "vim", "vimdoc", "gitcommit", "nix",
+          "terraform", "hcl", "go", "gomod", "gosum",
+          "dockerfile",
         },
         incremental_selection = {
           enable = true,
