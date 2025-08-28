@@ -7,6 +7,9 @@
 # Add user's local bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
 
+# Add Cargo (Rust) bin directory to PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # Set default editor for all applications
 export EDITOR=nvim
 

@@ -17,6 +17,7 @@ arch:
     - lua-language-server
     - bash-language-server
     - marksman
+    - nil-git
     - go-yq
     - starship
     - zoxide
@@ -73,6 +74,7 @@ wsl:
     - lua-language-server
     - bash-language-server
     - marksman
+    - nil-git
     - starship
     - zoxide
     - ripgrep
@@ -127,6 +129,7 @@ macos:
     - lua-language-server
     - bash-language-server
     - marksman
+    - rust  # Required for cargo install nil
     - jq
     - tree
     - zoxide
@@ -152,6 +155,7 @@ macos:
     - claude
   custom:
     - install_claude_code
+    - install_nil
 
 # Nix - package management
 nix:
@@ -164,6 +168,7 @@ nix:
     - lua-language-server
     - bash-language-server
     - marksman
+    - nil
     - yq-go
     - starship
     - zoxide

@@ -25,7 +25,7 @@ return {
         },
         ensure_installed = {
           "bash", "lua", "yaml", "markdown", "json",
-          "vim", "vimdoc", "gitcommit",
+          "vim", "vimdoc", "gitcommit", "nix",
         },
         incremental_selection = {
           enable = true,

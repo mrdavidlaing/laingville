@@ -49,7 +49,7 @@ This configuration prioritizes **simplicity, reliability, and consistency** with
 
 ### 🌳 **Syntax Highlighting**
 - **Treesitter-powered** - modern, fast, accurate
-- **Repository languages** - bash, lua, yaml, markdown, json
+- **Repository languages** - bash, lua, yaml, markdown, json, nix
 - **No vim syntax conflicts** - eliminates E1155 errors
 
 ### 🔍 **File Navigation**
@@ -62,6 +62,7 @@ This configuration prioritizes **simplicity, reliability, and consistency** with
   - `lua-language-server` - Lua (for nvim config)
   - `bash-language-server` - Bash (for scripts)  
   - `marksman` - Markdown (for documentation)
+  - `nil` - Nix (for nix expressions and configurations)
 - **Auto-completion** with nvim-cmp
 - **Graceful degradation** when LSP servers aren't available
 
@@ -102,8 +103,9 @@ This configuration prioritizes **simplicity, reliability, and consistency** with
 - `lua-language-server` - Lua LSP support
 - `bash-language-server` - Bash LSP support  
 - `marksman` - Markdown LSP support
+- `nil` - Nix LSP support
 
-Install via your package manager (e.g., `yay -S lua-language-server bash-language-server marksman`)
+All LSP servers are automatically installed via `./setup-user` from `packages.yaml`
 
 ## Installation
 
