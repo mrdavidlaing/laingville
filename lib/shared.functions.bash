@@ -184,8 +184,12 @@ process_packages() {
           failed_packages+=("${pkg}")
         fi
       else
-        if ! eval "${cmd} ${quoted_pkg}"; then
+        if ! eval "${cmd} ${quoted_pkg}" 2>&1; then
           failed_packages+=("${pkg}")
+          # Check if it's a network error for AUR packages
+          if [[ "${manager}" = "yay" ]] && [[ $? -ne 0 ]]; then
+            log_warning "Network error installing ${pkg} from AUR - you may need to retry later"
+          fi
         fi
       fi
     done
@@ -193,6 +197,9 @@ process_packages() {
     # Report any failures
     if [[ ${#failed_packages[@]} -gt 0 ]]; then
       log_warning "Failed to install packages: ${failed_packages[*]}"
+      if [[ "${manager}" = "yay" ]]; then
+        log_info "Tip: If you see connection errors, the AUR servers may be temporarily unavailable. Try again later."
+      fi
     fi
   fi
 }
@@ -284,7 +291,7 @@ handle_packages_from_file() {
       install_yay "${dry_run}"
 
       # Process official packages with pacman first, then AUR packages with yay
-      process_packages "pacman" "pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
+      process_packages "pacman" "sudo pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
       process_packages "yay" "yay -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
       ;;
     "wsl")

@@ -9,9 +9,18 @@ arch:
     - hyprpaper
     - gnome-console
     - gimp
-  aur:
-    - shellspec
+    - base-devel
+    - make
+    - bash
+    - git
+    - github-cli
+    - ripgrep
+    - jq
+    - nodejs
+    - openssh
     - shellcheck
+  yay:
+    - shellspec
     - shfmt
     - vivaldi
 
