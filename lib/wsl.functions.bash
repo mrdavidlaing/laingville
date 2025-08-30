@@ -123,5 +123,5 @@ handle_wsl_packages() {
   # Process official packages with pacman first, then AUR packages with yay
   # WSL uses its own YAML section to ensure correct terminal-only packages
   process_packages "pacman" "pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
-  process_packages "yay" "yay -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
+  process_packages "yay" "yay -S --needed --noconfirm --batchinstall" "${platform}" "${dry_run}" "${packages_file}"
 }

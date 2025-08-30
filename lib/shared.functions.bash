@@ -168,37 +168,48 @@ process_packages() {
       return
     fi
 
-    # Install packages securely - one by one to prevent injection
-    local failed_packages=()
-    for pkg in "${valid_packages[@]}"; do
-      # Use printf %q to properly quote package names
-      local quoted_pkg
-      printf -v quoted_pkg '%q' "${pkg}"
+    # Install packages - batch mode for pacman/yay, individual for others
+    if [[ "${manager}" =~ ^(pacman|yay)$ ]]; then
+      # Batch installation for pacman and yay for better performance
+      local quoted_packages=()
+      for pkg in "${valid_packages[@]}"; do
+        local quoted_pkg
+        printf -v quoted_pkg '%q' "${pkg}"
+        quoted_packages+=("${quoted_pkg}")
+      done
 
-      # Handle Nix packages specially - need nixpkgs# prefix with version
-      if [[ "${manager}" =~ ^nixpkgs- ]]; then
-        local nix_version="${manager#nixpkgs-}"
-        # Convert version format for GitHub reference (25.05 -> nixos-25.05)
-        local github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
-        if ! eval "${cmd} ${github_ref}#${quoted_pkg}"; then
-          failed_packages+=("${pkg}")
-        fi
-      else
-        if ! eval "${cmd} ${quoted_pkg}" 2>&1; then
-          failed_packages+=("${pkg}")
-          # Check if it's a network error for AUR packages
-          if [[ "${manager}" = "yay" ]] && [[ $? -ne 0 ]]; then
-            log_warning "Network error installing ${pkg} from AUR - you may need to retry later"
-          fi
+      if ! eval "${cmd} ${quoted_packages[*]}"; then
+        log_warning "Failed to install some ${manager} packages: ${valid_packages[*]}"
+        if [[ "${manager}" = "yay" ]]; then
+          log_info "Tip: If you see connection errors, the AUR servers may be temporarily unavailable. Try again later."
         fi
       fi
-    done
+    else
+      # Individual installation for other package managers
+      local failed_packages=()
+      for pkg in "${valid_packages[@]}"; do
+        # Use printf %q to properly quote package names
+        local quoted_pkg
+        printf -v quoted_pkg '%q' "${pkg}"
 
-    # Report any failures
-    if [[ ${#failed_packages[@]} -gt 0 ]]; then
-      log_warning "Failed to install packages: ${failed_packages[*]}"
-      if [[ "${manager}" = "yay" ]]; then
-        log_info "Tip: If you see connection errors, the AUR servers may be temporarily unavailable. Try again later."
+        # Handle Nix packages specially - need nixpkgs# prefix with version
+        if [[ "${manager}" =~ ^nixpkgs- ]]; then
+          local nix_version="${manager#nixpkgs-}"
+          # Convert version format for GitHub reference (25.05 -> nixos-25.05)
+          local github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
+          if ! eval "${cmd} ${github_ref}#${quoted_pkg}"; then
+            failed_packages+=("${pkg}")
+          fi
+        else
+          if ! eval "${cmd} ${quoted_pkg}" 2>&1; then
+            failed_packages+=("${pkg}")
+          fi
+        fi
+      done
+
+      # Report any failures
+      if [[ ${#failed_packages[@]} -gt 0 ]]; then
+        log_warning "Failed to install packages: ${failed_packages[*]}"
       fi
     fi
   fi
@@ -292,7 +303,7 @@ handle_packages_from_file() {
 
       # Process official packages with pacman first, then AUR packages with yay
       process_packages "pacman" "sudo pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
-      process_packages "yay" "yay -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
+      process_packages "yay" "yay -S --needed --noconfirm --batchinstall" "${platform}" "${dry_run}" "${packages_file}"
       ;;
     "wsl")
       # Use WSL-specific package handling (requires wsl.functions.bash)
