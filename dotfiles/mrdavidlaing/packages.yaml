@@ -21,7 +21,7 @@ arch:
     - terraform-ls
     - gopls
     - yaml-language-server
-    - dockerfile-language-server-nodejs
+    - dockerfile-language-server
     - go-yq
     - starship
     - zoxide
@@ -82,7 +82,7 @@ wsl:
     - terraform-ls
     - gopls
     - yaml-language-server
-    - dockerfile-language-server-nodejs
+    - dockerfile-language-server
     - starship
     - zoxide
     - ripgrep
@@ -186,7 +186,7 @@ nix:
     - terraform-ls
     - gopls
     - yaml-language-server
-    - dockerfile-language-server-nodejs
+    - dockerfile-language-server
     - yq-go
     - starship
     - zoxide
