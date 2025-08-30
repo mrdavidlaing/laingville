@@ -38,43 +38,54 @@ Describe "shared.functions.bash"
               End
 
               It "returns arch on Linux with pacman"
-# Create a temporary directory and mock files
+# Create a temporary directory with mock executables
                 temp_dir=$(mktemp -d)
-                temp_proc="${temp_dir}/proc_version"
-                echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
-
-# Create mock pacman
+                
+# Create mock pacman executable
                 echo '#!/bin/bash' > "${temp_dir}/pacman"
                 chmod +x "${temp_dir}/pacman"
-                export PATH="${temp_dir}:${PATH}"
-
-# Override the detect_platform function to use our mock
+                
+# Mock uname to return Linux
 # shellcheck disable=SC2329  # Mock function for testing
-                detect_platform() {
-                local base_os="linux"
-
-                case "${base_os}" in
-                "linux")
-      # Mock WSL check to fail by reading our fake /proc/version
-                if grep -qi "microsoft\|wsl" "${temp_proc}" 2> /dev/null; then
-                echo "wsl"
-                elif command -v pacman > /dev/null 2>&1; then
-                echo "arch"
-                else
-                echo "linux"
-                fi
-                ;;
-                *)
-                echo "${base_os}"
-                ;;
-                esac
-                }
+                uname() { echo "Linux"; }
+                
+# Put our mock directory first in PATH
+                OLD_PATH="${PATH}"
+                export PATH="${temp_dir}:${PATH}"
 
                 When call detect_platform
 
                 The output should equal "arch"
 
-                unset -f detect_platform
+                unset -f uname
+                export PATH="${OLD_PATH}"
+                rm -rf "${temp_dir}"
+              End
+
+              It "returns arch on Linux even when both pacman and nix are installed"
+# Create a temporary directory with mock executables
+                temp_dir=$(mktemp -d)
+                
+# Create mock pacman and nix executables
+                echo '#!/bin/bash' > "${temp_dir}/pacman"
+                chmod +x "${temp_dir}/pacman"
+                echo '#!/bin/bash' > "${temp_dir}/nix"
+                chmod +x "${temp_dir}/nix"
+                
+# Mock uname to return Linux
+# shellcheck disable=SC2329  # Mock function for testing
+                uname() { echo "Linux"; }
+                
+# Put our mock directory first in PATH so both commands are found
+                OLD_PATH="${PATH}"
+                export PATH="${temp_dir}:${PATH}"
+
+                When call detect_platform
+
+                The output should equal "arch"
+
+                unset -f uname
+                export PATH="${OLD_PATH}"
                 rm -rf "${temp_dir}"
               End
 

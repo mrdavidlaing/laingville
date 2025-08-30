@@ -42,10 +42,10 @@ detect_platform() {
       # For Linux, detect the specific distribution/environment
       if grep -qi "microsoft\|wsl" /proc/version 2> /dev/null; then
         echo "wsl"
-      elif command -v nix > /dev/null 2>&1; then
-        echo "nix"
       elif command -v pacman > /dev/null 2>&1; then
         echo "arch"
+      elif command -v nix > /dev/null 2>&1; then
+        echo "nix"
       else
         echo "linux" # Generic Linux
       fi
