@@ -272,10 +272,20 @@ end)
 config.term = 'xterm-256color'
 
 -- Enable true color support for SSH + tmux control mode
-config.set_environment_variables = {
+local env_vars = {
   COLORTERM = 'truecolor',
   TERM = 'xterm-256color',
 }
+
+-- Set SSH_AUTH_SOCK for 1Password SSH agent on Windows only
+if wezterm.target_triple:find('pc%-windows') then
+  -- Disable WezTerm's SSH agent multiplexer
+  config.mux_enable_ssh_agent = false
+  env_vars.SSH_AUTH_SOCK = '\\\\.\\pipe\\openssh-ssh-agent'
+  wezterm.log_info('Disabled WezTerm SSH agent, using 1Password')
+end
+
+config.set_environment_variables = env_vars
 
 -- Performance settings (matching tmux optimizations)
 config.max_fps = 60
