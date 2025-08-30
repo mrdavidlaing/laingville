@@ -1,3 +1,6 @@
 .crush/
 *.log
 .DS_Store
+
+# Systemd auto-generated timer symlinks
+dotfiles/*/.config/systemd/user/timers.target.wants/
