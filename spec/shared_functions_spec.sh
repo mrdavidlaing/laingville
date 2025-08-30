@@ -45,9 +45,26 @@ Describe "shared.functions.bash"
                 echo '#!/bin/bash' > "${temp_dir}/pacman"
                 chmod +x "${temp_dir}/pacman"
                 
+# Create mock /proc/version without WSL indicators
+                mock_proc_version=$(mktemp)
+                echo "Linux version 5.15.0-generic (buildd@builder) (gcc version 9.4.0)" > "${mock_proc_version}"
+                
 # Mock uname to return Linux
 # shellcheck disable=SC2329  # Mock function for testing
                 uname() { echo "Linux"; }
+                
+# Mock grep to use our mock /proc/version file
+# shellcheck disable=SC2329  # Mock function for testing
+                grep() {
+                  local args=("$@")
+                  local last_arg="${args[-1]}"
+                  if [[ "${last_arg}" == "/proc/version" ]]; then
+                    # Redirect to our mock file, preserving all other arguments
+                    command grep "${args[@]:0:$((${#args[@]}-1))}" "${mock_proc_version}"
+                  else
+                    command grep "$@"
+                  fi
+                }
                 
 # Put our mock directory first in PATH
                 OLD_PATH="${PATH}"
@@ -58,8 +75,10 @@ Describe "shared.functions.bash"
                 The output should equal "arch"
 
                 unset -f uname
+                unset -f grep
                 export PATH="${OLD_PATH}"
                 rm -rf "${temp_dir}"
+                rm -f "${mock_proc_version}"
               End
 
               It "returns arch on Linux even when both pacman and nix are installed"
@@ -72,9 +91,26 @@ Describe "shared.functions.bash"
                 echo '#!/bin/bash' > "${temp_dir}/nix"
                 chmod +x "${temp_dir}/nix"
                 
+# Create mock /proc/version without WSL indicators
+                mock_proc_version=$(mktemp)
+                echo "Linux version 5.15.0-generic (buildd@builder) (gcc version 9.4.0)" > "${mock_proc_version}"
+                
 # Mock uname to return Linux
 # shellcheck disable=SC2329  # Mock function for testing
                 uname() { echo "Linux"; }
+                
+# Mock grep to use our mock /proc/version file
+# shellcheck disable=SC2329  # Mock function for testing
+                grep() {
+                  local args=("$@")
+                  local last_arg="${args[-1]}"
+                  if [[ "${last_arg}" == "/proc/version" ]]; then
+                    # Redirect to our mock file, preserving all other arguments
+                    command grep "${args[@]:0:$((${#args[@]}-1))}" "${mock_proc_version}"
+                  else
+                    command grep "$@"
+                  fi
+                }
                 
 # Put our mock directory first in PATH so both commands are found
                 OLD_PATH="${PATH}"
@@ -85,8 +121,10 @@ Describe "shared.functions.bash"
                 The output should equal "arch"
 
                 unset -f uname
+                unset -f grep
                 export PATH="${OLD_PATH}"
                 rm -rf "${temp_dir}"
+                rm -f "${mock_proc_version}"
               End
 
               It "returns linux on Linux without pacman"
