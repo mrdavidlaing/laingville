@@ -7,7 +7,7 @@ arch:
     - vim
     - tmux
     - openssh
-  aur:
+  yay:
     - k3s-bin
     - k9s
   custom:
