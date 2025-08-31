@@ -16,6 +16,8 @@ source "$LIB_DIR/packages.functions.bash"
 source "$LIB_DIR/shared.functions.bash"
 source "$LIB_DIR/symlinks.functions.bash"
 source "$LIB_DIR/git.functions.bash"
+source "$LIB_DIR/macos.functions.bash"
+source "$LIB_DIR/wsl.functions.bash"
 source "$LIB_DIR/setup-user.functions.bash"
 
 # Simple argument parsing
@@ -113,15 +115,12 @@ fi
 
 # Handle package management
 log_subsection "Package Management"
-if [ -n "${PLATFORM:-}" ]; then
-    PLATFORM="$PLATFORM"
-else
+if [ -z "${PLATFORM:-}" ]; then
     PLATFORM="$(detect_platform)"
 fi
 
 # macOS-specific setup (must happen before package installation)
 if [ "$PLATFORM" = "macos" ]; then
-    source "$LIB_DIR/macos.functions.bash"
     log_subsection "Homebrew Setup"
     install_homebrew "$DRY_RUN"
 fi

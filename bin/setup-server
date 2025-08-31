@@ -16,6 +16,8 @@ source "$LIB_DIR/security.functions.bash"
 source "$LIB_DIR/platform.functions.bash"
 source "$LIB_DIR/packages.functions.bash"
 source "$LIB_DIR/shared.functions.bash"
+source "$LIB_DIR/macos.functions.bash"
+source "$LIB_DIR/wsl.functions.bash"
 source "$LIB_DIR/setup-user.functions.bash"
 source "$LIB_DIR/setup-server.functions.bash"
 
@@ -136,20 +138,8 @@ if [ -d "$SHARED_SERVER_DIR" ] && [ "$(ls -A "$SHARED_SERVER_DIR" 2>/dev/null)" 
     log_info "Processing shared server configurations..."
     
     # Handle shared server packages first
-    if [ -n "${PLATFORM:-}" ]; then
-        PLATFORM="$PLATFORM"
-    else
+    if [ -z "${PLATFORM:-}" ]; then
         PLATFORM="$(detect_platform)"
-    fi
-    
-    # Source macOS-specific functions if running on macOS
-    if [ "$PLATFORM" = "macos" ]; then
-        source "$LIB_DIR/macos.functions.bash"
-    fi
-
-    # Source WSL-specific functions if running on WSL
-    if [ "$PLATFORM" = "wsl" ]; then
-        source "$LIB_DIR/wsl.functions.bash"
     fi
     
     # Check if shared packages file exists
@@ -180,20 +170,8 @@ fi
 
 # Handle package management
 log_subsection "Package Management"
-if [ -n "${PLATFORM:-}" ]; then
-    PLATFORM="$PLATFORM"
-else
+if [ -z "${PLATFORM:-}" ]; then
     PLATFORM="$(detect_platform)"
-fi
-
-# Source macOS-specific functions if running on macOS
-if [ "$PLATFORM" = "macos" ]; then
-    source "$LIB_DIR/macos.functions.bash"
-fi
-
-# Source WSL-specific functions if running on WSL
-if [ "$PLATFORM" = "wsl" ]; then
-    source "$LIB_DIR/wsl.functions.bash"
 fi
 handle_server_packages "$PLATFORM" "$DRY_RUN"
 
