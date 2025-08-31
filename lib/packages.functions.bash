@@ -65,7 +65,8 @@ extract_packages_from_yaml() {
     | sed -n "/^  ${manager}:/,/^  [a-z]/p" \
     | grep "^    - " | sed 's/^    - //' \
     | sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' \
-    | head -n 100 || true) # Limit number of packages
+    | sed 's/^"\(.*\)"$/\1/' \
+    | head -n 100 || true) # Limit number of packages and strip quotes
   echo "${result}"
 }
 
