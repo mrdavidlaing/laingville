@@ -7,13 +7,12 @@ arch:
     - vim
     - tmux
     - openssh
+    - bind
   yay:
-    - k3s-bin
-    - k9s
+    # No AUR packages currently needed
   custom:
-    - ensure_k3s_running
     - ensure_sshd_running
-    - ensure_hosts_configured
+    - ensure_bind_configured
 
 windows:
   winget:
