@@ -18,8 +18,8 @@ arch:
     - jq
     - nodejs
     - openssh
-    - shellcheck
   yay:
+    - shellcheck
     - shellspec
     - shfmt
     - vivaldi
