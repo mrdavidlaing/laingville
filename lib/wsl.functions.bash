@@ -120,8 +120,51 @@ handle_wsl_packages() {
   # Install yay first for unified package management
   install_yay "${dry_run}"
 
-  # Process official packages with pacman first, then AUR packages with yay
+  # Extract and install packages using new manager-specific functions
   # WSL uses its own YAML section to ensure correct terminal-only packages
-  process_packages "pacman" "pacman -S --needed --noconfirm" "${platform}" "${dry_run}" "${packages_file}"
-  process_packages "yay" "yay -S --needed --noconfirm --batchinstall" "${platform}" "${dry_run}" "${packages_file}"
+  local pacman_packages yay_packages
+  pacman_packages=$(get_packages_from_file "${platform}" "pacman" "${packages_file}")
+  yay_packages=$(get_packages_from_file "${platform}" "yay" "${packages_file}")
+
+  # Use WSL-specific pacman (without sudo - usually not needed in WSL)
+  if [[ -n "${pacman_packages}" ]]; then
+    if [[ "${dry_run}" = true ]]; then
+      local pkg_array=()
+      while IFS= read -r pkg; do
+        [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
+      done <<< "$(validate_and_filter_packages "${pacman_packages}")"
+      if [[ ${#pkg_array[@]} -gt 0 ]]; then
+        local pkg_list
+        pkg_list=$(printf '%s, ' "${pkg_array[@]}")
+        pkg_list=${pkg_list%, }
+        log_dry_run "install via pacman: ${pkg_list}"
+      fi
+    else
+      # WSL-specific pacman call (without sudo)
+      local valid_packages
+      valid_packages=$(validate_and_filter_packages "${pacman_packages}")
+      if [[ -n "${valid_packages}" ]]; then
+        local pkg_array=()
+        while IFS= read -r pkg; do
+          [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
+        done <<< "${valid_packages}"
+
+        if [[ ${#pkg_array[@]} -gt 0 ]]; then
+          log_info "Installing pacman packages: ${pkg_array[*]}"
+          local quoted_packages=()
+          for pkg in "${pkg_array[@]}"; do
+            local quoted_pkg
+            printf -v quoted_pkg '%q' "${pkg}"
+            quoted_packages+=("${quoted_pkg}")
+          done
+
+          if ! eval "pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
+            log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
+          fi
+        fi
+      fi
+    fi
+  fi
+
+  install_yay_packages "${yay_packages}" "${dry_run}"
 }

@@ -41,6 +41,7 @@ setup_git_hooks() {
     echo "GIT HOOKS:"
     log_dry_run "configure git core.hooksPath to .hooks"
     # Check for available hooks
+    # shellcheck disable=SC2243  # Prefer current pattern for directory content check
     if [[ -d "${hooks_dir}" ]] && [[ "$(ls -A "${hooks_dir}" 2> /dev/null)" ]]; then
       for hook in "${hooks_dir}"/*; do
         if [[ -f "${hook}" ]]; then
@@ -67,6 +68,7 @@ setup_git_hooks() {
 
     # Make all hooks executable
     local hook_count=0
+    # shellcheck disable=SC2243  # Prefer current pattern for directory content check
     if [[ -d "${hooks_dir}" ]] && [[ "$(ls -A "${hooks_dir}" 2> /dev/null)" ]]; then
       for hook in "${hooks_dir}"/*; do
         if [[ -f "${hook}" ]]; then

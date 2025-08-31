@@ -4,17 +4,19 @@ Describe "setup-server script"
     Before "source ./lib/polyfill.functions.bash"
       Before "source ./lib/logging.functions.bash"
         Before "source ./lib/security.functions.bash"
-          Before "source ./lib/shared.functions.bash"
-            Before "source ./lib/setup-user.functions.bash"
-              Before "source ./lib/setup-server.functions.bash"
+          Before "source ./lib/platform.functions.bash"
+            Before "source ./lib/packages.functions.bash"
+              Before "source ./lib/shared.functions.bash"
+                Before "source ./lib/setup-user.functions.bash"
+                  Before "source ./lib/setup-server.functions.bash"
 
-                Describe "hostname detection"
-                  It "works correctly"
+                    Describe "hostname detection"
+                      It "works correctly"
 # Test that we can detect hostname (basic functionality)
 # Use fallback method if hostname command is not available
-                    if command -v hostname > /dev/null 2>&1; then
-                    current_hostname=$(hostname)
-                    else
+                        if command -v hostname > /dev/null 2>&1; then
+                        current_hostname=$(hostname)
+                        else
                     current_hostname=$(cat /proc/sys/kernel/hostname 2> /dev/null || echo "${HOSTNAME}")
                     fi
 
@@ -250,14 +252,14 @@ EOF
                     nixpkgs-25.05:
                     - host-package1" > "${temp_host_dir}/packages.yaml"
 
-                    When run bash -c "export SERVER_DIR='$temp_host_dir'; ./bin/setup-server --dry-run"
-                    The status should be failure
-                    The stdout should not be blank
-                    The stderr should include "packages.yaml failed validation"
+                        When run bash -c "export SERVER_DIR='$temp_host_dir'; ./bin/setup-server --dry-run"
+                        The status should be failure
+                        The stdout should not be blank
+                        The stderr should include "packages.yaml failed validation"
 
 # Cleanup
-                    rm -f "${temp_shared_dir}/packages.yaml"
-                    rm -rf "${temp_host_dir}"
+                        rm -f "${temp_shared_dir}/packages.yaml"
+                        rm -rf "${temp_host_dir}"
+                      End
+                    End
                   End
-                End
-              End

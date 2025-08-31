@@ -1,29 +1,33 @@
 Describe "polyfill.functions.bash"
 # shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
-    Before "source ./lib/shared.functions.bash"
-      Before "source ./lib/polyfill.functions.bash"
+    Before "source ./lib/logging.functions.bash"
+      Before "source ./lib/security.functions.bash"
+        Before "source ./lib/platform.functions.bash"
+          Before "source ./lib/packages.functions.bash"
+            Before "source ./lib/shared.functions.bash"
+              Before "source ./lib/polyfill.functions.bash"
 
-        setup_test_files() {
+                setup_test_files() {
   # Create a temporary directory for test files
-        TEST_DIR=$(mktemp -d)
-        TEST_FILE="${TEST_DIR}/test_file.txt"
-        TEST_SYMLINK="${TEST_DIR}/test_symlink"
+                TEST_DIR=$(mktemp -d)
+                TEST_FILE="${TEST_DIR}/test_file.txt"
+                TEST_SYMLINK="${TEST_DIR}/test_symlink"
 
   # Create test files
         echo "test content" > "${TEST_FILE}"
-        ln -s "${TEST_FILE}" "${TEST_SYMLINK}" 2> /dev/null || true
-        }
+                ln -s "${TEST_FILE}" "${TEST_SYMLINK}" 2> /dev/null || true
+                }
 
-        cleanup_test_files() {
+                cleanup_test_files() {
   # Clean up test files
-        if [[ -n "${TEST_DIR}" ]] && [[ -d "${TEST_DIR}" ]]; then
-        rm -rf "${TEST_DIR}"
-        fi
-        }
+                if [[ -n "${TEST_DIR}" ]] && [[ -d "${TEST_DIR}" ]]; then
+                rm -rf "${TEST_DIR}"
+                fi
+                }
 
-        Describe "detect_os function"
-          It "returns macos on Darwin"
+                Describe "detect_os function"
+                  It "returns macos on Darwin"
 # Mock uname command to return Darwin
 # shellcheck disable=SC2329  # Mock function for testing
             uname() { echo "Darwin"; }

@@ -32,11 +32,13 @@ check_cargo_available() {
 echo -n "[nil] "
 
 # Check if already installed
+# shellcheck disable=SC2310  # Function invocation in 'if' condition is acceptable here
 if check_nil_installation; then
   exit 0
 fi
 
 # Check for cargo
+# shellcheck disable=SC2310  # Function invocation in 'if' condition is acceptable here
 if ! check_cargo_available; then
   exit 1
 fi

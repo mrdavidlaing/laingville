@@ -111,8 +111,9 @@ EOF
 
         The status should be success
 
-# Should show valid packages in install list
-        The output should include "install via yay: vim, curl, htop, yay"
+# Should show valid packages in install list (with warnings inline)
+        The output should include "install via yay:"
+        The output should include "vim, curl, htop, yay"
 
 # Should warn about invalid packages
         The output should include "Warning: Skipping invalid package"
@@ -172,6 +173,7 @@ EOF
         source ./lib/polyfill.functions.bash
         source ./lib/logging.functions.bash
         source ./lib/security.functions.bash
+        source ./lib/platform.functions.bash
         source ./lib/shared.functions.bash
         source ./lib/setup-user.functions.bash
 
@@ -297,6 +299,7 @@ EOF
       It "logs security events to stderr"
 # Test that security events are logged to stderr
         source ./lib/polyfill.functions.bash
+        source ./lib/logging.functions.bash
         source ./lib/security.functions.bash
 
         When call log_security_event "TEST_EVENT" "Test security message"

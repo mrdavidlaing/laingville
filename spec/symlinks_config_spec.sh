@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
 Describe "symlinks configuration in symlinks.yaml"
-  Include lib/shared.functions.bash
   Include lib/logging.functions.bash
+  Include lib/security.functions.bash
+  Include lib/platform.functions.bash
+  Include lib/packages.functions.bash
+  Include lib/shared.functions.bash
   Include lib/setup-user.functions.bash
   Include lib/symlinks.functions.bash
 
