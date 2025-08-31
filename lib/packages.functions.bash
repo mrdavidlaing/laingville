@@ -62,16 +62,16 @@ install_pacman_packages() {
   # Handle empty package lists
   [[ -z "${packages}" ]] && return 0
 
+  # Validate packages first (for security, even if pacman is not available)
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
   # Check if pacman is available (should always be on Arch)
   if ! command -v pacman > /dev/null 2>&1; then
     log_warning "pacman not found, skipping pacman packages"
     return
   fi
-
-  # Validate packages
-  local valid_packages
-  valid_packages=$(validate_and_filter_packages "${packages}")
-  [[ -z "${valid_packages}" ]] && return 0
 
   # Convert to array for processing
   local pkg_array=()
@@ -108,16 +108,16 @@ install_yay_packages() {
   # Handle empty package lists
   [[ -z "${packages}" ]] && return 0
 
+  # Validate packages first (for security, even if yay is not available)
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
   # Check if yay is available
   if ! command -v yay > /dev/null 2>&1; then
     log_warning "yay not found, skipping AUR packages"
     return
   fi
-
-  # Validate packages
-  local valid_packages
-  valid_packages=$(validate_and_filter_packages "${packages}")
-  [[ -z "${valid_packages}" ]] && return 0
 
   # Convert to array for processing
   local pkg_array=()
