@@ -161,7 +161,9 @@ log_indent() {
 }
 
 log_unindent() {
-  ((LOG_INDENT_LEVEL > 0)) && ((LOG_INDENT_LEVEL--)) || true
+  if ((LOG_INDENT_LEVEL > 0)); then
+    ((LOG_INDENT_LEVEL--))
+  fi
 }
 
 # Scoped indentation - auto-unindent after command

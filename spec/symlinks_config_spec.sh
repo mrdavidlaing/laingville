@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
+
 Describe "symlinks configuration in symlinks.yaml"
   Include lib/logging.functions.bash
   Include lib/security.functions.bash
@@ -43,6 +46,16 @@ macos:
 EOF
   }
 
+  # Cleanup temp directories after each test
+  AfterEach 'cleanup_temp_dir'
+  
+  cleanup_temp_dir() {
+  if [[ -n "${temp_dir:-}" && -d "${temp_dir}" ]]; then
+  rm -rf "${temp_dir}"
+  unset temp_dir
+  fi
+  }
+
   Describe "parse_symlinks_from_yaml"
     It "extracts simple string symlinks for arch platform"
       temp_dir=$(mktemp -d)
@@ -54,7 +67,6 @@ EOF
       The output should include ".config/nvim"
       The lines of output should equal 3
 
-      rm -rf "${temp_dir}"
     End
 
     It "extracts symlinks for wsl platform"
@@ -67,7 +79,6 @@ EOF
       The output should include ".gitconfig"
       The lines of output should equal 3
 
-      rm -rf "${temp_dir}"
     End
 
     It "handles mixed format symlinks for windows platform"
@@ -82,7 +93,6 @@ EOF
       The output should include ".config/1Password/settings|\$LOCALAPPDATA/1Password/settings"
       The lines of output should equal 4
 
-      rm -rf "${temp_dir}"
     End
 
     It "handles custom targets for macos platform"
@@ -95,7 +105,6 @@ EOF
       The output should include ".config/aerospace|\${HOME}/.aerospace"
       The lines of output should equal 3
 
-      rm -rf "${temp_dir}"
     End
 
     It "returns empty for non-existent platform"
@@ -105,7 +114,6 @@ EOF
       When call parse_symlinks_from_yaml "${temp_dir}/symlinks.yaml" "unknown"
       The output should equal ""
 
-      rm -rf "${temp_dir}"
     End
 
     It "handles missing symlinks section gracefully"
@@ -119,7 +127,6 @@ EOF
       When call parse_symlinks_from_yaml "${temp_dir}/symlinks.yaml" "arch"
       The output should equal ""
 
-      rm -rf "${temp_dir}"
     End
 
     It "handles missing symlinks.yaml file"
@@ -160,7 +167,6 @@ EOF
         The status should be success
         The output should include "Would: create: ${temp_dir}/home/.config/test.conf"
 
-        rm -rf "${temp_dir}"
       End
 
       It "creates symlink with custom target"
@@ -173,7 +179,6 @@ EOF
         The status should be success
         The output should include "Would: create: ${temp_dir}/custom/test.conf"
 
-        rm -rf "${temp_dir}"
       End
     End
 
@@ -189,7 +194,6 @@ EOF
         The path "${temp_dir}/home/.config/test.conf" should be symlink
         The contents of file "${temp_dir}/home/.config/test.conf" should equal "test content"
 
-        rm -rf "${temp_dir}"
       End
 
       It "creates symlink with custom target when target doesn't exist"
@@ -203,7 +207,6 @@ EOF
         The path "${temp_dir}/custom/test.conf" should be symlink
         The contents of file "${temp_dir}/custom/test.conf" should equal "test content"
 
-        rm -rf "${temp_dir}"
       End
 
       It "replaces existing symlink"
@@ -212,7 +215,7 @@ EOF
         echo "old content" > "${temp_dir}/dotfiles/.config/old.conf"
         echo "new content" > "${temp_dir}/dotfiles/.config/new.conf"
         mkdir -p "${temp_dir}/home/.config"
-        ln -s "${temp_dir}/dotfiles/.config/old.conf" "${temp_dir}/home/.config/test.conf"
+        command ln -s "${temp_dir}/dotfiles/.config/old.conf" "${temp_dir}/home/.config/test.conf"
 
         When call create_symlink_with_target "${temp_dir}/dotfiles/.config/new.conf" "" "${temp_dir}/home" false
         The status should be success
@@ -220,7 +223,6 @@ EOF
         The path "${temp_dir}/home/.config/new.conf" should be symlink
         The contents of file "${temp_dir}/home/.config/new.conf" should equal "new content"
 
-        rm -rf "${temp_dir}"
       End
 
       It "replaces existing regular file"
@@ -236,7 +238,6 @@ EOF
         The path "${temp_dir}/home/.config/test.conf" should be symlink
         The contents of file "${temp_dir}/home/.config/test.conf" should equal "symlink content"
 
-        rm -rf "${temp_dir}"
       End
 
       It "recreates identical directory symlink without creating cyclic links"
@@ -246,7 +247,7 @@ EOF
         mkdir -p "${temp_dir}/home/.config"
         
         # Create initial symlink (simulating first run of setup-user)
-        ln -s "${temp_dir}/dotfiles/.config/testdir" "${temp_dir}/home/.config/testdir"
+        command ln -s "${temp_dir}/dotfiles/.config/testdir" "${temp_dir}/home/.config/testdir"
         
         # Try to create the same symlink again (simulating second run of setup-user)
         When call create_symlink_with_target "${temp_dir}/dotfiles/.config/testdir" "" "${temp_dir}/home" false
@@ -260,7 +261,6 @@ EOF
         # CRITICAL: Verify no cyclic symlink was created in source directory
         The path "${temp_dir}/dotfiles/.config/testdir/testdir" should not be exist
 
-        rm -rf "${temp_dir}"
       End
     End
 
@@ -278,7 +278,6 @@ EOF
         The path "${temp_dir}/home/.config/test.conf" should be directory
         The path "${temp_dir}/home/.config/test.conf/test.conf" should not be exist
 
-        rm -rf "${temp_dir}"
       End
 
       It "fails when custom target exists as directory"
@@ -294,7 +293,6 @@ EOF
         The path "${temp_dir}/custom/test.conf" should be directory
         The path "${temp_dir}/custom/test.conf/test.conf" should not be exist
 
-        rm -rf "${temp_dir}"
       End
 
       It "fails when target exists as directory in dry-run mode"
@@ -309,7 +307,6 @@ EOF
         The error should include "Cannot create symlink"
         The path "${temp_dir}/home/.config/test.conf" should be directory
 
-        rm -rf "${temp_dir}"
       End
     End
 
@@ -327,7 +324,6 @@ EOF
         The contents of file "${temp_dir}/expanded/test.conf" should equal "test content"
 
         unset TEST_TARGET_DIR
-        rm -rf "${temp_dir}"
       End
     End
 

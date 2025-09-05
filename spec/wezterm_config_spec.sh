@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
+
 Describe 'WezTerm configuration validation'
   Describe 'dotfiles/mrdavidlaing/.config/wezterm/wezterm.lua'
     It 'should have valid WezTerm syntax and load without errors'

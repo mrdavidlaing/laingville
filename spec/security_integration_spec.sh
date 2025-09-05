@@ -1,4 +1,7 @@
 Describe "security integration tests"
+
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 
     Describe "setup scripts reject malicious package configurations"
@@ -28,6 +31,12 @@ cat > "${fake_bin}/pacman" << 'EOF'
 echo "fake pacman for testing"
 EOF
         chmod +x "${fake_bin}/pacman"
+
+cat > "${fake_bin}/yay" << 'EOF'
+#!/bin/bash
+echo "fake yay for testing"
+EOF
+        chmod +x "${fake_bin}/yay"
 
 # Test setup-user rejects malicious packages
         export DOTFILES_DIR="${malicious_dir}"
@@ -102,6 +111,12 @@ cat > "${fake_bin}/pacman" << 'EOF'
 echo "fake pacman for testing"
 EOF
         chmod +x "${fake_bin}/pacman"
+
+cat > "${fake_bin}/yay" << 'EOF'
+#!/bin/bash
+echo "fake yay for testing"
+EOF
+        chmod +x "${fake_bin}/yay"
 
         export DOTFILES_DIR="${test_dir}"
         export PATH="${fake_bin}:${PATH}"

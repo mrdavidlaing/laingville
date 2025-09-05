@@ -1,4 +1,7 @@
 Describe "polyfill.functions.bash"
+
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
 # shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
     Before "source ./lib/logging.functions.bash"

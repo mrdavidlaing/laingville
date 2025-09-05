@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
+
 Describe 'Lazygit configuration validation'
   Describe 'dotfiles/mrdavidlaing/.config/lazygit/config.yml'
     It 'should have valid YAML syntax and be parseable by lazygit'

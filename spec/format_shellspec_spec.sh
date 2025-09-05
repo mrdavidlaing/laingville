@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
+
 Describe "format-shellspec.sh script"
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 

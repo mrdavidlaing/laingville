@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
+
 Describe 'tmux configuration validation'
   Describe 'dotfiles/mrdavidlaing/.config/tmux/tmux.conf'
     It 'should have valid tmux syntax'

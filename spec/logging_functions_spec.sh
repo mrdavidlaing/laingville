@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
+# shellcheck disable=SC2218
+
 Describe "logging.functions.bash"
 # shellcheck disable=SC2154  # SHELLSPEC_PROJECT_ROOT is set by shellspec framework
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
