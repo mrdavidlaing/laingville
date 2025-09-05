@@ -208,5 +208,6 @@ nix:
     - navi
     - k9s
     - gnumake
+    - clang
   custom:
     - install_claude_code
