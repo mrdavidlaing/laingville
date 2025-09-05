@@ -186,7 +186,7 @@ nix:
     - terraform-ls
     - gopls
     - yaml-language-server
-    - dockerfile-language-server
+    - dockerfile-language-server-nodejs
     - yq-go
     - starship
     - zoxide
