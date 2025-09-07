@@ -46,7 +46,11 @@ User instructions: $ARGUMENTS
 
 6. **Update .gitmessage** with generated message and preserved metadata
 
-7. **Report with proposed commit message**:
+7. **Configure git to use the template**:
+   - Run `git config commit.template .gitmessage` to set repo-specific template
+   - This ensures `git commit -v` will automatically use the prepared message
+
+8. **Report with proposed commit message**:
    ```
    Staged X files:
    - path/to/file1
@@ -130,4 +134,5 @@ When creating new .gitmessage, include these AGENT instruction comments:
    - Preserve story IDs and co-author information
 6. Generate conventional commit message based on staged changes and user intent
 7. Write message to .gitmessage preserving AGENT instructions
-8. Report staged files, proposed message, and recommend `git commit -v`
+8. Configure git to use template: `git config commit.template .gitmessage`
+9. Report staged files, proposed message, and recommend `git commit -v`
