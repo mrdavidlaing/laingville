@@ -312,50 +312,50 @@ config.launch_menu = {
   },
 }
 
--- Leader key configuration
-config.leader = { key = 'b', mods = 'CTRL', timeout_milliseconds = 2000 }
+-- Leader key configuration (changed from CTRL to ALT to avoid conflicts)
+config.leader = { key = 'b', mods = 'ALT', timeout_milliseconds = 2000 }
 
 -- Help data structure for searchable key bindings
 local help_bindings = {
   -- PANES
-  { category = 'PANES', key = "Ctrl+b '", desc = 'Split pane horizontally (right)' },
-  { category = 'PANES', key = 'Ctrl+b |', desc = 'Split pane horizontally (right)' },
-  { category = 'PANES', key = 'Ctrl+b -', desc = 'Split pane vertically (down)' },
-  { category = 'PANES', key = 'Ctrl+b "', desc = 'Horizontal split with shell menu' },
-  { category = 'PANES', key = 'Ctrl+b %', desc = 'Vertical split with shell menu' },
-  { category = 'PANES', key = 'Ctrl+b h', desc = 'Navigate to left pane' },
-  { category = 'PANES', key = 'Ctrl+b j', desc = 'Navigate to pane below' },
-  { category = 'PANES', key = 'Ctrl+b k', desc = 'Navigate to pane above' },
-  { category = 'PANES', key = 'Ctrl+b l', desc = 'Navigate to right pane' },
-  { category = 'PANES', key = 'Ctrl+b H', desc = 'Resize pane left (enter resize mode)' },
-  { category = 'PANES', key = 'Ctrl+b J', desc = 'Resize pane down (enter resize mode)' },
-  { category = 'PANES', key = 'Ctrl+b K', desc = 'Resize pane up (enter resize mode)' },
-  { category = 'PANES', key = 'Ctrl+b L', desc = 'Resize pane right (enter resize mode)' },
-  { category = 'PANES', key = 'Ctrl+b q', desc = 'Show pane numbers for selection' },
-  { category = 'PANES', key = 'Ctrl+b }', desc = 'Swap panes clockwise' },
-  { category = 'PANES', key = 'Ctrl+b {', desc = 'Swap panes counterclockwise' },
-  { category = 'PANES', key = 'Ctrl+b x', desc = 'Close current pane (with confirmation)' },
-  { category = 'PANES', key = 'Ctrl+b s', desc = 'Toggle pane zoom' },
+  { category = 'PANES', key = "Alt+b '", desc = 'Split pane horizontally (right)' },
+  { category = 'PANES', key = 'Alt+b |', desc = 'Split pane horizontally (right)' },
+  { category = 'PANES', key = 'Alt+b -', desc = 'Split pane vertically (down)' },
+  { category = 'PANES', key = 'Alt+b "', desc = 'Horizontal split with shell menu' },
+  { category = 'PANES', key = 'Alt+b %', desc = 'Vertical split with shell menu' },
+  { category = 'PANES', key = 'Alt+b h', desc = 'Navigate to left pane' },
+  { category = 'PANES', key = 'Alt+b j', desc = 'Navigate to pane below' },
+  { category = 'PANES', key = 'Alt+b k', desc = 'Navigate to pane above' },
+  { category = 'PANES', key = 'Alt+b l', desc = 'Navigate to right pane' },
+  { category = 'PANES', key = 'Alt+b H', desc = 'Resize pane left (enter resize mode)' },
+  { category = 'PANES', key = 'Alt+b J', desc = 'Resize pane down (enter resize mode)' },
+  { category = 'PANES', key = 'Alt+b K', desc = 'Resize pane up (enter resize mode)' },
+  { category = 'PANES', key = 'Alt+b L', desc = 'Resize pane right (enter resize mode)' },
+  { category = 'PANES', key = 'Alt+b q', desc = 'Show pane numbers for selection' },
+  { category = 'PANES', key = 'Alt+b }', desc = 'Swap panes clockwise' },
+  { category = 'PANES', key = 'Alt+b {', desc = 'Swap panes counterclockwise' },
+  { category = 'PANES', key = 'Alt+b x', desc = 'Close current pane (with confirmation)' },
+  { category = 'PANES', key = 'Alt+b s', desc = 'Toggle pane zoom' },
   
   -- TABS
-  { category = 'TABS', key = 'Ctrl+b c', desc = 'Create new tab' },
-  { category = 'TABS', key = 'Ctrl+b C', desc = 'Create new tab with shell menu' },
-  { category = 'TABS', key = 'Ctrl+b ,', desc = 'Rename current tab' },
-  { category = 'TABS', key = 'Ctrl+b 1', desc = 'Go to tab 1' },
-  { category = 'TABS', key = 'Ctrl+b 2', desc = 'Go to tab 2' },
-  { category = 'TABS', key = 'Ctrl+b 3', desc = 'Go to tab 3' },
-  { category = 'TABS', key = 'Ctrl+b 4', desc = 'Go to tab 4' },
-  { category = 'TABS', key = 'Ctrl+b 5', desc = 'Go to tab 5' },
-  { category = 'TABS', key = 'Ctrl+b 6', desc = 'Go to tab 6' },
-  { category = 'TABS', key = 'Ctrl+b 7', desc = 'Go to tab 7' },
-  { category = 'TABS', key = 'Ctrl+b 8', desc = 'Go to tab 8' },
-  { category = 'TABS', key = 'Ctrl+b 9', desc = 'Go to tab 9' },
+  { category = 'TABS', key = 'Alt+b c', desc = 'Create new tab' },
+  { category = 'TABS', key = 'Alt+b C', desc = 'Create new tab with shell menu' },
+  { category = 'TABS', key = 'Alt+b ,', desc = 'Rename current tab' },
+  { category = 'TABS', key = 'Alt+b 1', desc = 'Go to tab 1' },
+  { category = 'TABS', key = 'Alt+b 2', desc = 'Go to tab 2' },
+  { category = 'TABS', key = 'Alt+b 3', desc = 'Go to tab 3' },
+  { category = 'TABS', key = 'Alt+b 4', desc = 'Go to tab 4' },
+  { category = 'TABS', key = 'Alt+b 5', desc = 'Go to tab 5' },
+  { category = 'TABS', key = 'Alt+b 6', desc = 'Go to tab 6' },
+  { category = 'TABS', key = 'Alt+b 7', desc = 'Go to tab 7' },
+  { category = 'TABS', key = 'Alt+b 8', desc = 'Go to tab 8' },
+  { category = 'TABS', key = 'Alt+b 9', desc = 'Go to tab 9' },
   
   -- TOOLS
-  { category = 'TOOLS', key = 'Ctrl+b m', desc = 'Launch shell menu' },
-  { category = 'TOOLS', key = 'Ctrl+b r', desc = 'Reload WezTerm configuration' },
-  { category = 'TOOLS', key = 'Ctrl+b [', desc = 'Enter copy mode (vi-style navigation)' },
-  { category = 'TOOLS', key = 'Ctrl+b p', desc = 'Paste from clipboard' },
+  { category = 'TOOLS', key = 'Alt+b m', desc = 'Launch shell menu' },
+  { category = 'TOOLS', key = 'Alt+b r', desc = 'Reload WezTerm configuration' },
+  { category = 'TOOLS', key = 'Alt+b [', desc = 'Enter copy mode (vi-style navigation)' },
+  { category = 'TOOLS', key = 'Alt+b p', desc = 'Paste from clipboard' },
   
   -- COPY/PASTE
   { category = 'COPY/PASTE', key = 'Ctrl+Shift+C', desc = 'Copy selection to clipboard' },
@@ -381,12 +381,12 @@ local help_bindings = {
   { category = 'RESIZE MODE', key = 'Escape/Enter/q', desc = 'Exit resize mode' },
   
   -- POMODORO
-  { category = 'POMODORO', key = 'Ctrl+b P', desc = 'Start work timer (25 minutes)' },
-  { category = 'POMODORO', key = 'Ctrl+b B', desc = 'Start break timer (5 minutes)' },
-  { category = 'POMODORO', key = 'Ctrl+b S', desc = 'Stop current timer' },
+  { category = 'POMODORO', key = 'Alt+b P', desc = 'Start work timer (25 minutes)' },
+  { category = 'POMODORO', key = 'Alt+b B', desc = 'Start break timer (5 minutes)' },
+  { category = 'POMODORO', key = 'Alt+b S', desc = 'Stop current timer' },
   
   -- HELP
-  { category = 'HELP', key = 'Ctrl+b ?', desc = 'Show this searchable help' },
+  { category = 'HELP', key = 'Alt+b ?', desc = 'Show this searchable help' },
 }
 
 -- Key bindings
@@ -738,7 +738,7 @@ config.keys = {
             inner_window:toast_notification('WezTerm Help', 'Key binding: ' .. id, nil, 3000)
           end
         end),
-        title = 'WezTerm Key Bindings (Leader: Ctrl+b) - Type to search',
+        title = 'WezTerm Key Bindings (Leader: Alt+b) - Type to search',
         choices = choices,
         fuzzy = true,
         description = 'Searchable help for all WezTerm key bindings. Press Escape to close.',
