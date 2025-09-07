@@ -1,6 +1,9 @@
 # Lazygit configuration for mrdavidlaing
 # Optimized for monitoring AI assistant changes in tmux/WezTerm environment
 
+# Disable startup popups including donate link (you've already donated!)
+disableStartupPopups: true
+
 gui:
   # Theme matching WezTerm Solarized Dark (only essential overrides)
   theme:
@@ -13,9 +16,9 @@ gui:
   
   # UI preferences for AI monitoring workflow
   showFileTree: true
-  showRandomTip: false
+  showRandomTip: true
   showBranchCommitHash: true
-  showBottomLine: false
+  showBottomLine: true
   showCommandLog: false
   mouseEvents: true
   scrollHeight: 2
