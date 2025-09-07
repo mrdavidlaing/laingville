@@ -21,7 +21,7 @@ fi
 if [[ "${DRY_RUN}" = true ]]; then
   echo "RECTANGLE CONFIG:"
   echo "* Would: configure Meta + number key shortcuts for width ratios"
-  echo "* Would: configure Meta + Enter for maximize"
+  echo "* Would: configure Meta + M for maximize"
   echo "* Would: configure Meta + Shift for multi-monitor"
   exit 0
 fi
@@ -37,9 +37,9 @@ defaults write com.knollsoft.Rectangle allowAnyShortcut -bool true
 defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool false
 defaults write com.knollsoft.Rectangle subsequentExecutionMode -int 2
 
-# Maximize: ⌘ + Enter
+# Maximize: ⌘ + M (changed from ⌘ + Enter to avoid conflicts)
 defaults write com.knollsoft.Rectangle maximize -dict \
-  keyCode -int 36 \
+  keyCode -int 46 \
   modifierFlags -int 1048576
 
 # Width positioning using number keys: ⌘ + 1/2/3/4
@@ -74,6 +74,10 @@ defaults write com.knollsoft.Rectangle previousDisplay -dict \
   keyCode -int 123 \
   modifierFlags -int 1179648
 
+# Disable conflicting shortcuts by removing their key bindings
+# Remove Meta + F (thirds middle) to avoid conflicts with other apps
+defaults delete com.knollsoft.Rectangle centerThird 2> /dev/null || true
+
 # Restart Rectangle to apply changes
 open -a Rectangle
 sleep 1
@@ -81,6 +85,6 @@ sleep 1
 echo "Rectangle configuration complete."
 echo ""
 echo "New shortcuts:"
-echo "  ⌘ + Enter         - Maximize"
+echo "  ⌘ + M             - Maximize (changed from ⌘ + Enter to avoid conflicts)"
 echo "  ⌘ + 1/2/3/4       - Width ratios: Left 1/2, Left 3/4, Right 1/2, Right 1/4"
 echo "  ⌘ + Shift + Left/Right - Multi-monitor movement"
