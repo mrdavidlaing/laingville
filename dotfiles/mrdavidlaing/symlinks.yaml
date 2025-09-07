@@ -84,6 +84,9 @@ macos:
   - .config/lazygit
   # Editor
   - .config/nvim
+  # Claude Code commands
+  - source: .claude/commands
+    target: ~/.claude/commands
 
 # Nix - terminal-focused like WSL
 nix:
