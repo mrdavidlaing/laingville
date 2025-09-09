@@ -29,7 +29,7 @@ User instructions: $ARGUMENTS
    - Use `git reset` to unstage files that don't match
    - Report what was staged vs left unstaged
 
-4. **Check/Create .gitmessage**:
+4. **Check/Create .git/gitmessage**:
    - If NOT exists: analyze last 5 commits for patterns
    - If exists: parse AGENT instructions
    
@@ -38,16 +38,17 @@ User instructions: $ARGUMENTS
    - Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
    - Keep description under 72 characters
    - Add body if needed for context
+   - **Do NOT include "🤖 Generated with [Claude Code]" signature**
    - Based on:
      - What was actually staged
      - The work context from our conversation
-     - Repo conventions from .gitmessage
+     - Repo conventions from .git/gitmessage
      - User's instructions about the commit focus
 
-6. **Update .gitmessage** with generated message and preserved metadata
+6. **Update .git/gitmessage** with generated message and preserved metadata
 
 7. **Configure git to use the template**:
-   - Run `git config commit.template .gitmessage` to set repo-specific template
+   - Run `git config commit.template .git/gitmessage` to set repo-specific template
    - This ensures `git commit -v` will automatically use the prepared message
 
 8. **Report with proposed commit message**:
@@ -69,7 +70,7 @@ User instructions: $ARGUMENTS
    Co-Authored-By: Claude <noreply@anthropic.com>
    ----------------------------------------
    
-   Commit message prepared in .gitmessage
+   Commit message prepared in .git/gitmessage
    Run 'git commit -v' to review, edit, and finalize
    ```
    
@@ -98,9 +99,9 @@ If user says: "the refactoring we just did"
 - Use conversation context to identify refactored files
 - Message: "refactor(auth): extract validation logic to middleware"
 
-### AGENT Instructions Template for .gitmessage:
+### AGENT Instructions Template for .git/gitmessage:
 
-When creating new .gitmessage, include these AGENT instruction comments:
+When creating new .git/gitmessage, include these AGENT instruction comments:
 
 ```
 # AGENT: === Commit Style ===
@@ -126,13 +127,13 @@ When creating new .gitmessage, include these AGENT instruction comments:
 1. Run `git status --porcelain` to see all changes
 2. Interpret user instructions to determine which files to stage
 3. Stage appropriate files with `git add [files]`
-4. If .gitmessage doesn't exist:
+4. If .git/gitmessage doesn't exist:
    - Run `git log -5 --pretty=format:"%B%n---"` to analyze patterns
-   - Create .gitmessage with discovered patterns and AGENT instructions
-5. If .gitmessage exists:
+   - Create .git/gitmessage with discovered patterns and AGENT instructions
+5. If .git/gitmessage exists:
    - Read and parse existing AGENT instructions
    - Preserve story IDs and co-author information
 6. Generate conventional commit message based on staged changes and user intent
-7. Write message to .gitmessage preserving AGENT instructions
-8. Configure git to use template: `git config commit.template .gitmessage`
+7. Write message to .git/gitmessage preserving AGENT instructions
+8. Configure git to use template: `git config commit.template .git/gitmessage`
 9. Report staged files, proposed message, and recommend `git commit -v`
