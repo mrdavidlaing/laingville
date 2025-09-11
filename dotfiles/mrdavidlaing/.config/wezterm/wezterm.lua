@@ -37,6 +37,18 @@ config.mouse_bindings = {
     mods = 'NONE',
     action = wezterm.action.CompleteSelection 'ClipboardAndPrimarySelection',
   },
+  -- Super+Click to open hyperlinks (Cmd on macOS, Win on Windows, Super on Linux)
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'SUPER',
+    action = wezterm.action.OpenLinkAtMouseCursor,
+  },
+  -- Disable the 'Down' event of Super+Click to avoid weird behaviors
+  {
+    event = { Down = { streak = 1, button = 'Left' } },
+    mods = 'SUPER',
+    action = wezterm.action.Nop,
+  },
   -- Double click - select word and copy
   {
     event = { Up = { streak = 2, button = 'Left' } },
@@ -267,6 +279,9 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
     { Text = ' ' .. tab.tab_index + 1 .. ':' .. title .. ' ' },
   }
 end)
+
+-- Hyperlink rules configuration (use WezTerm defaults for URL detection)
+config.hyperlink_rules = wezterm.default_hyperlink_rules()
 
 -- Terminal type configuration (using standard compatibility)
 config.term = 'xterm-256color'
