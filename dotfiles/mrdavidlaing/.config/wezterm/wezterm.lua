@@ -745,6 +745,13 @@ config.keys = {
       }, pane)
     end),
   },
+  
+  -- Claude Code terminal setup key binding
+  {
+    key = "Enter",
+    mods = "SHIFT",
+    action = wezterm.action{SendString="\x1b\r"}
+  },
 }
 
 -- Copy mode and resize mode key bindings (enhanced vi-style like tmux)
