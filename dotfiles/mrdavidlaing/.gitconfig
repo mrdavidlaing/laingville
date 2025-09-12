@@ -13,6 +13,9 @@
 [core]
 	pager = bat --style=plain --color=always --paging=always
 
+[commit]
+	cleanup = whitespace
+
 [pager]
 	log = bat --style=numbers,changes --color=always
 	show = bat --style=numbers,changes --color=always
