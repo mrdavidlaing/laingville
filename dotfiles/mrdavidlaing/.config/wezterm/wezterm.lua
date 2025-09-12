@@ -350,7 +350,7 @@ local help_bindings = {
   { category = 'PANES', key = 'Alt+b }', desc = 'Swap panes clockwise' },
   { category = 'PANES', key = 'Alt+b {', desc = 'Swap panes counterclockwise' },
   { category = 'PANES', key = 'Alt+b x', desc = 'Close current pane (with confirmation)' },
-  { category = 'PANES', key = 'Alt+b s', desc = 'Toggle pane zoom' },
+  { category = 'PANES', key = 'Alt+b z', desc = 'Toggle pane zoom' },
   
   -- TABS
   { category = 'TABS', key = 'Alt+b c', desc = 'Create new tab' },
@@ -608,14 +608,11 @@ config.keys = {
     action = wezterm.action.ActivateCopyMode,
   },
   
-  -- Toggle synchronize panes (useful for multi-pane operations)
+  -- Toggle pane zoom (matching tmux)
   {
-    key = 's',
+    key = 'z',
     mods = 'LEADER',
-    action = wezterm.action.Multiple {
-      wezterm.action.SendKey { key = 'Escape' },
-      wezterm.action.TogglePaneZoomState,
-    },
+    action = wezterm.action.TogglePaneZoomState,
   },
   
   -- Swap panes (matching tmux)
