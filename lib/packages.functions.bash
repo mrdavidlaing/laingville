@@ -87,6 +87,12 @@ install_pacman_packages() {
   else
     log_info "Installing pacman packages: ${pkg_array[*]}"
 
+    # Refresh package databases first to avoid 404 errors
+    log_info "Refreshing package databases..."
+    if ! sudo pacman -Syy; then
+      log_warning "Failed to refresh package databases, continuing anyway..."
+    fi
+
     # Batch installation with proper quoting
     local quoted_packages=()
     for pkg in "${pkg_array[@]}"; do
@@ -132,6 +138,12 @@ install_yay_packages() {
     log_dry_run "install via yay: ${pkg_list}"
   else
     log_info "Installing yay packages: ${pkg_array[*]}"
+
+    # Refresh package databases first to avoid 404 errors
+    log_info "Refreshing package databases..."
+    if ! yay -Syy; then
+      log_warning "Failed to refresh package databases, continuing anyway..."
+    fi
 
     # Batch installation with --batchinstall and proper quoting
     local quoted_packages=()
