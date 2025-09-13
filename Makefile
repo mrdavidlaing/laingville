@@ -17,6 +17,9 @@ format:
 			-not -path "./spec/fixtures/*" \
 			-not -name "*_spec.sh" \
 			-exec shfmt -w {} \; ; \
+		echo "🎨 Formatting mrdavidlaing's Claude scripts..."; \
+		find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" -exec shfmt -w {} \; 2>/dev/null || true; \
+		find ./dotfiles/mrdavidlaing/.claude/wrappers -type f -exec shfmt -w {} \; 2>/dev/null || true; \
 		echo "✅ Bash formatting complete"; \
 	else \
 		echo "⚠️  shfmt not found. Skipping bash formatting"; \
@@ -34,6 +37,9 @@ lint:
 			-not -path "./dotfiles/*/.*" \
 			-exec shellcheck {} \; ; \
 		shellcheck setup.sh setup-secrets; \
+		echo "🔍 Linting mrdavidlaing's Claude scripts..."; \
+		find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" -exec shellcheck {} \; 2>/dev/null || true; \
+		find ./dotfiles/mrdavidlaing/.claude/wrappers -type f -exec shellcheck {} \; 2>/dev/null || true; \
 		echo "✅ Linting complete"; \
 	else \
 		echo "⚠️  shellcheck not found. Skipping linting"; \
@@ -79,6 +85,9 @@ check:
 			-not -path "./.git/*" \
 			-not -path "./dotfiles/*/.*" \
 			-exec shfmt -d {} \; ; \
+		echo "📋 Checking format of mrdavidlaing's Claude scripts..."; \
+		find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" -exec shfmt -d {} \; 2>/dev/null || true; \
+		find ./dotfiles/mrdavidlaing/.claude/wrappers -type f -exec shfmt -d {} \; 2>/dev/null || true; \
 	else \
 		echo "⚠️  shfmt not found. Skipping format check"; \
 	fi

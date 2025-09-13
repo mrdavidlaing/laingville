@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Git wrapper for Claude Code that loads direnv environment
+# This ensures git commands (especially commits with pre-commit hooks)
+# have access to tools installed via nix/direnv
+
+set -euo pipefail
+
+# Enable debug mode if CLAUDE_CODE_DIRENV_DEBUG is set
+DEBUG=${CLAUDE_CODE_DIRENV_DEBUG:-0}
+
+debug_log() {
+	if [[ "$DEBUG" == "1" ]]; then
+		echo "[git-direnv-wrapper] $*" >&2
+	fi
+}
+
+# Find the real git executable (skip this wrapper)
+find_real_git() {
+	local path_dirs
+	IFS=':' read -ra path_dirs <<<"$PATH"
+
+	for dir in "${path_dirs[@]}"; do
+		# Skip our wrapper directory
+		if [[ "$dir" == *"/.claude/wrappers"* ]]; then
+			continue
+		fi
+
+		if [[ -x "$dir/git" ]]; then
+			echo "$dir/git"
+			return 0
+		fi
+	done
+
+	# Fallback to common locations
+	for git_path in /usr/bin/git /opt/homebrew/bin/git /usr/local/bin/git; do
+		if [[ -x "$git_path" ]]; then
+			echo "$git_path"
+			return 0
+		fi
+	done
+
+	echo "git" # Last resort, let the system find it
+}
+
+# Function to find the nearest .envrc file
+find_envrc_dir() {
+	local dir="$1"
+	while [[ "$dir" != "/" ]]; do
+		if [[ -f "$dir/.envrc" ]]; then
+			echo "$dir"
+			return 0
+		fi
+		dir=$(dirname "$dir")
+	done
+	return 1
+}
+
+GIT_REAL=$(find_real_git)
+debug_log "Using real git at: $GIT_REAL"
+
+# Get the current working directory
+CURRENT_DIR="${PWD:-$(pwd)}"
+debug_log "Current directory: $CURRENT_DIR"
+
+# Check if direnv is available and we have an .envrc
+if command -v direnv >/dev/null 2>&1; then
+	# shellcheck disable=SC2310 # We intentionally check function success in if statement
+	if ENVRC_DIR=$(find_envrc_dir "$CURRENT_DIR"); then
+		debug_log "Found .envrc in: $ENVRC_DIR"
+		debug_log "Running: direnv exec '$ENVRC_DIR' '$GIT_REAL' $*"
+
+		# Use direnv exec to run git with the proper environment
+		exec direnv exec "$ENVRC_DIR" "$GIT_REAL" "$@"
+	else
+		debug_log "No .envrc found, running git directly"
+	fi
+else
+	debug_log "direnv not available, running git directly"
+fi
+
+# If we get here, just run git normally
+debug_log "Running: '$GIT_REAL' $*"
+exec "$GIT_REAL" "$@"
