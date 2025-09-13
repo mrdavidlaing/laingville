@@ -1,0 +1,13 @@
+# Entware packages for dwaca router
+# Note: These are installed via opkg, not the usual package managers
+
+entware:
+  packages:
+    - git
+    - rsync
+    - htop
+    - nano
+
+# Custom scripts to run
+custom:
+  - apply_router_configs
