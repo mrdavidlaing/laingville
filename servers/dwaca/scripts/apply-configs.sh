@@ -28,6 +28,14 @@ if [ -f "$CONFIG_DIR/test-motd" ]; then
   log "✓ MOTD updated"
 fi
 
+# Apply profile additions (for SSH login customization)
+if [ -f "$CONFIG_DIR/profile.add" ]; then
+  log "Applying profile additions..."
+  cp "$CONFIG_DIR/profile.add" "$JFFS_DIR/profile.add"
+  chmod +x "$JFFS_DIR/profile.add"
+  log "✓ Profile additions updated"
+fi
+
 # Apply Diversion allowlist (if exists)
 if [ -f "$CONFIG_DIR/diversion-allowlist" ]; then
   log "Applying Diversion allowlist..."
