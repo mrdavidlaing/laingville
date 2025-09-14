@@ -8,6 +8,7 @@ arch:
     - base-devel
     - make
     - bash
+    - glibc-locales
     - direnv
     - git
     - github-cli
@@ -69,11 +70,13 @@ wsl:
     - base-devel
     - make
     - bash
+    - glibc-locales
     - direnv
     - git
     - github-cli
     - tig
     - lazygit
+    - rsync
     - neovim
     - lua-language-server
     - bash-language-server
@@ -133,6 +136,7 @@ macos:
     - tig
     - lazygit
     - gh
+    - rsync
     - neovim
     - lua-language-server
     - bash-language-server

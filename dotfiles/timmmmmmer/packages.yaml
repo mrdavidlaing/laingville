@@ -15,6 +15,7 @@ arch:
     - git
     - github-cli
     - ripgrep
+    - rsync
     - jq
     - nodejs
     - openssh

@@ -576,3 +576,61 @@ setup_symlinks_from_yaml() {
 
   return 0 # Indicate symlinks.yaml was used successfully
 }
+
+# Configure locale generation for Arch Linux systems
+setup_arch_locales() {
+  local dry_run="$1"
+
+  # Only run on Arch-based systems
+  if ! command -v pacman > /dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "configure locale generation"
+    log_dry_run "enable en_US.UTF-8 in /etc/locale.gen"
+    log_dry_run "generate locales with locale-gen"
+    log_dry_run "set system locale to en_US.UTF-8"
+    return 0
+  fi
+
+  log_info "Configuring locale generation..."
+
+  # Check if en_US.UTF-8 is already enabled
+  if ! grep -q "^en_US.UTF-8 UTF-8" /etc/locale.gen 2> /dev/null; then
+    log_info "Enabling en_US.UTF-8 locale..."
+
+    # Enable en_US.UTF-8 in locale.gen
+    if sudo sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen; then
+      log_success "Enabled en_US.UTF-8 in /etc/locale.gen"
+    else
+      log_warning "Failed to enable en_US.UTF-8 in /etc/locale.gen"
+      return 1
+    fi
+
+    # Generate locales
+    log_info "Generating locales..."
+    if sudo locale-gen; then
+      log_success "Successfully generated locales"
+    else
+      log_warning "Failed to generate locales"
+      return 1
+    fi
+  else
+    log_info "en_US.UTF-8 locale already enabled"
+  fi
+
+  # Set system locale
+  if [[ ! -f /etc/locale.conf ]] || ! grep -q "LANG=en_US.UTF-8" /etc/locale.conf 2> /dev/null; then
+    log_info "Setting system locale to en_US.UTF-8..."
+    echo "LANG=en_US.UTF-8" | sudo tee /etc/locale.conf > /dev/null
+    log_success "Set system locale to en_US.UTF-8"
+  else
+    log_info "System locale already set to en_US.UTF-8"
+  fi
+
+  # Also update current session environment
+  export LANG=en_US.UTF-8
+  export LC_ALL=en_US.UTF-8
+  log_info "Updated current session locale environment"
+}

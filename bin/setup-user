@@ -132,6 +132,12 @@ fi
 
 handle_packages "$PLATFORM" "$DRY_RUN"
 
+# Platform-specific locale setup
+if [ "$PLATFORM" = "arch" ] || [ "$PLATFORM" = "wsl" ]; then
+    log_subsection "Locale Configuration"
+    setup_arch_locales "$DRY_RUN"
+fi
+
 # Setup systemd user services (like dynamic wallpaper timer)
 log_subsection "System Services"
 setup_systemd_services "$DRY_RUN"
