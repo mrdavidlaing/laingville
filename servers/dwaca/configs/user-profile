@@ -1,0 +1,19 @@
+#!/bin/sh
+# User profile for admin
+
+# Source the global profile
+[ -f /etc/profile ] && . /etc/profile
+
+# Display MOTD
+if [ -f /jffs/configs/motd ]; then
+    cat /jffs/configs/motd
+fi
+
+# Custom aliases
+alias ll='ls -la'
+alias diversion='/opt/bin/diversion'
+alias dwaca-apply='/opt/laingville/servers/dwaca/scripts/apply-configs.sh'
+alias dwaca-pull='cd /opt/laingville && git pull && dwaca-apply'
+
+# Custom prompt
+PS1='\u@\h:\w\$ '

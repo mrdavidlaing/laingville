@@ -36,6 +36,14 @@ if [ -f "$CONFIG_DIR/profile.add" ]; then
   log "✓ Profile additions updated"
 fi
 
+# Apply user profile (for dropbear SSH login)
+if [ -f "$CONFIG_DIR/user-profile" ]; then
+  log "Applying user profile..."
+  cp "$CONFIG_DIR/user-profile" /tmp/home/root/.profile
+  chmod 644 /tmp/home/root/.profile
+  log "✓ User profile updated"
+fi
+
 # Apply Diversion allowlist (if exists)
 if [ -f "$CONFIG_DIR/diversion-allowlist" ]; then
   log "Applying Diversion allowlist..."
