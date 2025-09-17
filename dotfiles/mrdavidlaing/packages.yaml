@@ -60,6 +60,7 @@ arch:
     - gimp
     - ttf-jetbrains-mono-nerd
     - vivaldi
+    - zen-bin
     - 1password-cli
   custom:
     - install_claude_code
@@ -119,6 +120,7 @@ windows:
   winget:
     - Alacritty.Alacritty
     - Mozilla.Firefox
+    - Zen-Team.Zen-Browser
     - Microsoft.PowerToys
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
@@ -166,10 +168,12 @@ macos:
     - shfmt
     - speedtest-cli
   cask:
+    - jordanbaird-ice  # Menu bar manager for notch-aware icon management
     - nikitabobko/tap/aerospace
     - rectangle
     - alacritty
     - wezterm@nightly
+    - zen
     - 1password-cli
     - font-jetbrains-mono-nerd-font
     - docker-desktop
@@ -178,6 +182,7 @@ macos:
     - install_claude_code
     - install_nil
     - configure_rectangle
+    - configure_ice
 
 # Nix - package management
 nix:
