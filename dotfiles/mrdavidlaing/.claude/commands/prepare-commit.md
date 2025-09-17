@@ -46,6 +46,8 @@ User instructions: $ARGUMENTS
      - User's instructions about the commit focus
 
 6. **Update .git/gitmessage** with generated message and preserved metadata
+   - Use Git scissors line `# ------------------------ >8 ------------------------` before AGENT instructions
+   - This ensures AGENT metadata is preserved but excluded from actual commit message
 
 7. **Configure git to use the template**:
    - Run `git config commit.template .git/gitmessage` to set repo-specific template
@@ -101,23 +103,26 @@ If user says: "the refactoring we just did"
 
 ### AGENT Instructions Template for .git/gitmessage:
 
-When creating new .git/gitmessage, include these AGENT instruction comments:
+When creating new .git/gitmessage, include these AGENT instruction comments after the scissors line:
 
 ```
+[commit message content]
+
+# ------------------------ >8 ------------------------
 # AGENT: === Commit Style ===
 # AGENT: format: conventional
 # AGENT: types: [feat, fix, docs, style, refactor, test, chore, perf, ci, build]
 # AGENT: scope_required: false
 # AGENT: max_line_length: 72
-# AGENT: 
+# AGENT:
 # AGENT: === Story Tracking ===
 # AGENT: story_format: [detected from git history]
 # AGENT: story_current: [latest story ID found]
-# AGENT: 
+# AGENT:
 # AGENT: === Team ===
 # AGENT: default_coauthors: David Laing <david@laing.xyz>, Claude <noreply@anthropic.com>
 # AGENT: common_coauthors: [detected from git history]
-# AGENT: 
+# AGENT:
 # AGENT: === Repo Patterns ===
 # AGENT: [any other patterns discovered from analyzing git log]
 ```
@@ -134,6 +139,6 @@ When creating new .git/gitmessage, include these AGENT instruction comments:
    - Read and parse existing AGENT instructions
    - Preserve story IDs and co-author information
 6. Generate conventional commit message based on staged changes and user intent
-7. Write message to .git/gitmessage preserving AGENT instructions
+7. Write message to .git/gitmessage preserving AGENT instructions after scissors line
 8. Configure git to use template: `git config commit.template .git/gitmessage`
 9. Report staged files, proposed message, and recommend `git commit -v`
