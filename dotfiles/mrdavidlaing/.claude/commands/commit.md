@@ -1,0 +1,98 @@
+---
+allowed-tools: Bash(git:*), Read, Write, Edit, Grep, Glob
+argument-hint: [instructions for what to commit]
+description: Create a git commit based on instructions
+---
+
+## Create Git Commit
+
+User instructions: $ARGUMENTS
+
+### Process:
+
+1. **Interpret user's intent** from: $ARGUMENTS
+   Examples:
+   - "everything related to the lazygit change just made"
+   - "only the authentication files"
+   - "the bug fix we just discussed but not the refactoring"
+   - "all changes except tests"
+   - "the performance improvements to the API"
+
+2. **Check current status**:
+   - Run `git status --porcelain` to see all changes
+   - Understand what's modified, staged, and untracked
+
+3. **Stage appropriate files**:
+   - Use `git add` for specific files matching the intent
+   - Use `git reset` to unstage files that don't match
+   - Group related changes logically
+
+4. **Generate commit message** following **Conventional Commits**:
+   - Format: `type(scope): description`
+   - Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
+   - Keep description under 72 characters
+   - Add body if needed for context (blank line after subject)
+   - Always include "Co-Authored-By: Claude <noreply@anthropic.com>" at the end
+
+5. **Create the commit**:
+   - Use `git commit -m` with the generated message
+   - For multi-line messages, use proper quoting
+
+6. **Report results**:
+   ```
+   Committed X files:
+   - path/to/file1
+   - path/to/file2
+
+   Left uncommitted (if any):
+   - path/to/file3
+
+   Commit created:
+   ----------------------------------------
+   feat(auth): implement OAuth2 refresh token flow
+
+   Added JWT refresh token rotation with secure storage
+   and automatic renewal before expiration.
+
+   Co-Authored-By: Claude <noreply@anthropic.com>
+   ----------------------------------------
+
+   Run 'git log -1' to view the commit
+   ```
+
+### Conventional Commit Types:
+
+- **feat**: New feature
+- **fix**: Bug fix
+- **docs**: Documentation only
+- **style**: Formatting, whitespace, missing semicolons (no code change)
+- **refactor**: Code change that neither fixes bug nor adds feature
+- **test**: Adding or updating tests
+- **chore**: Maintenance (deps update, configs, build process)
+- **perf**: Performance improvement
+- **ci**: CI/CD changes
+- **build**: Build system or dependencies
+
+### Smart Staging Examples:
+
+If user says: "only the config changes"
+- Stage: *.config, *.yaml, *.yml, *.json, *.toml, .env files
+- Message: "chore(config): update configuration files"
+
+If user says: "the refactoring we just did"
+- Use conversation context to identify refactored files
+- Message: "refactor(module): extract logic to separate functions"
+
+If user says: "everything"
+- Stage all changes with `git add -A`
+- Message based on the predominant change type
+
+### Implementation Steps:
+
+1. Run `git status --porcelain` to see all changes
+2. Interpret user instructions to determine which files to stage
+3. Stage appropriate files with `git add [files]`
+4. Generate conventional commit message based on staged changes and user intent
+5. Create commit using `git commit -m "message"` (or with heredoc for multi-line)
+6. Report what was committed and what remains uncommitted
+7. Show the created commit message for confirmation

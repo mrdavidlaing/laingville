@@ -84,6 +84,30 @@ Server package configurations follow the same format but are located in `servers
   - `setup-user.functions.bash` - User-specific functions  
   - `setup-server.functions.bash` - Server-specific functions
 
+## Git Commit Guidelines
+
+When committing changes, always:
+
+1. **Use Conventional Commits format**: `type(scope): description`
+   - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`
+   - Keep subject line under 72 characters
+   - Scope is optional but helpful for clarity
+
+2. **Stage only related changes** in each commit
+   - Group logically related changes together
+   - Split unrelated changes into separate commits
+
+3. **Write descriptive commit messages**
+   - Subject line: what changed
+   - Body (if needed): why it changed and any important context
+
+4. **Co-authors are automatic**
+   - `Co-Authored-By: Claude <noreply@anthropic.com>` is added via ~/.gitmessage
+
+5. **Use the /commit slash command**
+   - Automates staging and commit message generation
+   - Example: `/commit only the config changes`
+
 ## Testing
 
 **IMPORTANT: Always run tests after making changes to scripts like setup-user or setup-server**
