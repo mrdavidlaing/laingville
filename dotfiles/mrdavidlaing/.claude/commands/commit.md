@@ -8,6 +8,38 @@ description: Create a git commit based on instructions
 
 User instructions: $ARGUMENTS
 
+### Writing Style Guide: Your Voice
+
+#### Core Characteristics
+- **Conversational yet technical** - Mix informal language with precise technical terms
+- **Action-oriented** - Focus on what's being done, what needs doing, or what should happen next
+- **Collaborative tone** - Use "we" frequently, ask for input, suggest pairing
+- **Pragmatically humorous** - Slip in quirky phrases ("yak shaving", "commandeer") without overdoing it
+
+#### Sentence Structure
+- **Variable length** - Mix short declarations with longer explanatory sentences
+- **Start with context** - Often begin with "Given that...", "When you have...", or temporal markers
+- **Use semicolons liberally** - Connect related thoughts with semicolons rather than separate sentences
+- **Numbered lists for clarity** - When presenting multiple points, use numbered lists
+
+#### Vocabulary Choices
+- **Tech-casual blend**: "fancy picking this up", "semi-validated", "non-trivial amount of effort"
+- **Specific jargon without explanation**: K8s, helm chart, RFC, MVM - assume technical literacy
+- **Understated descriptions**: "clearly things we can do" instead of "major improvements needed"
+- **Active verbs**: commandeer, resurrect, calibrate, backfill
+
+#### Formatting Patterns
+- **Inline questions** - Embed questions naturally in text flow
+- **Parenthetical asides** - Add clarifying details in parentheses
+- **Time stamps** - Include specific times when relevant (18:58)
+- **Tagging people** - Use @ mentions liberally
+
+#### Tone Markers
+- Avoid excessive enthusiasm - "Big YES!" is your maximum excitement level
+- End with concrete next steps or open questions
+- Acknowledge work done while pivoting to what's next
+- Self-deprecating about challenges ("5 yaks shaved... clearly more yaks")
+
 ### Process:
 
 1. **Interpret user's intent** from: $ARGUMENTS
