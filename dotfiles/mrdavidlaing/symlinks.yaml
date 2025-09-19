@@ -17,6 +17,9 @@ arch:
   - .config/lazygit
   # Editor
   - .config/nvim
+  # Git identity script
+  - source: .local/bin/git-identity
+    target: ~/.local/bin/git-identity
   # Claude Code
   - source: .claude/scripts/claude-code-bash-direnv-wrapper.bash
     target: ~/.local/bin/claude-code-bash-direnv-wrapper
@@ -48,6 +51,9 @@ wsl:
   - .config/lazygit
   # Editor
   - .config/nvim
+  # Git identity script
+  - source: .local/bin/git-identity
+    target: ~/.local/bin/git-identity
   # Claude Code
   - source: .claude/scripts/claude-code-bash-direnv-wrapper.bash
     target: ~/.local/bin/claude-code-bash-direnv-wrapper
@@ -103,6 +109,9 @@ macos:
   - .config/lazygit
   # Editor
   - .config/nvim
+  # Git identity script
+  - source: .local/bin/git-identity
+    target: ~/.local/bin/git-identity
   # Claude Code
   - source: .claude/commands
     target: ~/.claude/commands
@@ -131,6 +140,9 @@ nix:
   - .config/lazygit
   # Editor
   - .config/nvim
+  # Git identity script
+  - source: .local/bin/git-identity
+    target: ~/.local/bin/git-identity
   # Claude Code
   - source: .claude/scripts/claude-code-bash-direnv-wrapper.bash
     target: ~/.local/bin/claude-code-bash-direnv-wrapper

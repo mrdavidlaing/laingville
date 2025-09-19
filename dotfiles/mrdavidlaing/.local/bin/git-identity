@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# Git identity manager script
+# Usage: git-identity [auto|mrdavidlaing|mrdavidlaing-mo]
+
+set -e
+
+identity="${1:-auto}"
+
+case "$identity" in
+    "auto")
+        remote=$(git remote get-url origin 2>/dev/null || echo "")
+        if [ -z "$remote" ]; then
+            echo "No remote found. Please specify identity:"
+            echo "  git-identity mrdavidlaing      (personal)"
+            echo "  git-identity mrdavidlaing-mo   (work)"
+            exit 1
+        fi
+
+        case "$remote" in
+            *mechanical-orchard*|*infra-*|*imogen-*|*mo-workstation*)
+                git config user.name "David Laing"
+                git config user.email "david@mechanical-orchard.com"
+                echo "✓ Auto-detected work repository"
+                echo "  Name: David Laing"
+                echo "  Email: david@mechanical-orchard.com"
+                ;;
+            *)
+                git config user.name "David Laing"
+                git config user.email "david@davidlaing.com"
+                echo "✓ Auto-detected personal repository"
+                echo "  Name: David Laing"
+                echo "  Email: david@davidlaing.com"
+                ;;
+        esac
+        ;;
+
+    "mrdavidlaing-mo")
+        git config user.name "David Laing"
+        git config user.email "david@mechanical-orchard.com"
+        echo "✓ Set work identity"
+        echo "  Name: David Laing"
+        echo "  Email: david@mechanical-orchard.com"
+        ;;
+
+    "mrdavidlaing")
+        git config user.name "David Laing"
+        git config user.email "david@davidlaing.com"
+        echo "✓ Set personal identity"
+        echo "  Name: David Laing"
+        echo "  Email: david@davidlaing.com"
+        ;;
+
+    *)
+        echo "Unknown identity: $identity"
+        echo "Usage: git-identity [auto|mrdavidlaing|mrdavidlaing-mo]"
+        echo "  auto (default)     - Auto-detect based on remote URL"
+        echo "  mrdavidlaing       - Personal (david@davidlaing.com)"
+        echo "  mrdavidlaing-mo    - Work (david@mechanical-orchard.com)"
+        exit 1
+        ;;
+esac
