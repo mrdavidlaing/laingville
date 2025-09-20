@@ -104,6 +104,56 @@ EOF
       The output should be blank
       The status should be success
     End
+
+    It 'extracts opkg packages for freshtomato platform'
+      # Create temporary test config with freshtomato platform
+      temp_dir=$(mktemp -d)
+      mkdir -p "${temp_dir}/servers/testrouter"
+      cat > "${temp_dir}/servers/testrouter/packages.yaml" << 'EOF'
+freshtomato:
+  opkg:
+    - git
+    - rsync
+    - htop
+    - nano
+  custom:
+    - apply_motd
+    - apply_profile
+EOF
+
+      When call extract_packages_from_yaml "freshtomato" "opkg" "${temp_dir}/servers/testrouter/packages.yaml"
+      The line 1 of output should equal "git"
+      The line 2 of output should equal "rsync"
+      The line 3 of output should equal "htop"
+      The line 4 of output should equal "nano"
+      The status should be success
+
+      rm -rf "${temp_dir}"
+    End
+
+    It 'extracts custom scripts for freshtomato platform'
+      # Create temporary test config with freshtomato platform
+      temp_dir=$(mktemp -d)
+      mkdir -p "${temp_dir}/servers/testrouter"
+      cat > "${temp_dir}/servers/testrouter/packages.yaml" << 'EOF'
+freshtomato:
+  opkg:
+    - git
+    - rsync
+  custom:
+    - apply_motd
+    - apply_profile
+    - setup_init_scripts
+EOF
+
+      When call extract_packages_from_yaml "freshtomato" "custom" "${temp_dir}/servers/testrouter/packages.yaml"
+      The line 1 of output should equal "apply_motd"
+      The line 2 of output should equal "apply_profile"
+      The line 3 of output should equal "setup_init_scripts"
+      The status should be success
+
+      rm -rf "${temp_dir}"
+    End
   End
 
   Describe 'map_hostname_to_server_dir()'

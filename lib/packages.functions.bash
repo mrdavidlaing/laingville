@@ -485,8 +485,8 @@ handle_packages_from_file() {
         done < <(grep -E "^  nixpkgs-[0-9]+\.[0-9]+:" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
       fi
       ;;
-    "router-merlin")
-      # Extract and install opkg packages
+    "router-merlin" | "freshtomato")
+      # Extract and install opkg packages (both Merlin and FreshTomato use Entware/opkg)
       local opkg_packages
       opkg_packages=$(extract_packages_from_yaml "${platform}" "opkg" "${packages_file}")
       install_opkg_packages "${opkg_packages}" "${dry_run}"
