@@ -101,6 +101,7 @@ wsl:
     - pnpm
     - uv
     - openssh
+    - docker
     - kubectl
     - shellspec
     - shellcheck
