@@ -41,9 +41,6 @@ detect_platform() {
       if [[ -f /usr/sbin/httpd ]] && [[ -d /www ]] && [[ -d /jffs ]]; then
         # ASUS router with FreshTomato firmware
         echo "freshtomato"
-      elif [[ -f /usr/sbin/dropbear ]] && [[ -d /jffs ]]; then
-        # ASUS router with Merlin firmware
-        echo "router-merlin"
       elif grep -qi "microsoft\|wsl" /proc/version 2> /dev/null; then
         echo "wsl"
       elif command -v pacman > /dev/null 2>&1; then

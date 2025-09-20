@@ -212,7 +212,6 @@ The repository supports multiple platforms with automatic detection:
 - **wsl** - Windows Subsystem for Linux
 - **macos** - macOS systems (Homebrew)
 - **nix** - NixOS and systems with Nix package manager
-- **router-merlin** - ASUS routers with Merlin firmware (opkg/Entware)
 - **freshtomato** - ASUS routers with FreshTomato firmware (opkg/Entware)
 - **linux** - Generic Linux (fallback)
 
