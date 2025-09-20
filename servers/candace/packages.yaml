@@ -1,0 +1,10 @@
+# Package configuration for candace server
+# Windows machine with WSL configuration
+
+windows:
+  winget:
+    # Essential Windows tools
+    - Microsoft.PowerShell  # PowerShell 7
+    - Git.Git
+  custom:
+    - configure_wsl_defaults.ps1

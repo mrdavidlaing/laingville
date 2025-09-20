@@ -71,9 +71,70 @@ windows:
     - Microsoft.VisualStudioCode
 "@
                 Set-Content -Path $script:testYamlFile -Value $yamlContent
-                
+
                 $result = Get-PackagesFromYaml $script:testYamlFile
-                
+
+                $result.winget | Should -HaveCount 3
+                $result.winget | Should -Contain "Git.Git"
+                $result.winget | Should -Contain "Microsoft.PowerShell"
+                $result.winget | Should -Contain "Microsoft.VisualStudioCode"
+            }
+
+            It "handles comments in package lists" {
+                $yamlContent = @"
+# Package configuration for test server
+# Windows machine configuration
+
+windows:
+  winget:
+    # Essential Windows tools
+    - Microsoft.PowerShell  # PowerShell 7
+    - Git.Git
+    - Microsoft.VisualStudioCode  # VS Code editor
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+
+                $result = Get-PackagesFromYaml $script:testYamlFile
+
+                $result.winget | Should -HaveCount 3
+                $result.winget | Should -Contain "Microsoft.PowerShell"
+                $result.winget | Should -Contain "Git.Git"
+                $result.winget | Should -Contain "Microsoft.VisualStudioCode"
+            }
+
+            It "handles inline comments after package names" {
+                $yamlContent = @"
+windows:
+  winget:
+    - Git.Git  # Version control
+    - Microsoft.PowerShell  # PowerShell 7
+    - Microsoft.VisualStudioCode  # Code editor
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+
+                $result = Get-PackagesFromYaml $script:testYamlFile
+
+                $result.winget | Should -HaveCount 3
+                $result.winget | Should -Contain "Git.Git"
+                $result.winget | Should -Contain "Microsoft.PowerShell"
+                $result.winget | Should -Contain "Microsoft.VisualStudioCode"
+            }
+
+            It "handles comment-only lines in package lists" {
+                $yamlContent = @"
+windows:
+  winget:
+    # Development tools
+    - Git.Git
+    # PowerShell
+    - Microsoft.PowerShell
+    # Editor
+    - Microsoft.VisualStudioCode
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+
+                $result = Get-PackagesFromYaml $script:testYamlFile
+
                 $result.winget | Should -HaveCount 3
                 $result.winget | Should -Contain "Git.Git"
                 $result.winget | Should -Contain "Microsoft.PowerShell"
@@ -162,10 +223,66 @@ windows:
   scoop:
 "@
                 Set-Content -Path $script:testYamlFile -Value $yamlContent
-                
+
                 $result = Get-PackagesFromYaml $script:testYamlFile
-                
+
                 $result.scoop | Should -Be @()
+            }
+
+            It "handles comments in scoop package lists" {
+                $yamlContent = @"
+windows:
+  scoop:
+    # Development tools
+    - git  # Version control
+    - versions/wezterm-nightly  # Terminal
+    - extras/firefox  # Browser
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+
+                $result = Get-PackagesFromYaml $script:testYamlFile
+
+                $result.scoop | Should -HaveCount 3
+                $result.scoop | Should -Contain "git"
+                $result.scoop | Should -Contain "versions/wezterm-nightly"
+                $result.scoop | Should -Contain "extras/firefox"
+            }
+
+            It "extracts psmodule packages from list format" {
+                $yamlContent = @"
+windows:
+  psmodule:
+    - PowerShellGet
+    - Pester
+    - PSReadLine
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+
+                $result = Get-PackagesFromYaml $script:testYamlFile
+
+                $result.psmodule | Should -HaveCount 3
+                $result.psmodule | Should -Contain "PowerShellGet"
+                $result.psmodule | Should -Contain "Pester"
+                $result.psmodule | Should -Contain "PSReadLine"
+            }
+
+            It "handles comments in psmodule package lists" {
+                $yamlContent = @"
+windows:
+  psmodule:
+    # Core modules
+    - PowerShellGet  # Package manager
+    - Pester  # Testing framework
+    - PSReadLine  # Enhanced readline
+"@
+                Set-Content -Path $script:testYamlFile -Value $yamlContent
+
+                $result = Get-PackagesFromYaml $script:testYamlFile
+
+                $result.psmodule | Should -HaveCount 3
+                $result.psmodule | Should -Contain "PowerShellGet"
+                $result.psmodule | Should -Contain "Pester"
+                $result.psmodule | Should -Contain "PSReadLine"
             }
             
             It "extracts both winget and scoop packages" {

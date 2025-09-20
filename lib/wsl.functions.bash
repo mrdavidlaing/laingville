@@ -167,4 +167,5 @@ handle_wsl_packages() {
   fi
 
   install_yay_packages "${yay_packages}" "${dry_run}"
+
 }

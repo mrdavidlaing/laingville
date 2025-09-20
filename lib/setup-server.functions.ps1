@@ -172,8 +172,7 @@ function Invoke-ServerCustomScript {
         }
         
         # Look for script in server directory
-        $scriptPath = Join-Path $ServerDir $script
-        $fullScriptPath = Join-Path $ProjectRoot $scriptPath
+        $fullScriptPath = Join-Path $ServerDir $script
         
         if (-not (Test-Path $fullScriptPath)) {
             Write-LogError "Custom script not found: $fullScriptPath"

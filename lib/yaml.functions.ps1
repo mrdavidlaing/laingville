@@ -3,6 +3,105 @@
 
 <#
 .SYNOPSIS
+    Cleans and trims package names from YAML entries
+.PARAMETER PackageName
+    The raw package name string to clean
+.DESCRIPTION
+    Removes quotes, comments, and extra whitespace from package names
+#>
+function Trim-PackageName {
+    param([string]$PackageName)
+
+    if (-not $PackageName) {
+        return ""
+    }
+
+    return $PackageName.Trim().Trim('"').Trim("'")
+}
+
+<#
+.SYNOPSIS
+    Parses YAML list format items (lines starting with -)
+.PARAMETER ListContent
+    The raw content of a YAML list section
+.DESCRIPTION
+    Extracts package names from YAML list format, handling comments and quotes
+#>
+function Parse-YamlListItems {
+    param([string]$ListContent)
+
+    if (-not $ListContent) {
+        return @()
+    }
+
+    return $ListContent -split "\r?\n" | ForEach-Object {
+        if ($_ -match '^\s*-\s*(.+?)(?:\s*#.*)?$') {
+            Trim-PackageName $Matches[1]
+        }
+    } | Where-Object { $_ -and $_.Length -gt 0 }
+}
+
+<#
+.SYNOPSIS
+    Parses YAML inline array format [item1, item2, item3]
+.PARAMETER ArrayContent
+    The content inside the square brackets
+.DESCRIPTION
+    Extracts package names from inline array format, handling quotes
+#>
+function Parse-YamlInlineArray {
+    param([string]$ArrayContent)
+
+    if (-not $ArrayContent) {
+        return @()
+    }
+
+    return $ArrayContent -split ',' | ForEach-Object {
+        Trim-PackageName $_
+    } | Where-Object { $_ -and $_.Length -gt 0 }
+}
+
+<#
+.SYNOPSIS
+    Extracts packages for a specific package manager type
+.PARAMETER Section
+    The platform section content (e.g., windows section)
+.PARAMETER PackageType
+    The package manager type (winget, scoop, psmodule)
+.PARAMETER AllTypes
+    Array of all package manager types for lookahead pattern
+.DESCRIPTION
+    Generic function to extract packages for any package manager type
+#>
+function Extract-PackageSection {
+    param(
+        [string]$Section,
+        [string]$PackageType,
+        [array]$AllTypes
+    )
+
+    if (-not $Section -or -not $PackageType) {
+        return @()
+    }
+
+    # Create lookahead pattern excluding current type
+    $otherTypes = $AllTypes | Where-Object { $_ -ne $PackageType }
+    $lookahead = if ($otherTypes.Count -gt 0) { "(?=\s*(?:$($otherTypes -join '|')|custom):|$)" } else { "(?=\s*custom:|$)" }
+
+    # Try list format first
+    if ($Section -match "$PackageType`:\s*\r?\n((?:\s+.*\r?\n?)*?)$lookahead") {
+        return Parse-YamlListItems $Matches[1]
+    }
+    # Try inline array format
+    elseif ($Section -match "$PackageType`:\s*\[(.*?)\]") {
+        return Parse-YamlInlineArray $Matches[1]
+    }
+
+    return @()
+}
+
+<#
+.SYNOPSIS
     Extracts packages from YAML configuration files
 .PARAMETER YamlFile
     Path to the YAML file containing package definitions
@@ -35,64 +134,10 @@ function Get-PackagesFromYaml {
         if ($content -match "windows:\s*\r?\n((?:\s+.*\r?\n?)*)") {
             $windowsSection = $Matches[1]
             
-            # Extract winget packages - look for winget: followed by list items
-            if ($windowsSection -match "winget:\s*\r?\n((?:\s+-.*\r?\n?)*)") {
-                $wingetList = $Matches[1]
-                $wingetPackages = $wingetList -split "\r?\n" | ForEach-Object {
-                    if ($_ -match '^\s*-\s*(.+)$') {
-                        $Matches[1].Trim().Trim('"').Trim("'")
-                    }
-                } | Where-Object { $_ -and $_.Length -gt 0 }
-                
-                $packages.winget = $wingetPackages
-            }
-            # Also handle inline array format: winget: [package1, package2]
-            elseif ($windowsSection -match "winget:\s*\[(.*?)\]") {
-                $wingetPackages = $Matches[1] -split ',' | ForEach-Object { 
-                    $_.Trim().Trim('"').Trim("'") 
-                } | Where-Object { $_ -and $_.Length -gt 0 }
-                
-                $packages.winget = $wingetPackages
-            }
-            
-            # Extract scoop packages - look for scoop: followed by list items
-            if ($windowsSection -match "scoop:\s*\r?\n((?:\s+-.*\r?\n?)*)") {
-                $scoopList = $Matches[1]
-                $scoopPackages = $scoopList -split "\r?\n" | ForEach-Object {
-                    if ($_ -match '^\s*-\s*(.+)$') {
-                        $Matches[1].Trim().Trim('"').Trim("'")
-                    }
-                } | Where-Object { $_ -and $_.Length -gt 0 }
-                
-                $packages.scoop = $scoopPackages
-            }
-            # Also handle inline array format: scoop: [package1, package2]
-            elseif ($windowsSection -match "scoop:\s*\[(.*?)\]") {
-                $scoopPackages = $Matches[1] -split ',' | ForEach-Object { 
-                    $_.Trim().Trim('"').Trim("'") 
-                } | Where-Object { $_ -and $_.Length -gt 0 }
-                
-                $packages.scoop = $scoopPackages
-            }
-            
-            # Extract PowerShell modules - look for psmodule: followed by list items
-            if ($windowsSection -match "psmodule:\s*\r?\n((?:\s+-.*\r?\n?)*)") {
-                $psmoduleList = $Matches[1]
-                $psmodulePackages = $psmoduleList -split "\r?\n" | ForEach-Object {
-                    if ($_ -match '^\s*-\s*(.+)$') {
-                        $Matches[1].Trim().Trim('"').Trim("'")
-                    }
-                } | Where-Object { $_ -and $_.Length -gt 0 }
-                
-                $packages.psmodule = $psmodulePackages
-            }
-            # Also handle inline array format: psmodule: [module1, module2]
-            elseif ($windowsSection -match "psmodule:\s*\[(.*?)\]") {
-                $psmodulePackages = $Matches[1] -split ',' | ForEach-Object { 
-                    $_.Trim().Trim('"').Trim("'") 
-                } | Where-Object { $_ -and $_.Length -gt 0 }
-                
-                $packages.psmodule = $psmodulePackages
+            # Extract packages for all Windows package managers using helper functions
+            $packageTypes = @('winget', 'scoop', 'psmodule')
+            foreach ($packageType in $packageTypes) {
+                $packages.$packageType = Extract-PackageSection -Section $windowsSection -PackageType $packageType -AllTypes $packageTypes
             }
         }
     }
