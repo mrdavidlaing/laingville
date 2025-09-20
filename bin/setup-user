@@ -31,7 +31,7 @@ elif [ -n "$1" ]; then
 fi
 
 # Detect current user using common function
-CURRENT_USER=$(detect_username)
+CURRENT_USER=$(map_system_user_to_dotfiles_user)
 
 # Initialize logging
 log_init

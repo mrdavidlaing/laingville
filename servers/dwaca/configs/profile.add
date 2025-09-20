@@ -1,9 +1,0 @@
-#!/bin/sh
-# Display MOTD on SSH login
-if [ -f /jffs/configs/motd ]; then
-    cat /jffs/configs/motd
-fi
-
-# Add any other profile customizations here
-alias ll='ls -la'
-alias diversion='/opt/bin/diversion'

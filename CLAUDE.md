@@ -202,3 +202,103 @@ PowerShell tests automatically run on Windows runners in GitHub Actions:
 - Uploads artifacts for analysis
 
 Both bash (ShellSpec) and PowerShell (Pester) test suites must pass for CI to succeed.
+
+## Supported Platforms
+
+The repository supports multiple platforms with automatic detection:
+
+### Server Platforms
+- **arch** - Arch Linux systems (pacman + yay)
+- **wsl** - Windows Subsystem for Linux
+- **macos** - macOS systems (Homebrew)
+- **nix** - NixOS and systems with Nix package manager
+- **router-merlin** - ASUS routers with Merlin firmware (opkg/Entware)
+- **linux** - Generic Linux (fallback)
+
+### Desktop Platforms
+- **windows** - Windows systems (winget + scoop + PowerShell modules)
+
+Platform detection is automatic and used for:
+- Package manager selection
+- Service management (systemctl vs init.d)
+- Path conventions
+- Custom scripts
+
+## Development Workflow
+
+### remote-setup-server Tool
+
+For rapid development on remote servers, use the universal `remote-setup-server` tool:
+
+```bash
+# Sync and deploy changes to any remote server
+./bin/remote-setup-server <hostname> [--dry-run] [--sync-only]
+
+# Examples:
+./bin/remote-setup-server dwaca              # Deploy to router
+./bin/remote-setup-server baljeet            # Deploy to server
+./bin/remote-setup-server dwaca --dry-run    # Preview changes
+./bin/remote-setup-server dwaca --sync-only  # Just sync files
+```
+
+#### Configuration
+
+Each server has a `settings.yaml` config file (committed to git):
+
+**`servers/dwaca/settings.yaml`**:
+```yaml
+connection:
+  host: 192.168.1.2
+  user: root
+  port: 22
+
+deployment:
+  remote_path: /opt/laingville
+```
+
+**`servers/baljeet/settings.yaml`** (example):
+```yaml
+connection:
+  host: baljeet.local
+  user: david
+  port: 22
+
+deployment:
+  remote_path: /home/david/laingville
+```
+
+The tool will:
+1. Sync the server's directory to the remote host
+2. Sync `servers/shared/` if it exists
+3. Run `setup-server` on the remote host
+4. Display the output locally
+
+### Development vs Production Deployment
+
+#### Development (Fast Iteration)
+```bash
+# Edit files locally in Claude Code
+vim servers/dwaca/configs/motd
+
+# Test changes immediately
+./bin/remote-setup-server dwaca
+
+# Iterate until working
+# No git commits needed for testing
+```
+
+#### Production (Clean Deployment)
+```bash
+# Commit and push when ready
+git add servers/dwaca/
+git commit -m "Update dwaca configuration"
+git push
+
+# Deploy on target server
+ssh admin@192.168.2.1
+cd /opt/laingville
+git pull
+./bin/setup-server
+```
+
+This approach provides fast development iteration while keeping git history clean.

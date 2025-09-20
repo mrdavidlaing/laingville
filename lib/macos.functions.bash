@@ -118,11 +118,11 @@ generate_brewfile() {
 
   # Get homebrew packages (formulae)
   local homebrew_packages
-  homebrew_packages=$(get_packages_from_file "${platform}" "homebrew" "${packages_file}")
+  homebrew_packages=$(extract_packages_from_yaml "${platform}" "homebrew" "${packages_file}")
 
   # Get cask packages
   local cask_packages
-  cask_packages=$(get_packages_from_file "${platform}" "cask" "${packages_file}")
+  cask_packages=$(extract_packages_from_yaml "${platform}" "cask" "${packages_file}")
 
   # Generate Brewfile content
   {
@@ -177,8 +177,8 @@ install_packages_with_brewfile() {
   # In dry-run mode, just show what would be installed
   if [[ "${dry_run}" = true ]]; then
     local homebrew_packages cask_packages
-    homebrew_packages=$(get_packages_from_file "${platform}" "homebrew" "${packages_file}")
-    cask_packages=$(get_packages_from_file "${platform}" "cask" "${packages_file}")
+    homebrew_packages=$(extract_packages_from_yaml "${platform}" "homebrew" "${packages_file}")
+    cask_packages=$(extract_packages_from_yaml "${platform}" "cask" "${packages_file}")
 
     if [[ -n "${homebrew_packages}" ]]; then
       local valid_homebrew=()

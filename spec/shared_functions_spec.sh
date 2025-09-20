@@ -254,12 +254,12 @@ EOF
                   End
                 End
 
-                Describe "get_packages_from_file function"
+                Describe "extract_packages_from_yaml function"
                   It "extracts packages from real config"
                     export DOTFILES_DIR
                     DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
-                    When call get_packages_from_file "arch" "yay" "${DOTFILES_DIR}/packages.yaml"
+                    When call extract_packages_from_yaml "arch" "yay" "${DOTFILES_DIR}/packages.yaml"
 
                     The output should not be blank
                     The output should include "hyprland"
@@ -270,7 +270,7 @@ EOF
                     DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
 # Test homebrew packages
-                    When call get_packages_from_file "macos" "homebrew" "${DOTFILES_DIR}/packages.yaml"
+                    When call extract_packages_from_yaml "macos" "homebrew" "${DOTFILES_DIR}/packages.yaml"
 
                     The output should not be blank
                     The output should include "git"
@@ -282,7 +282,7 @@ EOF
                     export DOTFILES_DIR
                     DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
-                    When call get_packages_from_file "macos" "cask" "${DOTFILES_DIR}/packages.yaml"
+                    When call extract_packages_from_yaml "macos" "cask" "${DOTFILES_DIR}/packages.yaml"
 
                     The output should not be blank
                     The output should include "alacritty"
@@ -310,7 +310,7 @@ windows:
     - SomeApp
 EOF
 
-                    When call get_packages_from_file "arch" "pacman" "${server_dir}/packages.yaml"
+                    When call extract_packages_from_yaml "arch" "pacman" "${server_dir}/packages.yaml"
 
                     The output should include "k3s"
                     The output should include "htop"

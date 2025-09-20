@@ -5,8 +5,40 @@
 
 # Functions assume security, logging, and platform functions are already sourced by calling script
 
-# Secure YAML parsing - works for both user and server configs
-get_packages_from_file() {
+# Helper function to convert package list to array
+convert_packages_to_array() {
+  local packages="$1"
+  local -n array_ref=$2
+
+  array_ref=()
+  while IFS= read -r pkg; do
+    [[ -n "${pkg}" ]] && array_ref+=("${pkg}")
+  done <<< "${packages}"
+}
+
+# Helper function to quote packages for shell safety
+quote_packages() {
+  local -n pkg_array_ref=$1
+  local -n quoted_array_ref=$2
+
+  quoted_array_ref=()
+  for pkg in "${pkg_array_ref[@]}"; do
+    local quoted_pkg
+    printf -v quoted_pkg '%q' "${pkg}"
+    quoted_array_ref+=("${quoted_pkg}")
+  done
+}
+
+# Helper function to format package list for dry run display
+format_package_list() {
+  local -n pkg_array_ref=$1
+  local pkg_list
+  pkg_list=$(printf '%s, ' "${pkg_array_ref[@]}")
+  echo "${pkg_list%, }"
+}
+
+# Extract packages from YAML config file with secure parsing
+extract_packages_from_yaml() {
   local platform="$1" manager="$2" packages_file="$3"
 
   # Validate inputs
@@ -74,16 +106,11 @@ install_pacman_packages() {
   fi
 
   # Convert to array for processing
-  local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done <<< "${valid_packages}"
+  local pkg_array
+  convert_packages_to_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    local pkg_list
-    pkg_list=$(printf '%s, ' "${pkg_array[@]}")
-    pkg_list=${pkg_list%, }
-    log_dry_run "install via pacman: ${pkg_list}"
+    log_dry_run "install via pacman: $(format_package_list pkg_array)"
   else
     log_info "Installing pacman packages: ${pkg_array[*]}"
 
@@ -94,12 +121,8 @@ install_pacman_packages() {
     fi
 
     # Batch installation with proper quoting
-    local quoted_packages=()
-    for pkg in "${pkg_array[@]}"; do
-      local quoted_pkg
-      printf -v quoted_pkg '%q' "${pkg}"
-      quoted_packages+=("${quoted_pkg}")
-    done
+    local quoted_packages
+    quote_packages pkg_array quoted_packages
 
     if ! eval "sudo pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
       log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
@@ -126,16 +149,11 @@ install_yay_packages() {
   fi
 
   # Convert to array for processing
-  local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done <<< "${valid_packages}"
+  local pkg_array
+  convert_packages_to_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    local pkg_list
-    pkg_list=$(printf '%s, ' "${pkg_array[@]}")
-    pkg_list=${pkg_list%, }
-    log_dry_run "install via yay: ${pkg_list}"
+    log_dry_run "install via yay: $(format_package_list pkg_array)"
   else
     log_info "Installing yay packages: ${pkg_array[*]}"
 
@@ -146,12 +164,8 @@ install_yay_packages() {
     fi
 
     # Batch installation with --batchinstall and proper quoting
-    local quoted_packages=()
-    for pkg in "${pkg_array[@]}"; do
-      local quoted_pkg
-      printf -v quoted_pkg '%q' "${pkg}"
-      quoted_packages+=("${quoted_pkg}")
-    done
+    local quoted_packages
+    quote_packages pkg_array quoted_packages
 
     if ! eval "yay -S --needed --noconfirm --batchinstall ${quoted_packages[*]}"; then
       log_warning "Failed to install some yay packages: ${pkg_array[*]}"
@@ -312,6 +326,62 @@ install_cask_packages() {
   fi
 }
 
+# Install opkg packages (Entware package manager on routers)
+install_opkg_packages() {
+  local packages="$1" dry_run="$2"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Validate packages first (for security)
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Check if opkg is available
+  if ! command -v opkg > /dev/null 2>&1; then
+    log_error "opkg not found, skipping opkg packages"
+    return
+  fi
+
+  # Convert to array for processing
+  local pkg_array
+  convert_packages_to_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "update opkg package list"
+    log_dry_run "install via opkg: $(format_package_list pkg_array)"
+  else
+    log_info "Updating opkg package list..."
+    if ! opkg update; then
+      log_warning "Failed to update opkg package list, continuing anyway..."
+    fi
+
+    log_info "Installing opkg packages: ${pkg_array[*]}"
+
+    # Try installing all packages at once first
+    local quoted_packages
+    quote_packages pkg_array quoted_packages
+
+    if ! eval "opkg install ${quoted_packages[*]}" 2>&1; then
+      # If batch installation fails, try individual installation for better error handling
+      local failed_packages=()
+      local individual_quoted
+      for pkg in "${pkg_array[@]}"; do
+        printf -v individual_quoted '%q' "${pkg}"
+        if ! eval "opkg install ${individual_quoted}" 2>&1; then
+          failed_packages+=("${pkg}")
+        fi
+      done
+
+      # Report any failures
+      if [[ ${#failed_packages[@]} -gt 0 ]]; then
+        log_error "Failed to install opkg packages: ${failed_packages[*]}"
+      fi
+    fi
+  fi
+}
+
 # Install yay AUR helper from ArchLinuxCN repository
 install_yay() {
   local dry_run="$1"
@@ -384,8 +454,8 @@ handle_packages_from_file() {
 
       # Extract and install packages
       local pacman_packages yay_packages
-      pacman_packages=$(get_packages_from_file "${platform}" "pacman" "${packages_file}")
-      yay_packages=$(get_packages_from_file "${platform}" "yay" "${packages_file}")
+      pacman_packages=$(extract_packages_from_yaml "${platform}" "pacman" "${packages_file}")
+      yay_packages=$(extract_packages_from_yaml "${platform}" "yay" "${packages_file}")
 
       install_pacman_packages "${pacman_packages}" "${dry_run}"
       install_yay_packages "${yay_packages}" "${dry_run}"
@@ -410,10 +480,16 @@ handle_packages_from_file() {
           [[ -n "${manager}" ]] || continue
           local nix_version="${manager#nixpkgs-}"
           local nix_packages
-          nix_packages=$(get_packages_from_file "${platform}" "${manager}" "${packages_file}")
+          nix_packages=$(extract_packages_from_yaml "${platform}" "${manager}" "${packages_file}")
           install_nix_packages "${nix_packages}" "${nix_version}" "${dry_run}"
         done < <(grep -E "^  nixpkgs-[0-9]+\.[0-9]+:" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
       fi
+      ;;
+    "router-merlin")
+      # Extract and install opkg packages
+      local opkg_packages
+      opkg_packages=$(extract_packages_from_yaml "${platform}" "opkg" "${packages_file}")
+      install_opkg_packages "${opkg_packages}" "${dry_run}"
       ;;
     *)
       log_warning "Unknown platform: ${platform} - skipping package installation"

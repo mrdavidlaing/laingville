@@ -123,8 +123,8 @@ handle_wsl_packages() {
   # Extract and install packages using new manager-specific functions
   # WSL uses its own YAML section to ensure correct terminal-only packages
   local pacman_packages yay_packages
-  pacman_packages=$(get_packages_from_file "${platform}" "pacman" "${packages_file}")
-  yay_packages=$(get_packages_from_file "${platform}" "yay" "${packages_file}")
+  pacman_packages=$(extract_packages_from_yaml "${platform}" "pacman" "${packages_file}")
+  yay_packages=$(extract_packages_from_yaml "${platform}" "yay" "${packages_file}")
 
   # Use WSL-specific pacman (without sudo - usually not needed in WSL)
   if [[ -n "${pacman_packages}" ]]; then

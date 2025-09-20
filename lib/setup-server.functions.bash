@@ -16,7 +16,7 @@ get_server_packages() {
   local platform="$1" manager="$2"
   # shellcheck disable=SC2154  # SERVER_DIR is set by calling script
   local packages_file="${SERVER_DIR}/packages.yaml"
-  get_packages_from_file "${platform}" "${manager}" "${packages_file}"
+  extract_packages_from_yaml "${platform}" "${manager}" "${packages_file}"
 }
 
 # Handle shared server packages

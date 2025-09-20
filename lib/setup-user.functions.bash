@@ -10,7 +10,7 @@ get_packages() {
   local platform="$1" manager="$2"
   # shellcheck disable=SC2154  # DOTFILES_DIR is set by calling script
   local packages_file="${DOTFILES_DIR}/packages.yaml"
-  get_packages_from_file "${platform}" "${manager}" "${packages_file}"
+  extract_packages_from_yaml "${platform}" "${manager}" "${packages_file}"
 }
 
 # Get custom scripts from YAML

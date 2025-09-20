@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# Remote server setup tool for deploying and configuring servers
+# Usage: ./bin/remote-setup-server <hostname> [--dry-run] [--sync-only]
+
+set -euo pipefail
+
+# Source common functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Usage message
+usage() {
+    echo "Usage: $0 <hostname> [--dry-run] [--sync-only]" >&2
+    echo "" >&2
+    echo "Remote server setup tool for deploying and configuring servers." >&2
+    echo "" >&2
+    echo "Arguments:" >&2
+    echo "  hostname     Server hostname (must have servers/<hostname>/ directory)" >&2
+    echo "" >&2
+    echo "Options:" >&2
+    echo "  --dry-run    Show what would be done without making changes" >&2
+    echo "  --sync-only  Only sync files, do not run setup-server" >&2
+    echo "" >&2
+    echo "Examples:" >&2
+    echo "  $0 dwaca                  # Deploy and configure dwaca" >&2
+    echo "  $0 dwaca --dry-run        # Preview changes for dwaca" >&2
+    echo "  $0 dwaca --sync-only      # Just sync files to dwaca" >&2
+    exit 1
+}
+
+# Check for help options first
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            usage
+            ;;
+    esac
+done
+
+# Get hostname
+if [[ $# -eq 0 ]]; then
+    usage
+fi
+
+HOSTNAME="$1"
+shift
+
+# Parse options
+DRY_RUN=false
+SYNC_ONLY=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --sync-only)
+            SYNC_ONLY=true
+            shift
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown option '$1'${NC}" >&2
+            usage
+            ;;
+    esac
+done
+
+# Validate hostname
+if [[ -z "$HOSTNAME" ]]; then
+    usage
+elif [[ ! "$HOSTNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$ ]] && [[ ! "$HOSTNAME" =~ ^[a-zA-Z0-9]$ ]]; then
+    echo -e "${RED}Error: Invalid hostname '$HOSTNAME'${NC}" >&2
+    exit 1
+fi
+
+# Check if server directory exists
+SERVER_DIR="$PROJECT_ROOT/servers/$HOSTNAME"
+if [[ ! -d "$SERVER_DIR" ]]; then
+    echo -e "${RED}Error: Server directory not found: $SERVER_DIR${NC}" >&2
+    echo "Available servers:" >&2
+    ls -1 "$PROJECT_ROOT/servers/" 2>/dev/null | grep -v "^shared$" | sed 's/^/  /' >&2 || true
+    exit 1
+fi
+
+# Check for config file
+CONFIG_FILE="$SERVER_DIR/settings.yaml"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo -e "${RED}Error: No settings.yaml config found for $HOSTNAME${NC}" >&2
+    echo "Create $CONFIG_FILE with connection and deployment settings" >&2
+    exit 1
+fi
+
+# Parse YAML config (simple parsing for our needs)
+CONNECTION_HOST=$(grep -A10 "^connection:" "$CONFIG_FILE" | grep "host:" | sed 's/.*host: *//')
+CONNECTION_USER=$(grep -A10 "^connection:" "$CONFIG_FILE" | grep "user:" | sed 's/.*user: *//')
+REMOTE_PATH=$(grep -A10 "^deployment:" "$CONFIG_FILE" | grep "remote_path:" | sed 's/.*remote_path: *//')
+
+# Build connection string
+CONNECTION="${CONNECTION_USER}@${CONNECTION_HOST}"
+
+# Validate config
+if [[ -z "${CONNECTION_HOST:-}" ]] || [[ -z "${CONNECTION_USER:-}" ]]; then
+    echo -e "${RED}Error: Invalid connection settings in $CONFIG_FILE${NC}" >&2
+    exit 1
+fi
+
+if [[ -z "${REMOTE_PATH:-}" ]]; then
+    echo -e "${RED}Error: Invalid deployment.remote_path in $CONFIG_FILE${NC}" >&2
+    exit 1
+fi
+
+# Sync directory function to eliminate code duplication
+sync_directory() {
+    local src_dir="$1" dest_path="$2" display_name="$3" is_critical="${4:-false}"
+
+    if [[ ! -d "$src_dir" ]]; then
+        return 0
+    fi
+
+    echo -e "${GREEN}Syncing $display_name...${NC}"
+    if [[ "$DRY_RUN" = true ]]; then
+        echo -e "${YELLOW}Would sync: $src_dir -> $CONNECTION:$REMOTE_PATH/$dest_path${NC}"
+    else
+        # Create remote directory and sync with tar+ssh
+        if $SSH_CMD "$CONNECTION" "mkdir -p $REMOTE_PATH/$dest_path"; then
+            if ! (cd "$src_dir" && tar -czf - --exclude='.git' --exclude='*.swp' --exclude='.dev-sync' . | $SSH_CMD "$CONNECTION" "cd $REMOTE_PATH/$dest_path && tar -xzf -"); then
+                if [[ "$is_critical" = true ]]; then
+                    echo -e "${RED}Error: Failed to sync $display_name${NC}" >&2
+                    exit 1
+                else
+                    echo -e "${YELLOW}Warning: Failed to sync $display_name${NC}" >&2
+                fi
+            fi
+        elif [[ "$is_critical" = true ]]; then
+            echo -e "${RED}Error: Failed to create remote directory for $display_name${NC}" >&2
+            exit 1
+        fi
+    fi
+}
+
+echo -e "${BLUE}=== Remote server setup for $HOSTNAME ===${NC}"
+echo -e "${BLUE}Connection: $CONNECTION${NC}"
+echo -e "${BLUE}Remote path: $REMOTE_PATH${NC}"
+if [[ "$DRY_RUN" = true ]]; then
+    echo -e "${YELLOW}DRY RUN MODE - No changes will be made${NC}"
+fi
+echo ""
+
+# Use Windows SSH for 1Password agent integration in WSL
+# Note: Requires ssh-wrapper.sh for proper 1Password SSH agent forwarding
+SSH_CMD="ssh"
+if grep -qi microsoft /proc/version 2>/dev/null && command -v ssh.exe &> /dev/null; then
+    SSH_CMD="cmd.exe /c ssh.exe"
+fi
+
+# Sync directories using the sync_directory function
+sync_directory "$SERVER_DIR" "servers/$HOSTNAME" "servers/$HOSTNAME/" true
+sync_directory "$PROJECT_ROOT/servers/shared" "servers/shared" "servers/shared/" false
+sync_directory "$PROJECT_ROOT/lib" "lib" "lib/" false
+sync_directory "$PROJECT_ROOT/bin" "bin" "bin/" false
+
+# Run setup-server on remote (unless --sync-only specified)
+if [[ "$SYNC_ONLY" = true ]]; then
+    echo -e "${BLUE}✓ File sync completed (setup-server skipped)${NC}"
+elif [[ "$DRY_RUN" = true ]]; then
+    echo -e "${YELLOW}Would run: $SSH_CMD $CONNECTION 'cd $REMOTE_PATH && /opt/bin/bash ./bin/setup-server'${NC}"
+else
+    echo -e "${GREEN}Running setup-server on $HOSTNAME...${NC}"
+    echo ""
+    if $SSH_CMD "$CONNECTION" "cd $REMOTE_PATH && /opt/bin/bash ./bin/setup-server"; then
+        echo ""
+        echo -e "${GREEN}✓ Remote server setup completed successfully${NC}"
+    else
+        echo ""
+        echo -e "${RED}✗ setup-server failed on remote host${NC}" >&2
+        exit 1
+    fi
+fi
+
+echo -e "${BLUE}=== Setup complete ===${NC}"

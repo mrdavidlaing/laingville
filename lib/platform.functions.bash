@@ -38,7 +38,13 @@ detect_platform() {
       ;;
     "linux")
       # For Linux, detect the specific distribution/environment
-      if grep -qi "microsoft\|wsl" /proc/version 2> /dev/null; then
+      if [[ -f /usr/sbin/httpd ]] && [[ -d /www ]] && [[ -d /jffs ]]; then
+        # ASUS router with FreshTomato firmware
+        echo "freshtomato"
+      elif [[ -f /usr/sbin/dropbear ]] && [[ -d /jffs ]]; then
+        # ASUS router with Merlin firmware
+        echo "router-merlin"
+      elif grep -qi "microsoft\|wsl" /proc/version 2> /dev/null; then
         echo "wsl"
       elif command -v pacman > /dev/null 2>&1; then
         echo "arch"
@@ -54,8 +60,8 @@ detect_platform() {
   esac
 }
 
-# Detect username mapping from system username to dotfiles directory
-detect_username() {
+# Map system username to dotfiles directory name
+map_system_user_to_dotfiles_user() {
   local system_user
   system_user=$(whoami)
   case "${system_user}" in

@@ -20,7 +20,10 @@
       "Bash(gh run list:*)",
       "Bash(git push:*)",
       "Bash(make:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(gh issue view:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:www.wiki.freshtomato.org)"
     ],
     "deny": []
   },
