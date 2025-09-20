@@ -115,10 +115,10 @@ install_pacman_packages() {
   else
     log_info "Installing pacman packages: ${pkg_array[*]}"
 
-    # Refresh package databases first to avoid 404 errors
-    log_info "Refreshing package databases..."
-    if ! sudo pacman -Syy; then
-      log_warning "Failed to refresh package databases, continuing anyway..."
+    # Perform full system upgrade first (Arch Linux best practice)
+    log_info "Performing full system upgrade..."
+    if ! sudo pacman -Syu --noconfirm; then
+      log_warning "Full system upgrade failed, continuing with package installation..."
     fi
 
     # Batch installation with proper quoting
