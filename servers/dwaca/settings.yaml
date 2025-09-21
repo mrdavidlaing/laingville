@@ -6,18 +6,11 @@
 
 # SSH connection settings for remote access
 connection:
-  host: 192.168.1.2    # Router's LAN IP address
-  user: root           # SSH username (root required for system changes)
-  port: 22            # SSH port
+  host: 192.168.1.2
+  user: root
+  port: 22
 
 # Deployment configuration
 deployment:
-  remote_path: /opt/laingville    # Target directory on router for syncing files
+  remote_path: /tmp/mnt/dwaca-usb/laingville
 
-# Network configuration (used by router scripts)
-network:
-  lan_ip: 192.168.1.2      # Router's LAN IP address
-  gateway: 192.168.1.1     # Default gateway (usually ISP modem)
-  dns_servers:
-    - 1.1.1.1    # Cloudflare DNS (primary)
-    - 8.8.8.8    # Google DNS (secondary)

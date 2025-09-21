@@ -19,21 +19,22 @@ sleep 2
 echo "Testing DNS..."
 nslookup google.com || echo "DNS still not working, continuing anyway..."
 
-# Remove existing entware
+# Clean up any existing mounts and directories
+echo "Cleaning up existing Entware installation..."
+umount /opt 2> /dev/null || true
 rm -rf /tmp/mnt/dwaca-usb/entware
 
-# Create entware directory first
+# Create fresh entware directory
 mkdir -p "/tmp/mnt/dwaca-usb/entware"
 
-# Remove /opt if it's a symlink, or just ignore if it's read-only
-if [ -L "/opt" ]; then
-  rm -f /opt
-elif [ -d "/opt" ]; then
-  echo "Note: /opt exists on read-only filesystem, will bind mount over it"
-fi
-
 # Bind mount entware directory to /opt
-mount --bind "/tmp/mnt/dwaca-usb/entware" /opt
+echo "Mounting entware directory to /opt..."
+if mount --bind "/tmp/mnt/dwaca-usb/entware" /opt; then
+  echo "Successfully mounted /tmp/mnt/dwaca-usb/entware to /opt"
+else
+  echo "Failed to mount entware directory"
+  exit 1
+fi
 
 # Download and install Entware for ARM
 echo "Downloading Entware installer..."

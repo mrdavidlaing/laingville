@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/opt/bin/bash
 # Apply MOTD configuration for FreshTomato router
 # This script runs ON the router via setup-server
 

@@ -8,6 +8,7 @@ Describe 'opkg package management'
 
   Describe 'install_opkg_packages()'
     Context 'with valid packages'
+      # shellcheck disable=SC2329  # ShellSpec setup function
       setup() {
         # Mock opkg command
       opkg() {
@@ -59,6 +60,7 @@ Describe 'opkg package management'
       End
 
       Context 'in dry-run mode'
+        # shellcheck disable=SC2329  # ShellSpec setup function
         setup() {
           # Mock command to find opkg (dry-run doesn't need actual opkg)
         command() {
@@ -88,6 +90,7 @@ Describe 'opkg package management'
         End
 
         Context 'when opkg is not available'
+          # shellcheck disable=SC2329  # ShellSpec setup function
           setup() {
           # Mock command to not find opkg
           command() {
@@ -108,6 +111,7 @@ Describe 'opkg package management'
           End
 
           Context 'with invalid package names'
+            # shellcheck disable=SC2329  # ShellSpec setup function
             setup() {
               # Mock opkg and command
             opkg() {
@@ -147,8 +151,10 @@ Describe 'opkg package management'
             End
 
             Context 'when package installation fails'
+              # shellcheck disable=SC2329  # ShellSpec setup function
               setup() {
             # Mock failing opkg
+              # shellcheck disable=SC2329  # Mock function for testing
               opkg() {
               case "$1" in
               "update")
@@ -164,6 +170,7 @@ Describe 'opkg package management'
               }
 
             # Mock command to find opkg
+              # shellcheck disable=SC2329  # Mock function for testing
               command() {
               if [[ "$1" = "-v" && "$2" = "opkg" ]]; then
               return 0

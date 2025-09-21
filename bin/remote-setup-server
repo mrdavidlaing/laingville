@@ -126,10 +126,10 @@ sync_directory() {
 
     echo -e "${GREEN}Syncing $display_name...${NC}"
     if [[ "$DRY_RUN" = true ]]; then
-        echo -e "${YELLOW}Would sync: $src_dir -> $CONNECTION:$REMOTE_PATH/$dest_path${NC}"
+        echo -e "${YELLOW}Would clear and sync: $src_dir -> $CONNECTION:$REMOTE_PATH/$dest_path${NC}"
     else
-        # Create remote directory and sync with tar+ssh
-        if $SSH_CMD "$CONNECTION" "mkdir -p $REMOTE_PATH/$dest_path"; then
+        # Clear target directory and recreate, then sync with tar+ssh
+        if $SSH_CMD "$CONNECTION" "rm -rf $REMOTE_PATH/$dest_path && mkdir -p $REMOTE_PATH/$dest_path"; then
             if ! (cd "$src_dir" && tar -czf - --exclude='.git' --exclude='*.swp' --exclude='.dev-sync' . | $SSH_CMD "$CONNECTION" "cd $REMOTE_PATH/$dest_path && tar -xzf -"); then
                 if [[ "$is_critical" = true ]]; then
                     echo -e "${RED}Error: Failed to sync $display_name${NC}" >&2
@@ -170,10 +170,21 @@ sync_directory "$PROJECT_ROOT/bin" "bin" "bin/" false
 if [[ "$SYNC_ONLY" = true ]]; then
     echo -e "${BLUE}✓ File sync completed (setup-server skipped)${NC}"
 elif [[ "$DRY_RUN" = true ]]; then
-    echo -e "${YELLOW}Would run: $SSH_CMD $CONNECTION 'cd $REMOTE_PATH && /opt/bin/bash ./bin/setup-server'${NC}"
+    echo -e "${YELLOW}Would run: $SSH_CMD $CONNECTION 'cd $REMOTE_PATH && ./bin/setup-server (with auto-detected shell)'${NC}"
 else
     echo -e "${GREEN}Running setup-server on $HOSTNAME...${NC}"
     echo ""
+
+    # Check if Entware bash is available
+    if ! $SSH_CMD "$CONNECTION" '[ -x /opt/bin/bash ]'; then
+        echo -e "${RED}✗ Entware bash not found at /opt/bin/bash${NC}" >&2
+        echo -e "${YELLOW}Please run bootstrap first:${NC}" >&2
+        echo -e "${YELLOW}  ssh root@$CONNECTION_HOST${NC}" >&2
+        echo -e "${YELLOW}  sh $REMOTE_PATH/servers/$HOSTNAME/scripts/bootstrap.sh${NC}" >&2
+        echo -e "${YELLOW}Then reboot and run this command again.${NC}" >&2
+        exit 1
+    fi
+
     if $SSH_CMD "$CONNECTION" "cd $REMOTE_PATH && /opt/bin/bash ./bin/setup-server"; then
         echo ""
         echo -e "${GREEN}✓ Remote server setup completed successfully${NC}"

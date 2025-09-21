@@ -43,7 +43,7 @@ Access router web interface and configure:
 - **2.4GHz Network**: Set SSID to "The Promised LAN (dwaca)"
 - **5GHz Network**: Set SSID to "The Promised LAN (dwaca) 5GHz"
 - **Security**: WPA2 Personal
-- **Password**: [Please provide the WiFi password]
+- **Password**: Get from 1Password > Laing Family > Family (all) > The Promised LAN (DWACA)
 
 **JFFS Storage (Required for MOTD persistence):**
 - **Enable JFFS**: Administration → JFFS → Check "Enable" checkbox
@@ -53,16 +53,20 @@ Access router web interface and configure:
 
 **USB Storage (Required for Entware):**
 - **USB Support**: USB and NAS → USB Support → Enable all USB options
-- **Format USB Drive**: Format as ext4 with label "ENTWARE" (recommended)
+- **Format USB Drive**: Must be formatted as ext4 filesystem (label optional but "ENTWARE" recommended)
+- **Mount Point**: Will auto-mount at `/tmp/mnt/dwaca-usb`
 - **Auto-mount**: Enable USB storage auto-mounting
 
-### 3. Bootstrap Entware Environment
-Run the bootstrap script to install full Linux environment:
+### 3. Sync Files and Bootstrap Entware
+First sync the configuration files to the router:
+```bash
+./bin/remote-setup-server dwaca --sync-only
+```
+
+Then SSH to the router and run the bootstrap script:
 ```bash
 ssh root@192.168.1.2
-# Files will be uploaded here, then run:
-cd /tmp/laingville/servers/dwaca/scripts
-sh bootstrap.sh
+sh /tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/bootstrap.sh
 ```
 
 This installs:
@@ -74,23 +78,13 @@ This installs:
 
 **Reboot after bootstrap** to activate auto-start scripts.
 
-## Development Workflow
+## Configuration Updates
 
-### Method 1: Remote Server Setup (Development)
-Use the remote setup tool from your development machine:
+Use the remote setup tool to deploy configuration changes:
 ```bash
 ./bin/remote-setup-server dwaca                  # Deploy and configure
 ./bin/remote-setup-server dwaca --dry-run        # Preview changes
 ./bin/remote-setup-server dwaca --sync-only      # Just sync files
-```
-
-### Method 2: Git Pull (Production)
-SSH into the router and run setup-server (requires Entware):
-```bash
-ssh root@192.168.1.2
-cd /opt/laingville
-git pull
-/opt/bin/bash ./bin/setup-server
 ```
 
 ## Configuration Files
@@ -135,7 +129,7 @@ Entware provides a full Linux package ecosystem for routers:
 
 **Installation**: Run the bootstrap script for fresh setup:
 ```bash
-cd /tmp/laingville/servers/dwaca/scripts
+cd /opt/laingville/servers/dwaca/scripts
 sh bootstrap.sh
 ```
 
@@ -154,7 +148,7 @@ sh bootstrap.sh
 The router has:
 - FreshTomato 2025.3 K26ARM USB AIO-64K firmware
 - USB drive with Entware at `/tmp/mnt/dwaca-usb`
-- Repository synced to: `/tmp/laingville` (development) or `/opt/laingville` (production)
+- Repository synced to: `/opt/laingville`
 - SSH access on port 22 with rate limiting disabled
 
 ## Notes
@@ -166,7 +160,7 @@ The router has:
 - **Persistent storage**: USB drive required for packages and data persistence
 - **Service management**: Use `service <name> restart` to reload configurations
 
-### Development Workflow
+### Deployment Notes
 - MOTD displays on interactive SSH login only
 - Configuration changes persist across reboots (stored in JFFS)
 - User profile is in `/tmp` so recreated on each boot

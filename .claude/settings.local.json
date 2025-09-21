@@ -23,7 +23,8 @@
       "Bash(chmod:*)",
       "Bash(gh issue view:*)",
       "Bash(mkdir:*)",
-      "WebFetch(domain:www.wiki.freshtomato.org)"
+      "WebFetch(domain:www.wiki.freshtomato.org)",
+      "Bash(ssh.exe:*)"
     ],
     "deny": []
   },

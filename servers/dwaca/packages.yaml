@@ -2,7 +2,13 @@ freshtomato:
   opkg:
     - vim
     - htop
+    - curl
+    - ntpdate
   custom:
     - apply_motd
     - apply_profile
     - setup_init_scripts
+    - apply_network_config
+    - apply_dns_config
+    - apply_time_sync
+    - apply_freshtomato_adblock
