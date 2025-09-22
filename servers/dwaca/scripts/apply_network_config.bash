@@ -6,6 +6,13 @@ set -euo pipefail
 
 echo "Applying network configuration..."
 
+# Set system hostname to match router configuration
+echo "- Setting system hostname to dwaca"
+hostname dwaca
+echo "dwaca" > /proc/sys/kernel/hostname
+echo "127.0.0.1 localhost dwaca" > /etc/hosts
+echo "192.168.1.2 dwaca.laingville.internal dwaca" >> /etc/hosts
+
 # Configure persistent network settings via NVRAM
 echo "- Configuring default gateway and DNS settings in NVRAM"
 
@@ -18,13 +25,19 @@ nvram set wan_dns="1.1.1.1 8.8.8.8"
 # Ensure router uses static DNS (not DHCP from ISP)
 nvram set wan_dns_auto=0
 
-# Set LAN IP configuration
-nvram set lan_ipaddr="192.168.1.2"
-nvram set lan_netmask="255.255.255.0"
-nvram set lan_gateway="192.168.1.1"
+# Note: LAN IP configuration is managed via web UI
+# Do not modify lan_ipaddr, lan_netmask, lan_gateway, or lan_proto via scripts
+# Current working settings: lan_proto=dhcp, lan_ipaddr=192.168.1.2, lan_gateway=192.168.1.1
 
 # Configure as LAN router (not WAN router)
 nvram set wan_proto="disabled"
+
+# Configure router to use itself as DNS server
+echo "- Configuring router to use internal DNS"
+nvram set lan_dns="192.168.1.2" # Router uses its own DNS server
+
+# Ensure router listens on all interfaces for DNS
+nvram set dnsmasq_bind="0" # Listen on all interfaces, not just LAN
 
 # Commit NVRAM changes for persistence
 nvram commit

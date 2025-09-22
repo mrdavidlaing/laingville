@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Configuration
-CONFIG_DIR="/opt/laingville/servers/dwaca/configs"
+CONFIG_DIR="/tmp/mnt/dwaca-usb/laingville/servers/dwaca/configs"
 JFFS_DIR="/jffs/configs"
 
 echo "Applying MOTD configuration..."

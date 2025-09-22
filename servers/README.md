@@ -7,18 +7,18 @@ This directory contains configuration and management files for the Laingville ho
 ```
 Home Network: 192.168.1.0/24
 Gateway: 192.168.1.1 (Vodafone Fibre Modem/Router)
-DNS: 192.168.1.77 (baljeet - BIND DNS server)
+DNS: 192.168.1.2 (dwaca - FreshTomato dnsmasq server)
 ```
 
 ## Server Inventory
 
-| Server Name | Hostname | IP Discovery | IP Address | Services | Notes |
-|-------------|----------|--------------|------------|----------|-------|
-| [baljeet](./baljeet/) | baljeet | Static | 192.168.1.77 | BIND DNS | Primary DNS server for laingville.internal |
-| [phineas](./phineas/) | phineas | Static | 192.168.1.70 | TBD | TBD |
-| [ferb](./ferb/) | ferb | Static | 192.168.1.67 | TBD | TBD |
-| [monogram](./monogram/) | monogram | Static | 192.168.1.26 | TBD | TBD |
-| [momac](./momac/) | momac | Static | 192.168.1.46 | TBD | TBD |
+| Server Name | Hostname | IP Discovery | IP Address | MAC Address | Services | Notes |
+|-------------|----------|--------------|------------|-------------|----------|-------|
+| [dwaca](./dwaca/) | dwaca | Static (Router) | 192.168.1.2 | N/A | DNS, DHCP, WiFi | FreshTomato router, primary DNS/DHCP server |
+| [baljeet](./baljeet/) | baljeet | DHCP (Reserved) | 192.168.1.77 | 60:03:08:8A:99:36 | General purpose | Former DNS server |
+| [phineas](./phineas/) | phineas | DHCP (Reserved) | 192.168.1.70 | C8:69:CD:AA:4E:0A | TBD | TBD |
+| [ferb](./ferb/) | ferb | DHCP (Reserved) | 192.168.1.67 | 80:E6:50:24:50:78 | TBD | TBD |
+| [monogram](./monogram/) | monogram | DHCP (Reserved) | 192.168.1.26 | FC:34:97:BA:A9:06 | TBD | TBD |
 
 ## Server Configuration
 
@@ -49,33 +49,40 @@ The script automatically detects the hostname and applies the appropriate config
 ## Services Overview
 
 ### baljeet
-- **Role**: Primary DNS server for the Laingville network
-- **Key Services**: 
-  - BIND (named) - DNS server for laingville.internal domain
-  - Provides forward and reverse DNS resolution for all servers
-- **Custom Scripts**: 
-  - `ensure_bind_configured.bash` - Configures BIND DNS server with zone files and firewall rules
-- **Firewall**: 
-  - Uses firewalld (if active) 
-  - Allows SSH and DNS services
+- **Role**: General purpose server
+- **Key Services**:
+  - General computing tasks (DNS services migrated to dwaca router)
+- **Custom Scripts**:
+  - `ensure_sshd_running` - Ensures SSH daemon is running
+- **Firewall**:
+  - Uses firewalld (if active)
+  - Allows SSH services
   - Automatically configured by setup script
 
-## DNS Configuration
+## DNS and DHCP Configuration
 
-The Laingville network uses a BIND DNS server running on baljeet (192.168.1.77) to provide:
+The Laingville network uses dwaca (FreshTomato router) as the primary DNS and DHCP server.
 
+### DNS Server (dwaca - 192.168.1.2)
 - **Internal domain**: `laingville.internal`
 - **Forward DNS**: Resolves hostnames like `ferb.laingville.internal` to IP addresses
 - **Reverse DNS**: Resolves IP addresses back to hostnames
-- **External DNS forwarding**: Uses Cloudflare (1.1.1.1, 1.0.0.1) and Google (8.8.8.8, 8.8.4.4) as forwarders
+- **External DNS forwarding**: Uses Cloudflare (1.1.1.1) and Google (8.8.8.8) as forwarders
+- **Implementation**: Native FreshTomato dnsmasq with custom hosts file
 
-### DNS Setup
+### DHCP Configuration
+- **DHCP Pool**: 192.168.1.100 - 192.168.1.199 (100 addresses)
+- **Static Reservations**: MAC-based assignments for all servers
+- **Lease Time**: 24 hours
+- **Gateway**: 192.168.1.1 (Vodafone router)
+- **DNS Server**: 192.168.1.2 (dwaca router)
 
-The Vodafone Gigabox router is configured to use 192.168.1.77 as the primary DNS server, so all devices on the network automatically use the internal DNS.
-
-### Firewall Considerations
-
-Servers running firewalld must allow the DNS service for external queries to work. The `ensure_bind_configured.bash` script automatically configures this when setting up BIND.
+### Network Services Migration
+DNS and DHCP services were centralized on dwaca router using native FreshTomato features for:
+- Simplified management (no additional packages required)
+- Better integration between DNS and DHCP services
+- Lower resource usage on dedicated hardware
+- Centralized network service management
 
 ## Shared Configurations
 

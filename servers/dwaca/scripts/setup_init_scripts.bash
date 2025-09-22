@@ -31,6 +31,7 @@ done
 /tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/apply_motd.bash
 /tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/apply_profile.bash
 /tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/apply_network_config.bash
+/tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/apply_dhcp_reservations.bash
 /tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/apply_dns_config.bash
 /tmp/mnt/dwaca-usb/laingville/servers/dwaca/scripts/apply_freshtomato_adblock.bash
 '
@@ -41,10 +42,12 @@ nvram commit
 echo "Init script configured successfully in NVRAM"
 echo ""
 echo "The following scripts will run at boot:"
+echo "  - apply_time_sync.bash (configures NTP time synchronization)"
 echo "  - apply_motd.bash (sets up MOTD)"
 echo "  - apply_profile.bash (sets up SSH user profile)"
 echo "  - apply_network_config.bash (configures gateway, DNS, routing)"
-echo "  - apply_dns_config.bash (configures DNS and dnsmasq)"
+echo "  - apply_dhcp_reservations.bash (configures DHCP static leases)"
+echo "  - apply_dns_config.bash (configures internal DNS and dnsmasq)"
 echo "  - apply_freshtomato_adblock.bash (configures FreshTomato adblock)"
 echo ""
 echo "To verify: Check Administration → Scripts → Init in FreshTomato web UI"

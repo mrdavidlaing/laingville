@@ -10,11 +10,11 @@ echo "Configuring /etc/hosts with Laingville server hostnames..."
 # Define the server mappings
 LAINGVILLE_HOSTS="
 # Laingville servers
+192.168.1.2     dwaca
 192.168.1.77    baljeet
 192.168.1.70    phineas
 192.168.1.67    ferb
-192.168.1.26    monogram
-192.168.1.46    momac"
+192.168.1.26    monogram"
 
 # Backup original hosts file
 sudo cp /etc/hosts "/etc/hosts.backup.$(date +%Y%m%d-%H%M%S || true)"

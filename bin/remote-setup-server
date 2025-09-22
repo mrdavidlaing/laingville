@@ -160,11 +160,50 @@ if grep -qi microsoft /proc/version 2>/dev/null && command -v ssh.exe &> /dev/nu
     SSH_CMD="cmd.exe /c ssh.exe"
 fi
 
+# Sync file function for individual files
+sync_file() {
+    local src_file="$1" dest_path="$2" display_name="$3" is_critical="${4:-false}"
+
+    if [[ ! -f "$src_file" ]]; then
+        if [[ "$is_critical" = true ]]; then
+            echo -e "${RED}Error: Required file not found: $src_file${NC}" >&2
+            exit 1
+        else
+            echo -e "${YELLOW}Warning: File not found, skipping: $src_file${NC}" >&2
+            return 0
+        fi
+    fi
+
+    echo -e "${GREEN}Syncing $display_name...${NC}"
+    if [[ "$DRY_RUN" = true ]]; then
+        echo -e "${YELLOW}Would sync: $src_file -> $CONNECTION:$REMOTE_PATH/$dest_path${NC}"
+    else
+        # Create destination directory and copy file
+        dest_dir=$(dirname "$dest_path")
+        if $SSH_CMD "$CONNECTION" "mkdir -p $REMOTE_PATH/$dest_dir"; then
+            if ! (cat "$src_file" | $SSH_CMD "$CONNECTION" "cat > $REMOTE_PATH/$dest_path"); then
+                if [[ "$is_critical" = true ]]; then
+                    echo -e "${RED}Error: Failed to sync $display_name${NC}" >&2
+                    exit 1
+                else
+                    echo -e "${YELLOW}Warning: Failed to sync $display_name${NC}" >&2
+                fi
+            fi
+        elif [[ "$is_critical" = true ]]; then
+            echo -e "${RED}Error: Failed to create remote directory for $display_name${NC}" >&2
+            exit 1
+        fi
+    fi
+}
+
 # Sync directories using the sync_directory function
 sync_directory "$SERVER_DIR" "servers/$HOSTNAME" "servers/$HOSTNAME/" true
 sync_directory "$PROJECT_ROOT/servers/shared" "servers/shared" "servers/shared/" false
 sync_directory "$PROJECT_ROOT/lib" "lib" "lib/" false
 sync_directory "$PROJECT_ROOT/bin" "bin" "bin/" false
+
+# Sync the main servers README for network configuration parsing
+sync_file "$PROJECT_ROOT/servers/README.md" "servers/README.md" "servers/README.md" true
 
 # Run setup-server on remote (unless --sync-only specified)
 if [[ "$SYNC_ONLY" = true ]]; then

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Configuration
-CONFIG_DIR="/opt/laingville/servers/dwaca/configs"
+CONFIG_DIR="/tmp/mnt/dwaca-usb/laingville/servers/dwaca/configs"
 PROFILE_PATH="/tmp/home/root/.profile"
 
 echo "Applying user profile configuration..."

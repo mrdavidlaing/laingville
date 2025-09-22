@@ -19,6 +19,13 @@ sleep 2
 echo "Testing DNS..."
 nslookup google.com || echo "DNS still not working, continuing anyway..."
 
+# Set system hostname to match router configuration
+echo "Setting system hostname to dwaca..."
+hostname dwaca
+echo "dwaca" > /proc/sys/kernel/hostname
+echo "127.0.0.1 localhost dwaca" > /etc/hosts
+echo "192.168.1.2 dwaca.laingville.internal dwaca" >> /etc/hosts
+
 # Clean up any existing mounts and directories
 echo "Cleaning up existing Entware installation..."
 umount /opt 2> /dev/null || true

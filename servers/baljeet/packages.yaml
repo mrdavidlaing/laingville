@@ -7,12 +7,10 @@ arch:
     - vim
     - tmux
     - openssh
-    - bind
   yay:
     # No AUR packages currently needed
   custom:
     - ensure_sshd_running
-    - ensure_bind_configured
 
 windows:
   winget:
