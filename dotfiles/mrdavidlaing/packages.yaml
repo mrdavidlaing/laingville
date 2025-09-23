@@ -47,6 +47,7 @@ arch:
     - crush-bin
     - opencode
     - k9s
+    - speedtest-cli
     # Desktop environment
     - hyprland
     - waybar
@@ -109,6 +110,7 @@ wsl:
     - glow
     - crush-bin
     - k9s
+    - speedtest-cli
   custom:
     - install_claude_code
 
@@ -162,6 +164,7 @@ macos:
     - shellcheck
     - shellspec
     - shfmt
+    - speedtest-cli
   cask:
     - nikitabobko/tap/aerospace
     - rectangle
