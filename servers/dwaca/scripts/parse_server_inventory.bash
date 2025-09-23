@@ -123,7 +123,8 @@ EOF
 
   echo ""
   echo "Test 5: Error handling for missing file"
-  if parse_server_table dhcp /nonexistent/file.md 2> /dev/null; then
+  parse_server_table dhcp /nonexistent/file.md 2> /dev/null
+  if [ $? -eq 0 ]; then
     echo "  ✗ Should have failed for missing file"
   else
     echo "  ✓ Correctly handles missing file"
@@ -131,7 +132,8 @@ EOF
 
   echo ""
   echo "Test 6: Invalid format parameter"
-  if parse_server_table invalid_format /tmp/test_readme.md 2> /dev/null; then
+  parse_server_table invalid_format /tmp/test_readme.md 2> /dev/null
+  if [ $? -eq 0 ]; then
     echo "  ✗ Should have failed for invalid format"
   else
     echo "  ✓ Correctly rejects invalid format"

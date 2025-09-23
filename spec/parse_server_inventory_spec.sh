@@ -28,7 +28,7 @@ EOF
   }
 
   cleanup() {
-    rm -f /tmp/test_servers_readme.md
+  rm -f /tmp/test_servers_readme.md
   }
 
   BeforeEach 'setup'
@@ -109,7 +109,7 @@ EOF
     }
 
     cleanup_malformed() {
-      rm -f /tmp/malformed_servers.md
+    rm -f /tmp/malformed_servers.md
     }
 
     BeforeEach 'setup_malformed'
@@ -149,7 +149,7 @@ EOF
     }
 
     cleanup_whitespace() {
-      rm -f /tmp/whitespace_servers.md
+    rm -f /tmp/whitespace_servers.md
     }
 
     BeforeEach 'setup_whitespace'

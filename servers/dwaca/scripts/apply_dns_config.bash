@@ -72,7 +72,7 @@ for i in 1 2 3; do
   if nslookup dwaca.laingville.internal 192.168.1.2 > /dev/null 2>&1; then
     echo "  ✓ Local forward DNS resolution working"
     break
-  elif [ $i -eq 3 ]; then
+  elif [ "$i" -eq 3 ]; then
     echo "  ⚠ Warning: Local forward DNS resolution test failed after 3 attempts"
     # Try alternative test
     if getent hosts dwaca.laingville.internal > /dev/null 2>&1; then
@@ -81,7 +81,8 @@ for i in 1 2 3; do
       echo "  ℹ Debug: hosts file content:"
       head -5 /jffs/configs/hosts.local 2> /dev/null | sed 's/^/    /'
       echo "  ℹ Debug: dnsmasq status:"
-      ps | grep dnsmasq | grep -v grep | sed 's/^/    /'
+      # Use ps with awk for better compatibility with BusyBox
+      ps | awk '/dnsmasq/ && !/awk/ {print "    PID: " $1}'
     fi
   else
     sleep 2
@@ -115,6 +116,6 @@ echo "  DNS Rebind Protection: Disabled (for local domain access)"
 echo "  Hosts File: /jffs/configs/hosts.local"
 echo ""
 echo "Configured hosts:"
-cat /jffs/configs/hosts.local | grep -v '^#' | grep -v '^$' | while read -r line; do
+grep -v '^#' /jffs/configs/hosts.local | grep -v '^$' | while read -r line; do
   echo "  $line"
 done

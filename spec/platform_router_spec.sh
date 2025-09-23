@@ -49,8 +49,8 @@ Describe 'FreshTomato platform detection'
         After 'cleanup'
 
           It 'detects freshtomato platform'
-        # Skip test on non-router systems
-            Skip if "Platform detection tests require router system" test -x "$(command -v wsl.exe 2>/dev/null)"
+            # Skip test on non-Linux systems since freshtomato detection requires Linux base
+            Skip if "Platform detection tests require Linux system" [ "$(detect_os)" != "linux" ]
 
             When call detect_platform
             The output should equal 'freshtomato'
