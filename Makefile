@@ -28,31 +28,10 @@ format:
 	@./scripts/format-shellspec.sh
 	@echo "✅ All formatting complete"
 
-# Lint all bash scripts using shellcheck (batched for performance)
+# Lint all bash scripts using shellcheck
 lint:
 	@echo "🔍 Linting bash scripts..."
-	@if command -v shellcheck >/dev/null 2>&1; then \
-		# Find all shell scripts (*.sh and *.bash) \
-		# Exclude: .git directory and hidden dotfiles \
-		STANDARD_SCRIPTS=$$(find . -type f \( -name "*.sh" -o -name "*.bash" \) \
-			-not -path "./.git/*" \
-			-not -path "./dotfiles/*/.*"); \
-		# Find Claude automation scripts (bash files and executables) \
-		CLAUDE_SCRIPTS=$$(find ./dotfiles/mrdavidlaing/.claude -type f \
-			\( -name "*.bash" -o -executable \) 2>/dev/null || true); \
-		# Always include setup scripts \
-		SETUP_SCRIPTS="setup.sh setup-secrets"; \
-		# Combine all files and lint them in a single batch \
-		{ echo "$$STANDARD_SCRIPTS"; \
-		  echo "$$CLAUDE_SCRIPTS"; \
-		  echo "$$SETUP_SCRIPTS" | tr ' ' '\n'; } | \
-			grep -v '^$$' | sort -u | tr '\n' '\0' | \
-			xargs -0 -t shellcheck; \
-		echo "✅ Linting complete"; \
-	else \
-		echo "⚠️  shellcheck not found. Skipping linting"; \
-		exit 1; \
-	fi
+	@./scripts/lint-bash.sh
 
 # Lint all PowerShell scripts using PSScriptAnalyzer
 lint-powershell:
