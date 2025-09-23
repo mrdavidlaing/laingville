@@ -3,7 +3,7 @@
   "env": {
     "PATH": "~/.claude/wrappers:$PATH"
   },
-  "model": "opusplan",
+  "model": "sonnet[1m]",
   "hooks": {
     "PreToolUse": [
       {
