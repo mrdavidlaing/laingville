@@ -42,6 +42,13 @@ echo "- Configuring DHCP server settings"
 # Current working setting: lan_dhcp=0 (managed by dnsmasq directly)
 nvram set dhcpd_dmdns=1 # Use internal DNS for DHCP clients
 
+# Configure DHCP to advertise Vodafone Gigabox as default gateway
+# while keeping dwaca router as DNS server
+echo "- Setting DHCP gateway to Vodafone Gigabox (192.168.1.1)"
+nvram set dhcp_gateway=192.168.1.1
+# Enable gateway mode to use dhcp_gateway instead of router IP
+nvram set dhcpd_gwmode=1
+
 # Configure lease time (24 hours = 1440 minutes)
 nvram set dhcp_lease=1440
 
@@ -58,6 +65,8 @@ sleep 2
 echo ""
 echo "DHCP Static Lease Configuration Summary:"
 echo "  DHCP Pool Range: 192.168.1.100 - 192.168.1.199"
+echo "  Gateway: 192.168.1.1 (Vodafone Gigabox)"
+echo "  DNS Server: 192.168.1.2 (dwaca router)"
 echo "  Static Reservations:"
 parse_server_table full | while IFS=':' read -r hostname mac ip; do
   printf "    %-8s (%s) → %s\n" "$hostname" "$mac" "$ip"
