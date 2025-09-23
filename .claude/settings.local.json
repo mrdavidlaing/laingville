@@ -26,7 +26,8 @@
       "WebFetch(domain:www.wiki.freshtomato.org)",
       "Bash(ssh.exe:*)",
       "Bash(git config:*)",
-      "Bash(gh run watch:*)"
+      "Bash(gh run watch:*)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": []
   },
