@@ -32,12 +32,15 @@ arch:
     target: ~/.claude/settings.json
   - source: .claude/wrappers
     target: ~/.claude/wrappers
-  # Desktop environment
+  # Desktop environment - Hyprland
   - .config/hypr
   - .config/waybar
   - .config/systemd
   - .config/dynamic-wallpaper.yml
-  - .config/dconf
+  # Desktop environment - KDE Plasma
+  - .config/kdeglobals
+  - .config/kwinrc
+  - .config/plasma-workspace
   # Zen Browser
   - .zen
 

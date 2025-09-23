@@ -3,6 +3,18 @@
 
 # Arch Linux - full desktop environment
 arch:
+  pacman:
+    # Desktop environment - KDE Plasma Wayland
+    - plasma-meta
+    - kde-applications-meta
+    - sddm
+    - pipewire
+    - pipewire-pulse
+    - wireplumber
+    - pipewire-jack
+    - pipewire-alsa
+    - qt6-wayland
+    - qt5-wayland
   yay:
     # Development tools
     - base-devel
@@ -48,7 +60,7 @@ arch:
     - opencode
     - k9s
     - speedtest-cli
-    # Desktop environment
+    # Hyprland Desktop Environment
     - hyprland
     - waybar
     - rofi
@@ -56,6 +68,7 @@ arch:
     - brightnessctl
     - playerctl
     - hyprpaper
+    # Applications
     - alacritty
     - gimp
     - ttf-jetbrains-mono-nerd
