@@ -3,6 +3,8 @@
 # ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
 # shellcheck disable=SC2218
 
+Include lib/polyfill.functions.bash
+
 Describe "format-files.sh - Comprehensive Formatting Test Suite"
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
 
@@ -11,7 +13,7 @@ Describe "format-files.sh - Comprehensive Formatting Test Suite"
     local content="$1"
     local extension="${2:-sh}"
     local temp_file
-    temp_file=$(mktemp --suffix=".$extension")
+    temp_file=$(mktemp_with_suffix ".$extension")
     echo "$content" > "$temp_file"
     echo "$temp_file"
     }
@@ -178,7 +180,7 @@ Describe "format-files.sh - Comprehensive Formatting Test Suite"
       local input_file="$1"
       local expected_file="$2"
       local temp_file
-      temp_file=$(mktemp --suffix="_spec.sh")
+      temp_file=$(mktemp_with_suffix "_spec.sh")
 
       # Copy input to temp file
       cp "$input_file" "$temp_file"

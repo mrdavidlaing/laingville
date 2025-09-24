@@ -230,3 +230,34 @@ get_user_shell() {
       ;;
   esac
 }
+
+# Cross-platform mktemp with suffix support
+# Creates a temp file and renames it to have the specified suffix
+# Args: $1 - suffix (required, e.g. ".sh", "_spec.sh")
+# Returns: path to temporary file with requested suffix
+mktemp_with_suffix() {
+  local suffix="$1"
+  [[ -z "${suffix}" ]] && {
+    echo "Error: mktemp_with_suffix requires a suffix argument" >&2
+    return 1
+  }
+
+  # Create temp file with standard mktemp (works everywhere)
+  local temp_file
+  temp_file=$(mktemp) || {
+    echo "Error: Failed to create temporary file" >&2
+    return 1
+  }
+
+  # Create new filename with suffix
+  local final_file="${temp_file}${suffix}"
+
+  # Move to final location with suffix
+  mv "${temp_file}" "${final_file}" || {
+    rm -f "${temp_file}" 2> /dev/null || true
+    echo "Error: Failed to rename temporary file" >&2
+    return 1
+  }
+
+  echo "${final_file}"
+}
