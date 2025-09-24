@@ -40,6 +40,18 @@ tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"wi
 [Tiling][84a72a66-2b9e-4531-8fa8-27f90e76f59e]
 tiles={"layoutDirection":"horizontal","tiles":[{"width":0.5},{"width":0.5}]}
 
+[Tiling][84a72a66-2b9e-4531-8fa8-27f90e76f59e][24548433-e4f2-4d8d-97e3-537c1dc08f46]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][9d7c4e8f-8c3e-4f1f-9a32-89e23f1b3456][24548433-e4f2-4d8d-97e3-537c1dc08f46]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][a2c2fe52-6c9e-49e4-ba21-42797e0a1234][24548433-e4f2-4d8d-97e3-537c1dc08f46]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][b6e8f9d2-1234-5678-90ab-cdef12345678][24548433-e4f2-4d8d-97e3-537c1dc08f46]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
 [Windows]
 ActiveMouseScreen=false
 AutoRaise=false
@@ -59,3 +71,6 @@ ShadeHoverInterval=250
 SnapOnlyWhenOverlapping=false
 TitlebarDoubleClickCommand=Maximize
 WindowSnapZone=10
+
+[Xwayland]
+Scale=1.45
