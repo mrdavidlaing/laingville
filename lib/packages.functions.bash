@@ -5,35 +5,27 @@
 
 # Functions assume security, logging, and platform functions are already sourced by calling script
 
-# Helper function to convert package list to array
+# Helper function to convert package list to array (outputs to stdout)
 convert_packages_to_array() {
   local packages="$1"
-  local -n array_ref=$2
 
-  array_ref=()
   while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && array_ref+=("${pkg}")
+    [[ -n "${pkg}" ]] && printf '%s\n' "${pkg}"
   done <<< "${packages}"
 }
 
-# Helper function to quote packages for shell safety
+# Helper function to quote packages for shell safety (outputs to stdout)
 quote_packages() {
-  local -n pkg_array_ref=$1
-  local -n quoted_array_ref=$2
-
-  quoted_array_ref=()
-  for pkg in "${pkg_array_ref[@]}"; do
-    local quoted_pkg
-    printf -v quoted_pkg '%q' "${pkg}"
-    quoted_array_ref+=("${quoted_pkg}")
+  local pkg
+  for pkg in "$@"; do
+    printf '%q ' "${pkg}"
   done
 }
 
-# Helper function to format package list for dry run display
+# Helper function to format package list for dry run display (outputs to stdout)
 format_package_list() {
-  local -n pkg_array_ref=$1
   local pkg_list
-  pkg_list=$(printf '%s, ' "${pkg_array_ref[@]}")
+  pkg_list=$(printf '%s, ' "$@")
   echo "${pkg_list%, }"
 }
 
@@ -106,12 +98,14 @@ install_pacman_packages() {
     return
   fi
 
-  # Convert to array for processing
-  local pkg_array
-  convert_packages_to_array "${valid_packages}" pkg_array
+  # Convert to array for processing (Bash 3.2 compatible)
+  local pkg_array=()
+  while IFS= read -r pkg; do
+    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
+  done < <(convert_packages_to_array "${valid_packages}")
 
   if [[ "${dry_run}" = true ]]; then
-    log_dry_run "install via pacman: $(format_package_list pkg_array)"
+    log_dry_run "install via pacman: $(format_package_list "${pkg_array[@]}")"
   else
     log_info "Installing pacman packages: ${pkg_array[*]}"
 
@@ -123,9 +117,9 @@ install_pacman_packages() {
 
     # Batch installation with proper quoting
     local quoted_packages
-    quote_packages pkg_array quoted_packages
+    quoted_packages=$(quote_packages "${pkg_array[@]}")
 
-    if ! eval "sudo pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
+    if ! eval "sudo pacman -S --needed --noconfirm ${quoted_packages}"; then
       log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
     fi
   fi
@@ -149,12 +143,14 @@ install_yay_packages() {
     return
   fi
 
-  # Convert to array for processing
-  local pkg_array
-  convert_packages_to_array "${valid_packages}" pkg_array
+  # Convert to array for processing (Bash 3.2 compatible)
+  local pkg_array=()
+  while IFS= read -r pkg; do
+    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
+  done < <(convert_packages_to_array "${valid_packages}")
 
   if [[ "${dry_run}" = true ]]; then
-    log_dry_run "install via yay: $(format_package_list pkg_array)"
+    log_dry_run "install via yay: $(format_package_list "${pkg_array[@]}")"
   else
     log_info "Installing yay packages: ${pkg_array[*]}"
 
@@ -166,9 +162,9 @@ install_yay_packages() {
 
     # Batch installation with --batchinstall and proper quoting
     local quoted_packages
-    quote_packages pkg_array quoted_packages
+    quoted_packages=$(quote_packages "${pkg_array[@]}")
 
-    if ! eval "yay -S --needed --noconfirm --batchinstall ${quoted_packages[*]}"; then
+    if ! eval "yay -S --needed --noconfirm --batchinstall ${quoted_packages}"; then
       log_warning "Failed to install some yay packages: ${pkg_array[*]}"
       log_info "Tip: If you see connection errors, the AUR servers may be temporarily unavailable. Try again later."
     fi
@@ -345,13 +341,15 @@ install_opkg_packages() {
     return
   fi
 
-  # Convert to array for processing
-  local pkg_array
-  convert_packages_to_array "${valid_packages}" pkg_array
+  # Convert to array for processing (Bash 3.2 compatible)
+  local pkg_array=()
+  while IFS= read -r pkg; do
+    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
+  done < <(convert_packages_to_array "${valid_packages}")
 
   if [[ "${dry_run}" = true ]]; then
     log_dry_run "update opkg package list"
-    log_dry_run "install via opkg: $(format_package_list pkg_array)"
+    log_dry_run "install via opkg: $(format_package_list "${pkg_array[@]}")"
   else
     log_info "Updating opkg package list..."
     if ! opkg update; then
@@ -362,9 +360,9 @@ install_opkg_packages() {
 
     # Try installing all packages at once first
     local quoted_packages
-    quote_packages pkg_array quoted_packages
+    quoted_packages=$(quote_packages "${pkg_array[@]}")
 
-    if ! eval "opkg install ${quoted_packages[*]}" 2>&1; then
+    if ! eval "opkg install ${quoted_packages}" 2>&1; then
       # If batch installation fails, try individual installation for better error handling
       local failed_packages=()
       local individual_quoted
