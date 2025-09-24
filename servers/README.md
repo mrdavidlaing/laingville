@@ -15,7 +15,7 @@ DNS: 192.168.1.2 (dwaca - FreshTomato dnsmasq server)
 | Server Name | Hostname | IP Discovery | IP Address | MAC Address | Services | Notes |
 |-------------|----------|--------------|------------|-------------|----------|-------|
 | [dwaca](./dwaca/) | dwaca | Static (Router) | 192.168.1.2 | N/A | DNS, DHCP, WiFi | FreshTomato router, primary DNS/DHCP server |
-| [baljeet](./baljeet/) | baljeet | DHCP (Reserved) | 192.168.1.77 | 60:03:08:8A:99:36 | General purpose | Former DNS server |
+| [baljeet](./baljeet/) | baljeet | DHCP (Reserved) | 192.168.1.77 | 98:5A:EB:C9:0C:A0 | General purpose | Former DNS server |
 | [phineas](./phineas/) | phineas | DHCP (Reserved) | 192.168.1.70 | C8:69:CD:AA:4E:0A | TBD | TBD |
 | [ferb](./ferb/) | ferb | DHCP (Reserved) | 192.168.1.67 | 80:E6:50:24:50:78 | TBD | TBD |
 | [monogram](./monogram/) | monogram | DHCP (Reserved) | 192.168.1.26 | FC:34:97:BA:A9:06 | TBD | TBD |
