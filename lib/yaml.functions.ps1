@@ -9,7 +9,7 @@
 .DESCRIPTION
     Removes quotes, comments, and extra whitespace from package names
 #>
-function Trim-PackageName {
+function Format-PackageName {
     param([string]$PackageName)
 
     if (-not $PackageName) {
@@ -21,13 +21,13 @@ function Trim-PackageName {
 
 <#
 .SYNOPSIS
-    Parses YAML list format items (lines starting with -)
+    Gets YAML list format item (lines starting with -)
 .PARAMETER ListContent
     The raw content of a YAML list section
 .DESCRIPTION
-    Extracts package names from YAML list format, handling comments and quotes
+    Gets package names from YAML list format, handling comments and quotes
 #>
-function Parse-YamlListItems {
+function Get-YamlListItem {
     param([string]$ListContent)
 
     if (-not $ListContent) {
@@ -36,20 +36,20 @@ function Parse-YamlListItems {
 
     return $ListContent -split "\r?\n" | ForEach-Object {
         if ($_ -match '^\s*-\s*(.+?)(?:\s*#.*)?$') {
-            Trim-PackageName $Matches[1]
+            Format-PackageName $Matches[1]
         }
     } | Where-Object { $_ -and $_.Length -gt 0 }
 }
 
 <#
 .SYNOPSIS
-    Parses YAML inline array format [item1, item2, item3]
+    Gets YAML inline array format [item1, item2, item3]
 .PARAMETER ArrayContent
     The content inside the square brackets
 .DESCRIPTION
-    Extracts package names from inline array format, handling quotes
+    Gets package names from inline array format, handling quotes
 #>
-function Parse-YamlInlineArray {
+function Get-YamlInlineArray {
     param([string]$ArrayContent)
 
     if (-not $ArrayContent) {
@@ -57,13 +57,13 @@ function Parse-YamlInlineArray {
     }
 
     return $ArrayContent -split ',' | ForEach-Object {
-        Trim-PackageName $_
+        Format-PackageName $_
     } | Where-Object { $_ -and $_.Length -gt 0 }
 }
 
 <#
 .SYNOPSIS
-    Extracts packages for a specific package manager type
+    Gets packages for a specific package manager type
 .PARAMETER Section
     The platform section content (e.g., windows section)
 .PARAMETER PackageType
@@ -71,9 +71,9 @@ function Parse-YamlInlineArray {
 .PARAMETER AllTypes
     Array of all package manager types for lookahead pattern
 .DESCRIPTION
-    Generic function to extract packages for any package manager type
+    Generic function to get packages for any package manager type
 #>
-function Extract-PackageSection {
+function Get-PackageSection {
     param(
         [string]$Section,
         [string]$PackageType,
@@ -90,11 +90,11 @@ function Extract-PackageSection {
 
     # Try list format first
     if ($Section -match "$PackageType`:\s*\r?\n((?:\s+.*\r?\n?)*?)$lookahead") {
-        return Parse-YamlListItems $Matches[1]
+        return Get-YamlListItem $Matches[1]
     }
     # Try inline array format
     elseif ($Section -match "$PackageType`:\s*\[(.*?)\]") {
-        return Parse-YamlInlineArray $Matches[1]
+        return Get-YamlInlineArray $Matches[1]
     }
 
     return @()
@@ -137,7 +137,7 @@ function Get-PackagesFromYaml {
             # Extract packages for all Windows package managers using helper functions
             $packageTypes = @('winget', 'scoop', 'psmodule')
             foreach ($packageType in $packageTypes) {
-                $packages.$packageType = Extract-PackageSection -Section $windowsSection -PackageType $packageType -AllTypes $packageTypes
+                $packages.$packageType = Get-PackageSection -Section $windowsSection -PackageType $packageType -AllTypes $packageTypes
             }
         }
     }

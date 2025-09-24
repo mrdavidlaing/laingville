@@ -128,7 +128,6 @@ function Get-ServerCustomScript {
 # Process custom server scripts
 function Invoke-ServerCustomScript {
     param(
-        [string]$ProjectRoot,
         [string]$ServerDir,
         [string]$Platform = "windows",
         [bool]$DryRun = $false
@@ -254,7 +253,7 @@ function Invoke-ServerSetup {
         }
         
         # Run shared custom scripts
-        $sharedScriptResult = Invoke-ServerCustomScript $scriptRoot $sharedServerDir "windows" $DryRun
+        $sharedScriptResult = Invoke-ServerCustomScript $sharedServerDir "windows" $DryRun
         if (-not $sharedScriptResult) {
             Write-LogWarning "Shared server custom scripts encountered issues"
         }
@@ -270,7 +269,7 @@ function Invoke-ServerSetup {
     }
     
     # Run custom scripts
-    $scriptResult = Invoke-ServerCustomScript $scriptRoot $serverDir "windows" $DryRun
+    $scriptResult = Invoke-ServerCustomScript $serverDir "windows" $DryRun
     if (-not $scriptResult) {
         Write-LogWarning "Server custom scripts encountered issues"
     }
