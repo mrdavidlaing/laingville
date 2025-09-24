@@ -46,7 +46,7 @@ Describe "setup-user script"
 # Create temporary dotfiles directory within allowed path
                       temp_dir="${SHELLSPEC_PROJECT_ROOT}/dotfiles/test_temp_user_$$"
                       mkdir -p "${temp_dir}/.config"
-                  echo "test" > "${temp_dir}/.config/test.conf"
+                      echo "test" > "${temp_dir}/.config/test.conf"
                       export DOTFILES_DIR="${temp_dir}"
 
                       When call ./bin/setup-user --dry-run

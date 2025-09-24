@@ -15,128 +15,128 @@ Describe "shared.functions.bash"
                   It "returns macos on Darwin"
 # Mock uname command to return Darwin
 # shellcheck disable=SC2329  # Mock function for testing
-                uname() { echo "Darwin"; }
+                    uname() { echo "Darwin"; }
 
-                When call detect_platform
+                    When call detect_platform
 
-                The output should equal "macos"
+                    The output should equal "macos"
 
-                unset -f uname
-              End
+                    unset -f uname
+                  End
 
-              It "prioritizes darwin over pacman"
+                  It "prioritizes darwin over pacman"
 # Mock uname to return Darwin, even if pacman exists
 # shellcheck disable=SC2329  # Mock function for testing
-                uname() { echo "Darwin"; }
+                    uname() { echo "Darwin"; }
 # Create fake pacman in PATH
-                temp_dir=$(mktemp -d)
-                echo '#!/bin/bash' > "${temp_dir}/pacman"
-                chmod +x "${temp_dir}/pacman"
-                export PATH="${temp_dir}:${PATH}"
+                    temp_dir=$(mktemp -d)
+                    echo '#!/bin/bash' > "${temp_dir}/pacman"
+                    chmod +x "${temp_dir}/pacman"
+                    export PATH="${temp_dir}:${PATH}"
 
-                When call detect_platform
+                    When call detect_platform
 
-                The output should equal "macos"
+                    The output should equal "macos"
 
-                unset -f uname
-                rm -rf "${temp_dir}"
-              End
+                    unset -f uname
+                    rm -rf "${temp_dir}"
+                  End
 
-              It "returns arch on Linux with pacman"
+                  It "returns arch on Linux with pacman"
 # Create a temporary directory with mock executables
-                temp_dir=$(mktemp -d)
+                    temp_dir=$(mktemp -d)
                 
 # Create mock pacman executable
-                echo '#!/bin/bash' > "${temp_dir}/pacman"
-                chmod +x "${temp_dir}/pacman"
+                    echo '#!/bin/bash' > "${temp_dir}/pacman"
+                    chmod +x "${temp_dir}/pacman"
                 
 # Create mock /proc/version without WSL indicators
-                mock_proc_version=$(mktemp)
-                echo "Linux version 5.15.0-generic (buildd@builder) (gcc version 9.4.0)" > "${mock_proc_version}"
+                    mock_proc_version=$(mktemp)
+                    echo "Linux version 5.15.0-generic (buildd@builder) (gcc version 9.4.0)" > "${mock_proc_version}"
                 
 # Mock uname to return Linux
 # shellcheck disable=SC2329  # Mock function for testing
-                uname() { echo "Linux"; }
+                    uname() { echo "Linux"; }
                 
 # Mock grep to use our mock /proc/version file
 # shellcheck disable=SC2329  # Mock function for testing
-                grep() {
-                  local args=("$@")
-                  local last_arg="${args[-1]}"
-                  if [[ "${last_arg}" == "/proc/version" ]]; then
+                    grep() {
+                    local args=("$@")
+                    local last_arg="${args[-1]}"
+                    if [[ "${last_arg}" == "/proc/version" ]]; then
                     # Redirect to our mock file, preserving all other arguments
                     command grep "${args[@]:0:$((${#args[@]}-1))}" "${mock_proc_version}"
-                  else
+                    else
                     command grep "$@"
-                  fi
-                }
+                    fi
+                    }
                 
 # Put our mock directory first in PATH
-                OLD_PATH="${PATH}"
-                export PATH="${temp_dir}:${PATH}"
+                    OLD_PATH="${PATH}"
+                    export PATH="${temp_dir}:${PATH}"
 
-                When call detect_platform
+                    When call detect_platform
 
-                The output should equal "arch"
+                    The output should equal "arch"
 
-                unset -f uname
-                unset -f grep
-                export PATH="${OLD_PATH}"
-                rm -rf "${temp_dir}"
-                rm -f "${mock_proc_version}"
-              End
+                    unset -f uname
+                    unset -f grep
+                    export PATH="${OLD_PATH}"
+                    rm -rf "${temp_dir}"
+                    rm -f "${mock_proc_version}"
+                  End
 
-              It "returns arch on Linux even when both pacman and nix are installed"
+                  It "returns arch on Linux even when both pacman and nix are installed"
 # Create a temporary directory with mock executables
-                temp_dir=$(mktemp -d)
+                    temp_dir=$(mktemp -d)
                 
 # Create mock pacman and nix executables
-                echo '#!/bin/bash' > "${temp_dir}/pacman"
-                chmod +x "${temp_dir}/pacman"
-                echo '#!/bin/bash' > "${temp_dir}/nix"
-                chmod +x "${temp_dir}/nix"
+                    echo '#!/bin/bash' > "${temp_dir}/pacman"
+                    chmod +x "${temp_dir}/pacman"
+                    echo '#!/bin/bash' > "${temp_dir}/nix"
+                    chmod +x "${temp_dir}/nix"
                 
 # Create mock /proc/version without WSL indicators
-                mock_proc_version=$(mktemp)
-                echo "Linux version 5.15.0-generic (buildd@builder) (gcc version 9.4.0)" > "${mock_proc_version}"
+                    mock_proc_version=$(mktemp)
+                    echo "Linux version 5.15.0-generic (buildd@builder) (gcc version 9.4.0)" > "${mock_proc_version}"
                 
 # Mock uname to return Linux
 # shellcheck disable=SC2329  # Mock function for testing
-                uname() { echo "Linux"; }
+                    uname() { echo "Linux"; }
                 
 # Mock grep to use our mock /proc/version file
 # shellcheck disable=SC2329  # Mock function for testing
-                grep() {
-                  local args=("$@")
-                  local last_arg="${args[-1]}"
-                  if [[ "${last_arg}" == "/proc/version" ]]; then
+                    grep() {
+                    local args=("$@")
+                    local last_arg="${args[-1]}"
+                    if [[ "${last_arg}" == "/proc/version" ]]; then
                     # Redirect to our mock file, preserving all other arguments
                     command grep "${args[@]:0:$((${#args[@]}-1))}" "${mock_proc_version}"
-                  else
+                    else
                     command grep "$@"
-                  fi
-                }
+                    fi
+                    }
                 
 # Put our mock directory first in PATH so both commands are found
-                OLD_PATH="${PATH}"
-                export PATH="${temp_dir}:${PATH}"
+                    OLD_PATH="${PATH}"
+                    export PATH="${temp_dir}:${PATH}"
 
-                When call detect_platform
+                    When call detect_platform
 
-                The output should equal "arch"
+                    The output should equal "arch"
 
-                unset -f uname
-                unset -f grep
-                export PATH="${OLD_PATH}"
-                rm -rf "${temp_dir}"
-                rm -f "${mock_proc_version}"
-              End
+                    unset -f uname
+                    unset -f grep
+                    export PATH="${OLD_PATH}"
+                    rm -rf "${temp_dir}"
+                    rm -f "${mock_proc_version}"
+                  End
 
-              It "returns linux on Linux without pacman"
+                  It "returns linux on Linux without pacman"
 # Create a temporary directory for mock files
-                temp_dir=$(mktemp -d)
-                temp_proc="${temp_dir}/proc_version"
-                echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
+                    temp_dir=$(mktemp -d)
+                    temp_proc="${temp_dir}/proc_version"
+                    echo "Linux version 5.4.0-74-generic" > "${temp_proc}"
 
 # Override the detect_platform function to use our mock and ensure no pacman
 # shellcheck disable=SC2329  # Mock function for testing
@@ -171,7 +171,7 @@ Describe "shared.functions.bash"
                   It "correctly detects WSL platform"
                     temp_dir=$(mktemp -d)
                     temp_proc="${temp_dir}/proc_version"
-                echo "Linux version 5.4.0-74-generic (buildd@lcy01-amd64-029) #74~20.04.1-Ubuntu SMP Wed Nov 24 19:38:25 UTC 2021 WSL2" > "${temp_proc}"
+                    echo "Linux version 5.4.0-74-generic (buildd@lcy01-amd64-029) #74~20.04.1-Ubuntu SMP Wed Nov 24 19:38:25 UTC 2021 WSL2" > "${temp_proc}"
 
                 # Override detect_platform to use our mock WSL proc version
                 # shellcheck disable=SC2329  # Mock function for testing
@@ -221,7 +221,7 @@ EOF
 
                 # Mock WSL environment
                     temp_proc="${temp_dir}/proc_version" 
-                echo "Linux WSL2" > "${temp_proc}"
+                    echo "Linux WSL2" > "${temp_proc}"
 
                 # Mock platform detection
                     detect_platform() {

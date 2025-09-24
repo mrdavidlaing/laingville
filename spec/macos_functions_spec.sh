@@ -137,7 +137,7 @@ EOF
 
                           It "validates invalid YAML file"
       # Create invalid YAML
-      echo "invalid: yaml: content: [" > "$TEST_PACKAGES_FILE"
+                            echo "invalid: yaml: content: [" > "$TEST_PACKAGES_FILE"
       
                             When call generate_brewfile "$TEST_PACKAGES_FILE" "macos" false
       

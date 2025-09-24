@@ -358,7 +358,7 @@ EOF
 
 # Create file with many lines
                     for i in {1..15}; do
-              echo "line ${i}" >> "${temp_file}"
+                    echo "line ${i}" >> "${temp_file}"
                     done
 
                     When call validate_yaml_file "${temp_file}" 10485760 10

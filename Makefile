@@ -7,26 +7,22 @@
 all: format lint test
 	@echo "✅ All checks passed!"
 
-# Format all bash scripts using shfmt (excluding ShellSpec tests)
+# Format all scripts using centralized batch formatter
 format:
-	@echo "🎨 Formatting bash scripts..."
-	@if command -v shfmt >/dev/null 2>&1; then \
-		find . -type f \( -name "*.sh" -o -name "*.bash" \) \
-			-not -path "./.git/*" \
-			-not -path "./dotfiles/*/.*" \
-			-not -path "./spec/fixtures/*" \
-			-not -name "*_spec.sh" \
-			-exec shfmt -w {} \; ; \
-		echo "🎨 Formatting mrdavidlaing's Claude scripts..."; \
-		find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" -exec shfmt -w {} \; 2>/dev/null || true; \
-		find ./dotfiles/mrdavidlaing/.claude/wrappers -type f -exec shfmt -w {} \; 2>/dev/null || true; \
-		echo "✅ Bash formatting complete"; \
+	@echo "🎨 Formatting scripts..."
+	@files_to_format=$$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.ps1" \) \
+		-not -path "./.git/*" \
+		-not -path "./dotfiles/*/.*" \
+		-not -path "./spec/fixtures/*" \
+		2>/dev/null); \
+	claude_scripts=$$(find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" 2>/dev/null || true); \
+	claude_wrappers=$$(find ./dotfiles/mrdavidlaing/.claude/wrappers -type f 2>/dev/null || true); \
+	all_files="$$files_to_format $$claude_scripts $$claude_wrappers"; \
+	if [ -n "$$all_files" ]; then \
+		./scripts/format-files.sh --batch $$all_files; \
 	else \
-		echo "⚠️  shfmt not found. Skipping bash formatting"; \
+		echo "ℹ️  No files found to format"; \
 	fi
-	@echo "🎨 Formatting ShellSpec tests..."
-	@./scripts/format-shellspec.sh
-	@echo "✅ All formatting complete"
 
 # Lint all bash scripts using shellcheck
 lint:
@@ -67,16 +63,18 @@ test-powershell:
 # Check without modifying (CI-friendly)
 check:
 	@echo "📋 Checking format..."
-	@if command -v shfmt >/dev/null 2>&1; then \
-		find . -type f \( -name "*.sh" -o -name "*.bash" \) \
-			-not -path "./.git/*" \
-			-not -path "./dotfiles/*/.*" \
-			-exec shfmt -d {} \; ; \
-		echo "📋 Checking format of mrdavidlaing's Claude scripts..."; \
-		find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" -exec shfmt -d {} \; 2>/dev/null || true; \
-		find ./dotfiles/mrdavidlaing/.claude/wrappers -type f -exec shfmt -d {} \; 2>/dev/null || true; \
+	@files_to_check=$$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.ps1" \) \
+		-not -path "./.git/*" \
+		-not -path "./dotfiles/*/.*" \
+		-not -path "./spec/fixtures/*" \
+		2>/dev/null); \
+	claude_scripts=$$(find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" 2>/dev/null || true); \
+	claude_wrappers=$$(find ./dotfiles/mrdavidlaing/.claude/wrappers -type f 2>/dev/null || true); \
+	all_files="$$files_to_check $$claude_scripts $$claude_wrappers"; \
+	if [ -n "$$all_files" ]; then \
+		./scripts/format-files.sh --check --batch $$all_files || exit 1; \
 	else \
-		echo "⚠️  shfmt not found. Skipping format check"; \
+		echo "ℹ️  No files found to check"; \
 	fi
 	@$(MAKE) lint
 	@$(MAKE) test

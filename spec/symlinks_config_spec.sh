@@ -349,7 +349,7 @@ EOF
       # Mock ln command to capture arguments
       # shellcheck disable=SC2329
       ln() {
-        LN_CALLED_WITH="$*"
+      LN_CALLED_WITH="$*"
       }
       
       # Mock detect_os to return Linux
@@ -367,13 +367,13 @@ EOF
       
       # Mock rm command to capture arguments (don't actually remove)
       rm() {
-        RM_CALLED_WITH="$*"
+      RM_CALLED_WITH="$*"
       }
       
       # Mock ln command to capture arguments
       # shellcheck disable=SC2329
       ln() {
-        LN_CALLED_WITH="$*"
+      LN_CALLED_WITH="$*"
       }
       
       # Mock detect_os to return unknown platform
