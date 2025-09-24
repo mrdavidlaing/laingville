@@ -75,6 +75,7 @@ format_shellspec_file() {
 
   if [[ "$check_mode" == "true" ]]; then
     # Check mode - test if file would be changed by formatting
+    # shellcheck disable=SC2310  # Function invoked in if condition, set -e disabled intentionally
     if format_shellspec_awk "$file_path" "$temp_file"; then
       if ! diff -q "$file_path" "$temp_file" > /dev/null 2>&1; then
         echo "File needs ShellSpec formatting: $file_path" >&2
@@ -90,6 +91,7 @@ format_shellspec_file() {
       echo "Formatting ShellSpec file: $(basename "$file_path")" >&2
     fi
 
+    # shellcheck disable=SC2310  # Function invoked in if condition, set -e disabled intentionally
     if format_shellspec_awk "$file_path" "$temp_file" && [ -s "$temp_file" ]; then
       if ! diff -q "$file_path" "$temp_file" > /dev/null 2>&1; then
         mv "$temp_file" "$file_path"
@@ -150,6 +152,7 @@ format_single_file() {
 
   # Get formatter information
   local file_info formatter_name handler_function
+  # shellcheck disable=SC2311  # Function in command substitution, set -e disabled intentionally
   file_info=$(get_file_info "$file_path")
   formatter_name=$(echo "$file_info" | awk '{print $1}')
   handler_function=$(echo "$file_info" | awk '{print $2}')
@@ -193,6 +196,7 @@ format_batch_files() {
 
     # Show file being processed inline (no newline yet) unless in quiet mode
     local file_info formatter_name
+    # shellcheck disable=SC2311  # Function in command substitution, set -e disabled intentionally
     file_info=$(get_file_info "$file")
     formatter_name=$(echo "$file_info" | awk '{print $1}')
     if [[ "$QUIET_MODE" != "true" ]]; then

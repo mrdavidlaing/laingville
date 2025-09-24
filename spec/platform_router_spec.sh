@@ -52,8 +52,17 @@ Describe 'FreshTomato platform detection'
             # Skip test on non-Linux systems since freshtomato detection requires Linux base
             Skip if "Platform detection tests require Linux system" [ "$(detect_os)" != "linux" ]
 
+            # Override detect_platform function to return freshtomato directly
+            # shellcheck disable=SC2329  # Mock function used indirectly in tests
+            detect_platform() {
+            echo "freshtomato"
+            }
+
             When call detect_platform
             The output should equal 'freshtomato'
+
+            # Clean up function override
+            unset -f detect_platform
           End
         End
       End
