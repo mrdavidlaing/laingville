@@ -139,7 +139,7 @@ generate_brewfile() {
           printf 'brew "%s"\n' "${pkg}"
         else
           log_security_event "INVALID_PACKAGE" "Rejected invalid package name: ${pkg}"
-          log_warning "Skipping invalid package: ${pkg}"
+          log_warning "Skipping invalid package: ${pkg}" >&2
         fi
       done <<< "${homebrew_packages}"
       echo ""
@@ -154,7 +154,7 @@ generate_brewfile() {
           printf 'cask "%s"\n' "${pkg}"
         else
           log_security_event "INVALID_PACKAGE" "Rejected invalid package name: ${pkg}"
-          log_warning "Skipping invalid package: ${pkg}"
+          log_warning "Skipping invalid package: ${pkg}" >&2
         fi
       done <<< "${cask_packages}"
     fi
@@ -188,7 +188,7 @@ install_packages_with_brewfile() {
           valid_homebrew+=("${pkg}")
         else
           log_security_event "INVALID_PACKAGE" "Rejected invalid package name: ${pkg}"
-          log_warning "Skipping invalid package: ${pkg}"
+          log_warning "Skipping invalid package: ${pkg}" >&2
         fi
       done <<< "${homebrew_packages}"
 
@@ -208,7 +208,7 @@ install_packages_with_brewfile() {
           valid_casks+=("${pkg}")
         else
           log_security_event "INVALID_PACKAGE" "Rejected invalid package name: ${pkg}"
-          log_warning "Skipping invalid package: ${pkg}"
+          log_warning "Skipping invalid package: ${pkg}" >&2
         fi
       done <<< "${cask_packages}"
 

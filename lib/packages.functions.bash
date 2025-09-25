@@ -73,7 +73,7 @@ validate_and_filter_packages() {
       valid_packages+=("${pkg}")
     else
       log_security_event "INVALID_PACKAGE" "Rejected invalid package name: ${pkg}"
-      log_warning "Skipping invalid package name: ${pkg}"
+      log_warning "Skipping invalid package name: ${pkg}" >&2
     fi
   done <<< "${packages}"
 

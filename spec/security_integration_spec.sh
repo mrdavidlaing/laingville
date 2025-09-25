@@ -47,7 +47,8 @@ EOF
 
 # Should complete but warn about invalid packages
         The status should be success
-        The output should include "Warning: Skipping invalid package"
+        The output should include "install via yay: vim"
+        The stderr should include "Warning: Skipping invalid package"
 
 # Should log security events to stderr
         The stderr should include "SECURITY"
@@ -131,7 +132,7 @@ EOF
         The output should include "vim, curl, htop, yay"
 
 # Should warn about invalid packages
-        The output should include "Warning: Skipping invalid package"
+        The stderr should include "Warning: Skipping invalid package"
 
 # Should show security events for rejected packages
         The stderr should include "SECURITY"
@@ -252,7 +253,7 @@ EOF
         The output should include "install via cask: font-jetbrains-mono-nerd-font"
 
 # Should warn about invalid packages
-        The output should include "Warning: Skipping invalid package"
+        The stderr should include "Warning: Skipping invalid package"
 
 # Should log security events to stderr
         The stderr should include "SECURITY"
