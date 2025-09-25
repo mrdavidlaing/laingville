@@ -7,6 +7,7 @@ BEGIN {
   in_heredoc = 0
   heredoc_marker = ""
   in_quoted_string = 0
+  in_bash_script = 0
   pre_heredoc_indent = 0
 }
 
@@ -49,6 +50,30 @@ in_heredoc == 1 {
     heredoc_marker = ""
     # Restore indent to pre-heredoc level
     indent = pre_heredoc_indent
+  }
+  next
+}
+
+# Detect inline bash scripts - look for bash -c ' pattern (also handle sh -c)
+/bash[[:space:]]+-c[[:space:]]*'[[:space:]]*$/ && !in_bash_script {
+  in_bash_script = 1
+  print $0
+  next
+}
+
+# Also handle sh -c ' pattern
+/sh[[:space:]]+-c[[:space:]]*'[[:space:]]*$/ && !in_bash_script {
+  in_bash_script = 1
+  print $0
+  next
+}
+
+# Pass through bash script content unchanged
+in_bash_script == 1 {
+  print $0
+  # Check if line ends with single quote to close the bash script
+  if (/^[[:space:]]*'[[:space:]]*$/) {
+    in_bash_script = 0
   }
   next
 }
