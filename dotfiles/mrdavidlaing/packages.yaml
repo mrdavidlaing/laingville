@@ -181,6 +181,7 @@ macos:
     - shfmt
     - speedtest-cli
     - opencode
+    - codex  # OpenAI Codex CLI - AI coding assistant
   cask:
     - jordanbaird-ice  # Menu bar manager for notch-aware icon management
     - nikitabobko/tap/aerospace
