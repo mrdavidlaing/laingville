@@ -193,6 +193,7 @@ macos:
     - font-jetbrains-mono-nerd-font
     - docker-desktop
     - claude
+    - cursor-cli  # Cursor AI code editor CLI
   custom:
     - install_claude_code
     - install_nil
