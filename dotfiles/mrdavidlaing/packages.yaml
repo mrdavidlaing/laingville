@@ -180,6 +180,7 @@ macos:
     - shellspec
     - shfmt
     - speedtest-cli
+    - opencode
   cask:
     - jordanbaird-ice  # Menu bar manager for notch-aware icon management
     - nikitabobko/tap/aerospace
