@@ -128,39 +128,25 @@ handle_wsl_packages() {
 
   # Use WSL-specific pacman (without sudo - usually not needed in WSL)
   if [[ -n "${pacman_packages}" ]]; then
-    if [[ "${dry_run}" = true ]]; then
+    local valid_packages
+    valid_packages=$(validate_and_filter_packages "${pacman_packages}")
+    if [[ -n "${valid_packages}" ]]; then
       local pkg_array=()
-      while IFS= read -r pkg; do
-        [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-      done <<< "$(validate_and_filter_packages "${pacman_packages}")"
-      if [[ ${#pkg_array[@]} -gt 0 ]]; then
-        local pkg_list
-        pkg_list=$(printf '%s, ' "${pkg_array[@]}")
-        pkg_list=${pkg_list%, }
-        log_dry_run "install via pacman: ${pkg_list}"
-      fi
-    else
-      # WSL-specific pacman call (without sudo)
-      local valid_packages
-      valid_packages=$(validate_and_filter_packages "${pacman_packages}")
-      if [[ -n "${valid_packages}" ]]; then
-        local pkg_array=()
-        while IFS= read -r pkg; do
-          [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-        done <<< "${valid_packages}"
+      populate_package_array "${valid_packages}" pkg_array
 
-        if [[ ${#pkg_array[@]} -gt 0 ]]; then
-          log_info "Installing pacman packages: ${pkg_array[*]}"
-          local quoted_packages=()
-          for pkg in "${pkg_array[@]}"; do
-            local quoted_pkg
-            printf -v quoted_pkg '%q' "${pkg}"
-            quoted_packages+=("${quoted_pkg}")
-          done
+      if [[ "${dry_run}" = true ]]; then
+        log_dry_run_package_list "pacman" "${pkg_array[@]}"
+      elif [[ ${#pkg_array[@]} -gt 0 ]]; then
+        log_info "Installing pacman packages: ${pkg_array[*]}"
+        local quoted_packages=()
+        for pkg in "${pkg_array[@]}"; do
+          local quoted_pkg
+          printf -v quoted_pkg '%q' "${pkg}"
+          quoted_packages+=("${quoted_pkg}")
+        done
 
-          if ! eval "pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
-            log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
-          fi
+        if ! eval "pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
+          log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
         fi
       fi
     fi

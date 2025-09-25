@@ -29,6 +29,28 @@ format_package_list() {
   echo "${pkg_list%, }"
 }
 
+# Helper function to populate an array variable with packages (newline-delimited input)
+populate_package_array() {
+  local packages="$1" array_name="$2"
+
+  eval "${array_name}=()"
+
+  while IFS= read -r pkg; do
+    [[ -n "${pkg}" ]] || continue
+    eval "${array_name}+=(\"\${pkg}\")"
+  done < <(convert_packages_to_array "${packages}")
+}
+
+# Helper function to log package actions consistently in dry-run mode
+log_dry_run_package_list() {
+  local manager="$1"
+  shift
+
+  [[ $# -eq 0 ]] && return
+
+  log_dry_run "install via ${manager}: $(format_package_list "$@")"
+}
+
 # Extract packages from YAML config file with secure parsing
 extract_packages_from_yaml() {
   local platform="$1" manager="$2" packages_file="$3"
@@ -100,12 +122,10 @@ install_pacman_packages() {
 
   # Convert to array for processing (Bash 3.2 compatible)
   local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done < <(convert_packages_to_array "${valid_packages}")
+  populate_package_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    log_dry_run "install via pacman: $(format_package_list "${pkg_array[@]}")"
+    log_dry_run_package_list "pacman" "${pkg_array[@]}"
   else
     log_info "Installing pacman packages: ${pkg_array[*]}"
 
@@ -145,12 +165,10 @@ install_yay_packages() {
 
   # Convert to array for processing (Bash 3.2 compatible)
   local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done < <(convert_packages_to_array "${valid_packages}")
+  populate_package_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    log_dry_run "install via yay: $(format_package_list "${pkg_array[@]}")"
+    log_dry_run_package_list "yay" "${pkg_array[@]}"
   else
     log_info "Installing yay packages: ${pkg_array[*]}"
 
@@ -191,15 +209,10 @@ install_nix_packages() {
 
   # Convert to array for processing
   local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done <<< "${valid_packages}"
+  populate_package_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    local pkg_list
-    pkg_list=$(printf '%s, ' "${pkg_array[@]}")
-    pkg_list=${pkg_list%, }
-    log_dry_run "install via nixpkgs-${nix_version}: ${pkg_list}"
+    log_dry_run_package_list "nixpkgs-${nix_version}" "${pkg_array[@]}"
   else
     log_info "Installing nixpkgs-${nix_version} packages: ${pkg_array[*]}"
 
@@ -243,15 +256,10 @@ install_homebrew_packages() {
 
   # Convert to array for processing
   local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done <<< "${valid_packages}"
+  populate_package_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    local pkg_list
-    pkg_list=$(printf '%s, ' "${pkg_array[@]}")
-    pkg_list=${pkg_list%, }
-    log_dry_run "install via homebrew: ${pkg_list}"
+    log_dry_run_package_list "homebrew" "${pkg_array[@]}"
   else
     log_info "Installing homebrew packages: ${pkg_array[*]}"
 
@@ -293,15 +301,10 @@ install_cask_packages() {
 
   # Convert to array for processing
   local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done <<< "${valid_packages}"
+  populate_package_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
-    local pkg_list
-    pkg_list=$(printf '%s, ' "${pkg_array[@]}")
-    pkg_list=${pkg_list%, }
-    log_dry_run "install via cask: ${pkg_list}"
+    log_dry_run_package_list "cask" "${pkg_array[@]}"
   else
     log_info "Installing cask packages: ${pkg_array[*]}"
 
@@ -343,13 +346,11 @@ install_opkg_packages() {
 
   # Convert to array for processing (Bash 3.2 compatible)
   local pkg_array=()
-  while IFS= read -r pkg; do
-    [[ -n "${pkg}" ]] && pkg_array+=("${pkg}")
-  done < <(convert_packages_to_array "${valid_packages}")
+  populate_package_array "${valid_packages}" pkg_array
 
   if [[ "${dry_run}" = true ]]; then
     log_dry_run "update opkg package list"
-    log_dry_run "install via opkg: $(format_package_list "${pkg_array[@]}")"
+    log_dry_run_package_list "opkg" "${pkg_array[@]}"
   else
     log_info "Updating opkg package list..."
     if ! opkg update; then
