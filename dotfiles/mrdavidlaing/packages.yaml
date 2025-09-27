@@ -97,6 +97,7 @@ wsl:
     - jq
     - shellcheck
     - rsync
+    - unzip
     - docker
   yay:
     # AUR-only packages
