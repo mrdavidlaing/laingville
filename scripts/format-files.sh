@@ -125,11 +125,17 @@ format_powershell_file() {
   fi
 
   if [[ "$check_mode" == "true" ]]; then
+    # Convert Unix path to Windows path if we're in WSL
+    local ps_file_path="$file_path"
+    if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
+      ps_file_path=$(wslpath -w "$file_path")
+    fi
+
     # Check mode - verify if file needs formatting
     # Use PowerShell's parser to check for syntax issues that formatting would fix
     if $pwsh_cmd -NoProfile -Command "
       try {
-        [System.Management.Automation.Language.Parser]::ParseFile('$file_path', [ref]\$null, [ref]\$null) | Out-Null
+        [System.Management.Automation.Language.Parser]::ParseFile('$ps_file_path', [ref]\$null, [ref]\$null) | Out-Null
         exit 0
       } catch {
         exit 1
@@ -147,13 +153,18 @@ format_powershell_file() {
       echo "Formatting PowerShell file: $(basename "$file_path")" >&2
     fi
 
+    # Convert Unix path to Windows path if we're in WSL
+    local ps_file_path="$file_path"
+    if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
+      ps_file_path=$(wslpath -w "$file_path")
+    fi
+
     # Use PowerShell's built-in formatting capabilities
-    # Use PowerShell's built-in formatting capabilities and post-process
     if $pwsh_cmd -NoProfile -Command "
       try {
-        \$content = Get-Content '$file_path' -Raw
+        \$content = Get-Content '$ps_file_path' -Raw
         \$formatted = Invoke-Formatter -ScriptDefinition \$content
-        \$formatted | Out-File '$file_path' -Encoding UTF8
+        \$formatted | Out-File '$ps_file_path' -Encoding UTF8
       } catch {
         Write-Error \"Failed to format PowerShell file: \$_\"
         exit 1
@@ -166,10 +177,6 @@ format_powershell_file() {
       # Ensure file ends with exactly one newline
       # Use printf to ensure exactly one trailing newline
       printf '%s\n' "$(cat "$file_path")" > "$file_path"
-    fi
-
-    # Check if formatting actually changed the file
-    if [[ $? -eq 0 ]]; then
       return 0
     else
       echo "Error: Failed to format PowerShell file: $file_path" >&2
