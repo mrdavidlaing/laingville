@@ -1,0 +1,9 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "formatter": {
+    "shell-scripts": {
+      "command": ["./scripts/format-files.sh", "$FILE"],
+      "extensions": [".sh", ".bash"]
+    }
+  }
+}
