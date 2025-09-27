@@ -51,15 +51,17 @@ if ($DryRun) {
 try {
     # Execute main user setup
     $result = Invoke-UserSetup -DryRun:$DryRun
-    
+
     if ($result) {
         if ($DryRun) {
             Write-Host "`nDry run completed successfully!" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "`nUser setup completed successfully!" -ForegroundColor Green
         }
         exit 0
-    } else {
+    }
+    else {
         Write-Host "`nUser setup failed!" -ForegroundColor Red
         exit 1
     }

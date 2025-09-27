@@ -72,7 +72,7 @@ function Test-GitBash {
         "$env:ProgramFiles(x86)\Git\bin\bash.exe",
         "${env:LOCALAPPDATA}\Programs\Git\bin\bash.exe"
     ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-    
+
     return $gitPath
 }
 
@@ -112,9 +112,9 @@ function Enable-DeveloperMode {
 
 function Test-WindowsPrerequisite {
     Write-Step "Checking Windows prerequisites for dotfile management..."
-    
+
     $prerequisitesMet = $true
-    
+
     # Check WSL feature (needed for Arch Linux configuration)
     if (-not (Test-WSLFeature)) {
         Write-Host "WSL feature is not enabled." -ForegroundColor Red
@@ -130,7 +130,7 @@ function Test-WindowsPrerequisite {
     else {
         Write-Host "WSL feature is enabled" -ForegroundColor Green
     }
-    
+
     # Check Developer Mode
     if (-not (Test-DeveloperMode)) {
         Write-Host "Developer Mode is not enabled (required for symbolic links)." -ForegroundColor Red
@@ -146,7 +146,7 @@ function Test-WindowsPrerequisite {
     else {
         Write-Host "Developer Mode is enabled" -ForegroundColor Green
     }
-    
+
     if ($prerequisitesMet) {
         Write-Host "All Windows prerequisites are satisfied!" -ForegroundColor Green
     }
@@ -158,39 +158,39 @@ function Test-WindowsPrerequisite {
 
 function Install-Git {
     Write-Step "Checking for Git installation..."
-    
+
     $gitBash = Test-GitBash
     if ($gitBash -and (Test-Command "git")) {
         Write-Host "Git is already installed at: $gitBash" -ForegroundColor Green
         return $gitBash
     }
-    
+
     Write-Step "Installing Git for Windows via winget..."
-    
+
     # Check if winget is available
     if (-not (Test-Command "winget")) {
         Write-Error "winget is not available. Please install App Installer from the Microsoft Store."
         exit 1
     }
-    
+
     try {
         # Install Git using winget
         winget install --id Git.Git -e --silent --accept-package-agreements --accept-source-agreements
-        
+
         # Refresh PATH
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + 
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
         [System.Environment]::GetEnvironmentVariable("Path", "User")
-        
+
         # Wait a moment for installation to complete
         Start-Sleep -Seconds 3
-        
+
         # Find Git Bash
         $gitBash = Test-GitBash
         if (-not $gitBash) {
             Write-Error "Git Bash not found after installation. Please install Git manually."
             exit 1
         }
-        
+
         Write-Host "Git installed successfully!" -ForegroundColor Green
         return $gitBash
     }
@@ -345,35 +345,35 @@ Your user 'mrdavidlaing' has been:
 }
 
 function Invoke-Setup {
-    
+
     Write-Step "Running PowerShell setup scripts..."
-    
+
     # Get the directory where this script is located
     $scriptDir = Split-Path -Parent $MyInvocation.PSCommandPath
     if (-not $scriptDir) {
         # If running from iex, use current directory
         $scriptDir = Get-Location
     }
-    
+
     # Build script path using the Target parameter
     $scriptPath = Join-Path $scriptDir "bin\setup-$Target.ps1"
-    
+
     if (-not (Test-Path $scriptPath)) {
         Write-Error "PowerShell script not found at: $scriptPath"
         Write-Host "Available scripts: setup-user.ps1, setup-server.ps1"
         exit 1
     }
-    
+
     Write-Host "Executing: $scriptPath" -ForegroundColor Green
-    
+
     try {
         # Execute the PowerShell script with parameters
         $params = @{}
         if ($DryRun) { $params.DryRun = $true }
         if ($AdditionalArgs) { $params.AdditionalArgs = $AdditionalArgs }
-        
+
         & $scriptPath @params
-        
+
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
             Write-Host "`nSetup completed successfully!" -ForegroundColor Green
@@ -394,7 +394,7 @@ function Main {
     Write-Host @"
 
 ================================================================
-              Laingville Windows Setup Script                 
+              Laingville Windows Setup Script
 ================================================================
 "@ -ForegroundColor Magenta
 

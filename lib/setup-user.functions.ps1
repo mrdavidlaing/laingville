@@ -24,25 +24,26 @@ function Get-PlatformConfigPath {
         [string]$RelativePath,
         [string]$Filename
     )
-    
+
     $fullPath = "${RelativePath}${Filename}"
-    
+
     # Apply Windows-specific mappings
     switch -Wildcard ($fullPath) {
         ".config/alacritty/*" {
             # Extract the subpath after .config/alacritty/
             $subpath = $fullPath -replace '^\.config/alacritty/', ''
             $appdataPath = Join-Path $env:APPDATA "alacritty"
-            
+
             # Create directory structure if it contains subdirectories
             $subdir = Split-Path $subpath -Parent
             if ($subdir -and $subdir -ne ".") {
                 $targetDir = Join-Path $appdataPath $subdir
                 New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-            } else {
+            }
+            else {
                 New-Item -ItemType Directory -Path $appdataPath -Force | Out-Null
             }
-            
+
             return Join-Path $appdataPath $subpath
         }
         default {
@@ -70,12 +71,12 @@ function New-FileSymlink {
         [string]$Target,
         [string]$Source
     )
-    
+
     if (-not $Target -or -not $Source) {
         Write-LogError "Target and Source paths are required"
         return $false
     }
-    
+
     # Ensure parent directory exists
     $targetDir = Split-Path $Target -Parent
     if (-not (Test-Path $targetDir)) {
@@ -83,16 +84,16 @@ function New-FileSymlink {
             New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
         }
     }
-    
+
     # Remove existing file/symlink
     if (Test-Path $Target) {
         if ($PSCmdlet.ShouldProcess($Target, "Remove existing file")) {
             Remove-Item $Target -Force
         }
     }
-    
+
     Write-LogInfo "Creating symlink: $Target -> $Source"
-    
+
     # Create symlink using cmd mklink (requires Developer Mode)
     if ($PSCmdlet.ShouldProcess($Target, "Create symlink to $Source")) {
         try {
@@ -100,7 +101,8 @@ function New-FileSymlink {
             if ($LASTEXITCODE -eq 0) {
                 Write-LogSuccess "Linked: $Target -> $Source"
                 return $true
-            } else {
+            }
+            else {
                 Write-LogError "Failed to create symlink: $Target -> $Source"
                 Write-LogError "mklink error: $result"
                 Write-LogError "Ensure Windows prerequisites are met:"
@@ -113,7 +115,8 @@ function New-FileSymlink {
             Write-LogError "Exception creating symlink: $_"
             return $false
         }
-    } else {
+    }
+    else {
         return $true
     }
 }
@@ -125,15 +128,15 @@ function New-FileItem {
         [string]$Item,
         [string]$RelativePath
     )
-    
+
     $filename = Split-Path $Item -Leaf
-    
+
     # Validate filename for security
     if (-not (Test-SafeFilename $filename)) {
         Write-Warning "Skipping unsafe filename: $filename"
         return $false
     }
-    
+
     # Skip files that shouldn't be linked on Windows
     switch ($filename) {
         { $_ -in @('.bashrc', '.bashrc_git_learning', '.bash_profile', '.bash_logout') } {
@@ -145,16 +148,16 @@ function New-FileItem {
             return $true
         }
     }
-    
+
     # Get platform-aware target path
     $target = Get-PlatformConfigPath $RelativePath $filename
-    
+
     # Validate target path for security
     if (-not (Test-SafePath $target $env:USERPROFILE $true)) {
         Write-LogWarning "Skipping link outside allowed directories: $target"
         return $false
     }
-    
+
     # Create the symlink
     return New-FileSymlink $target $Item
 }
@@ -167,23 +170,23 @@ function New-DirectoryItem {
         [string]$DestDir,
         [string]$RelativePath
     )
-    
+
     $dirname = Split-Path $Item -Leaf
-    
+
     # Validate directory name
     if (-not (Test-SafeFilename $dirname)) {
         Write-Warning "Skipping unsafe directory name: $dirname"
         return $false
     }
-    
+
     $targetDir = Join-Path $DestDir $dirname
-    
+
     # Validate target directory
     if (-not (Test-SafePath $targetDir $env:USERPROFILE $true)) {
         Write-Warning "Skipping directory outside home: $targetDir"
         return $false
     }
-    
+
     # Create target directory and recurse
     if ($PSCmdlet.ShouldProcess($targetDir, "Create directory")) {
         New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
@@ -197,9 +200,9 @@ function Show-FileItem {
         [string]$Item,
         [string]$RelativePath
     )
-    
+
     $filename = Split-Path $Item -Leaf
-    
+
     # Skip files that wouldn't be processed
     switch ($filename) {
         { $_ -in @('.bashrc', '.bashrc_git_learning', '.bash_profile', '.bash_logout') } {
@@ -209,29 +212,30 @@ function Show-FileItem {
             return $true
         }
     }
-    
+
     $target = Get-PlatformConfigPath $RelativePath $filename
-    
+
     if (Test-Path $target) {
         Write-Host "* Would: update: $target -> $Item" -ForegroundColor Magenta
-    } else {
+    }
+    else {
         Write-Host "* Would: create: $target -> $Item" -ForegroundColor Cyan
     }
-    
+
     return $true
 }
 
-# Show directory item for dry-run mode  
+# Show directory item for dry-run mode
 function Show-DirectoryItem {
     param(
         [string]$Item,
         [string]$DestDir,
         [string]$RelativePath
     )
-    
+
     $dirname = Split-Path $Item -Leaf
     $targetDir = Join-Path $DestDir $dirname
-    
+
     return Invoke-TraverseDotfile "Show-FileItem" "Show-DirectoryItem" $Item $targetDir "${RelativePath}${dirname}/" $false
 }
 
@@ -245,33 +249,34 @@ function Invoke-TraverseDotfile {
         [string]$RelativePath,
         [bool]$FilterDotfiles = $true
     )
-    
+
     if (-not (Test-Path $SrcDir)) {
         return $true
     }
-    
+
     $success = $true
     $items = Get-ChildItem $SrcDir -Force
-    
+
     foreach ($item in $items) {
         $basename = $item.Name
-        
+
         # Filter for dotfiles at top level only
         if ($FilterDotfiles -and -not $basename.StartsWith('.')) {
             continue
         }
-        
+
         # Skip special directories
         if ($basename -in @('.git', '.gitignore', '.DS_Store')) {
             continue
         }
-        
+
         try {
             if ($item.PSIsContainer) {
                 # Directory
                 $result = & $DirHandler $item.FullName $DestDir $RelativePath
                 if (-not $result) { $success = $false }
-            } else {
+            }
+            else {
                 # File
                 $result = & $FileHandler $item.FullName $RelativePath
                 if (-not $result) { $success = $false }
@@ -282,7 +287,7 @@ function Invoke-TraverseDotfile {
             $success = $false
         }
     }
-    
+
     return $success
 }
 
@@ -294,7 +299,7 @@ function Invoke-CreateSymlink {
         [string]$RelativePath,
         [bool]$FilterDotfiles = $true
     )
-    
+
     return Invoke-TraverseDotfile "New-FileItem" "New-DirectoryItem" $SrcDir $DestDir $RelativePath $FilterDotfiles
 }
 
@@ -306,13 +311,14 @@ function Show-Symlink {
         [string]$RelativePath,
         [bool]$FilterDotfiles = $true
     )
-    
+
     if ($SrcDir -like "*\shared") {
         Write-Host "SHARED SYMLINKS:" -ForegroundColor White
-    } else {
+    }
+    else {
         Write-Host "USER SYMLINKS:" -ForegroundColor White
     }
-    
+
     return Invoke-TraverseDotfile "Show-FileItem" "Show-DirectoryItem" $SrcDir $DestDir $RelativePath $FilterDotfiles
 }
 
@@ -333,78 +339,81 @@ function Invoke-SymlinksFromConfig {
         [string]$DotfilesDir,
         [bool]$DryRun = $false
     )
-    
+
     $symlinksFile = Join-Path $DotfilesDir "symlinks.yaml"
-    
+
     if (-not (Test-Path $symlinksFile)) {
         if ($DryRun) {
             Write-Host "SYMLINKS:" -ForegroundColor White
             Write-Host "* Would: skip (no symlinks.yaml found)" -ForegroundColor Gray
-        } else {
+        }
+        else {
             Write-LogInfo "No symlinks.yaml found, skipping symlink creation"
         }
         return $true
     }
-    
+
     $symlinks = Get-SymlinksFromYaml $symlinksFile "windows"
-    
+
     if ($symlinks.Count -eq 0) {
         if ($DryRun) {
             Write-Host "SYMLINKS:" -ForegroundColor White
             Write-Host "* Would: skip (no Windows symlinks defined)" -ForegroundColor Gray
-        } else {
+        }
+        else {
             Write-LogInfo "No Windows symlinks defined, skipping symlink creation"
         }
         return $true
     }
-    
+
     if ($DryRun) {
         Write-Host "SYMLINKS:" -ForegroundColor White
         foreach ($symlink in $symlinks) {
             $sourcePath = Join-Path $DotfilesDir $symlink.source
             $targetPath = Expand-WindowsPath $symlink.target
-            
+
             if (Test-Path $targetPath) {
                 Write-Host "* Would: update: $targetPath -> $sourcePath" -ForegroundColor Magenta
-            } else {
+            }
+            else {
                 Write-Host "* Would: create: $targetPath -> $sourcePath" -ForegroundColor Cyan
             }
         }
         return $true
     }
-    
+
     Write-LogInfo "Creating symlinks from symlinks.yaml..."
     $success = $true
-    
+
     foreach ($symlink in $symlinks) {
         $sourcePath = Join-Path $DotfilesDir $symlink.source
         $targetPath = Expand-WindowsPath $symlink.target
-        
+
         # Validate paths are not empty
         if (-not $sourcePath -or -not $targetPath) {
             Write-LogWarning "Skipping symlink with empty path - source: '$sourcePath', target: '$targetPath'"
             continue
         }
-        
+
         # Validate source exists
         if (-not (Test-Path $sourcePath)) {
             Write-LogWarning "Source file not found, skipping: $sourcePath"
             continue
         }
-        
+
         # Validate target path for security
         if (-not (Test-SafePath $targetPath $env:USERPROFILE $true)) {
             Write-LogWarning "Skipping link outside allowed directories: $targetPath"
             continue
         }
-        
+
         # Create the symlink
         $result = New-FileSymlink $targetPath $sourcePath
         if (-not $result) {
             $success = $false
         }
     }
-    
+
     return $success
 }
 
@@ -425,21 +434,22 @@ function Install-UserPackage {
         [string]$DotfilesDir,
         [bool]$DryRun = $false
     )
-    
+
     $packagesFile = Join-Path $DotfilesDir "packages.yaml"
-    
+
     if (-not (Test-Path $packagesFile)) {
         if ($DryRun) {
             Write-Host "PACKAGES:" -ForegroundColor White
             Write-Host "* Would: skip (no packages.yaml found)" -ForegroundColor Gray
-        } else {
+        }
+        else {
             Write-LogInfo "No packages.yaml found, skipping package installation"
         }
         return $true
     }
-    
+
     $packages = Get-PackagesFromYaml $packagesFile
-    
+
     if ($DryRun) {
         Write-Host "PACKAGES:" -ForegroundColor White
         if ($packages.winget.Count -gt 0) {
@@ -462,7 +472,7 @@ function Install-UserPackage {
         }
         return $true
     }
-    
+
     # Install winget packages
     if ($packages.winget.Count -gt 0) {
         Write-Step "Installing Windows Packages"
@@ -471,7 +481,7 @@ function Install-UserPackage {
             return $false
         }
     }
-    
+
     # Install scoop packages
     if ($packages.scoop.Count -gt 0) {
         Write-Step "Installing Scoop Packages"
@@ -480,7 +490,7 @@ function Install-UserPackage {
             return $false
         }
     }
-    
+
     # Install PowerShell modules
     if ($packages.psmodule.Count -gt 0) {
         Write-Step "Installing PowerShell Modules"
@@ -489,7 +499,7 @@ function Install-UserPackage {
             return $false
         }
     }
-    
+
     return $true
 }
 
@@ -507,25 +517,25 @@ function Invoke-WSLSetup {
     param(
         [bool]$DryRun = $false
     )
-    
+
     # Simple check - if wsl.exe exists, show setup instructions
     if (-not (Get-Command "wsl.exe" -ErrorAction SilentlyContinue)) {
         Write-LogInfo "WSL not available, skipping Linux setup"
         return $true
     }
-    
+
     # Convert Windows path to WSL path for the setup script
     $scriptRoot = Split-Path $PSScriptRoot -Parent
     $wslPath = $scriptRoot -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/' | ForEach-Object { $_.ToLower() }
     $setupScript = "$wslPath/bin/setup-user"
-    
+
     if ($DryRun) {
         Write-Host "WSL SETUP:" -ForegroundColor White
         Write-LogInfo "To see what would be done in WSL, run:"
         Write-Host "  wsl.exe -d archlinux bash `"$setupScript`" --dry-run" -ForegroundColor Cyan
         return $true
     }
-    
+
     Write-LogInfo "To complete setup in WSL, run:"
     Write-Host "  wsl.exe -d archlinux bash `"$setupScript`"" -ForegroundColor Cyan
     return $true
@@ -536,22 +546,22 @@ function Test-DeveloperModeEnabled {
     $testDir = Join-Path $env:TEMP "symlink_test_$(Get-Random)"
     $testFile = Join-Path $testDir "test.txt"
     $testLink = Join-Path $testDir "test_link.txt"
-    
+
     try {
         New-Item -ItemType Directory -Path $testDir -Force | Out-Null
         "test content" | Out-File -FilePath $testFile -Encoding UTF8
-        
+
         # Try to create a symbolic link
         $result = & cmd.exe /c "mklink `"$testLink`" `"$testFile`"" 2>&1
         $success = ($LASTEXITCODE -eq 0) -and (Test-Path $testLink)
-        
+
         if (-not $success -and $result) {
             Write-LogError "Symlink test failed: $result"
         }
-        
+
         # Clean up
         Remove-Item -Path $testDir -Recurse -Force -ErrorAction SilentlyContinue
-        
+
         return $success
     }
     catch {
@@ -579,7 +589,7 @@ function Invoke-UserSetup {
     param(
         [bool]$DryRun = $false
     )
-    
+
     # Check Developer Mode upfront (unless in dry-run mode)
     if (-not $DryRun) {
         Write-Step "Checking Windows Prerequisites"
@@ -597,17 +607,17 @@ function Invoke-UserSetup {
         }
         Write-LogSuccess "Developer Mode is enabled - symlink creation is supported"
     }
-    
+
     $currentUser = Get-CurrentUser
     Write-LogInfo "Using dotfiles for user: $currentUser"
-    
+
     # Determine dotfiles directory
     $scriptRoot = Split-Path $PSScriptRoot -Parent
     $dotfilesDir = Join-Path $scriptRoot "dotfiles\$currentUser"
-    
+
     Write-Step "User Setup for $currentUser"
     Write-LogInfo "Using dotfiles from: $dotfilesDir"
-    
+
     # Validation
     Write-Step "Validation"
     if (-not (Test-Path $dotfilesDir)) {
@@ -615,54 +625,56 @@ function Invoke-UserSetup {
         return $false
     }
     Write-LogSuccess "Dotfiles directory found"
-    
+
     # Setup shared dotfiles (still use old approach as shared doesn't have symlinks.yaml)
     Write-Step "Shared Dotfiles"
     $sharedDir = Join-Path $scriptRoot "dotfiles\shared"
-    
+
     if (Test-Path $sharedDir) {
         if ($DryRun) {
             Write-LogInfo "DRY RUN MODE - No changes will be made"
             $result = Show-Symlink $sharedDir $env:USERPROFILE "" $true
-        } else {
+        }
+        else {
             Write-LogInfo "Setting up shared dotfiles..."
             $result = Invoke-CreateSymlink $sharedDir $env:USERPROFILE "" $true
         }
-        
+
         if (-not $result) {
             Write-LogError "Failed to setup shared dotfiles"
             return $false
         }
     }
-    
+
     # Setup user-specific dotfiles using symlinks.yaml
     Write-Step "User-Specific Dotfiles"
     $result = Invoke-SymlinksFromConfig $dotfilesDir $DryRun
-    
+
     if (-not $result) {
         Write-LogError "Failed to setup user dotfiles"
         return $false
     }
-    
+
     # Install packages
     $packageResult = Install-UserPackage $dotfilesDir $DryRun
     if (-not $packageResult) {
         Write-LogWarning "Package installation encountered issues"
     }
-    
+
     # Setup WSL environment
     Write-Step "WSL Setup"
     $wslResult = Invoke-WSLSetup $DryRun
     if (-not $wslResult) {
         Write-LogWarning "WSL setup encountered issues"
     }
-    
+
     # Success
     if ($DryRun) {
         Write-LogSuccess "Dry run completed successfully"
-    } else {
+    }
+    else {
         Write-LogSuccess "User setup completed successfully"
     }
-    
+
     return $true
 }

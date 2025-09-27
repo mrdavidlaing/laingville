@@ -60,15 +60,17 @@ if ($DryRun) {
 try {
     # Execute main server setup
     $result = Invoke-ServerSetup -DryRun:$DryRun
-    
+
     if ($result) {
         if ($DryRun) {
             Write-Host "`nServer dry run completed successfully!" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "`nServer setup completed successfully!" -ForegroundColor Green
         }
         exit 0
-    } else {
+    }
+    else {
         Write-Host "`nServer setup failed!" -ForegroundColor Red
         exit 1
     }
@@ -76,7 +78,7 @@ try {
 catch {
     Write-LogError "Unhandled exception: $_"
     Write-LogError $_.ScriptStackTrace
-    
+
     Write-Host "`nAn unexpected error occurred. Re-run with -DryRun for a preview." -ForegroundColor Red
     exit 1
 }

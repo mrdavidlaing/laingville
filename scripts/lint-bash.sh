@@ -43,8 +43,10 @@ find_claude_scripts() {
   # Find bash files
   find "$claude_dir" -name "*.bash" -type f 2> /dev/null || true
 
-  # Find executable files (scripts without extensions)
-  find "$claude_dir" -type f -executable 2> /dev/null || true
+  # Find executable shell scripts (check for shebang)
+  find "$claude_dir" -type f -executable \
+    -not -name "*.md" -not -name "*.json" \
+    -exec grep -l '^#!/.*sh' {} \; 2> /dev/null || true
 }
 
 # Get core setup scripts that should always be linted

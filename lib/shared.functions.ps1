@@ -16,7 +16,7 @@ function Invoke-Scoop {
 }
 
 function Invoke-Winget {
-    param([array]$Arguments) 
+    param([array]$Arguments)
     & winget @Arguments
 }
 
@@ -33,19 +33,19 @@ function Invoke-Winget {
 #>
 function Install-WingetPackage {
     param([string[]]$Packages)
-    
+
     if (-not $Packages -or $Packages.Count -eq 0) {
         return $true
     }
-    
+
     Write-Host "Installing winget packages: $($Packages -join ', ')" -ForegroundColor Cyan
-    
+
     foreach ($package in $Packages) {
         if ($package) {
             Write-Host "Installing: $package" -ForegroundColor Yellow
             try {
                 $result = Invoke-Winget @("install", "--id", $package, "-e", "--silent", "--accept-package-agreements", "--accept-source-agreements") 2>&1
-                
+
                 # Handle different exit codes
                 switch ($LASTEXITCODE) {
                     0 {
@@ -73,7 +73,7 @@ function Install-WingetPackage {
             }
         }
     }
-    
+
     return $true
 }
 
@@ -90,13 +90,13 @@ function Install-WingetPackage {
 #>
 function Install-PowerShellModule {
     param([string[]]$Modules)
-    
+
     if (-not $Modules -or $Modules.Count -eq 0) {
         return $true
     }
-    
+
     Write-Host "Installing PowerShell modules: $($Modules -join ', ')" -ForegroundColor Cyan
-    
+
     foreach ($module in $Modules) {
         if ($module) {
             Write-Host "Installing PowerShell module: $module" -ForegroundColor Yellow
@@ -104,29 +104,30 @@ function Install-PowerShellModule {
                 # Check if we need to install/upgrade
                 $latest = Find-Module -Name $module -ErrorAction SilentlyContinue
                 $installed = Get-Module -Name $module -ListAvailable -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1
-                
+
                 if ($installed -and $latest -and $installed.Version -ge $latest.Version) {
                     Write-Host "[OK] Already up-to-date: $module v$($installed.Version)" -ForegroundColor Green
                     continue
                 }
-                
+
                 # Try to remove the module from memory if it's loaded
                 $loadedModule = Get-Module -Name $module -ErrorAction SilentlyContinue
                 if ($loadedModule) {
                     Write-Host "Unloading $module from memory..." -ForegroundColor Gray
                     Remove-Module -Name $module -Force -ErrorAction SilentlyContinue
                 }
-                
+
                 Write-Host "Installing/upgrading to latest version of: $module" -ForegroundColor Gray
-                
+
                 # Install or upgrade module with appropriate flags
                 Install-Module -Name $module -Force -SkipPublisherCheck -AllowClobber -Scope CurrentUser -ErrorAction Stop
-                
+
                 # Get the installed version to confirm
                 $newInstalled = Get-Module -Name $module -ListAvailable -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1
                 if ($newInstalled) {
                     Write-Host "[OK] Installed/Updated: $module v$($newInstalled.Version)" -ForegroundColor Green
-                } else {
+                }
+                else {
                     Write-Host "[OK] Installed: $module" -ForegroundColor Green
                 }
             }
@@ -136,7 +137,7 @@ function Install-PowerShellModule {
             }
         }
     }
-    
+
     return $true
 }
 
@@ -155,29 +156,30 @@ function Install-PowerShellModule {
 #>
 function Install-ScoopPackage {
     param([string[]]$Packages)
-    
+
     if (-not $Packages -or $Packages.Count -eq 0) {
         return $true
     }
-    
+
     # Check if Scoop is installed, install if not
     if (-not (Get-Command "scoop" -ErrorAction SilentlyContinue)) {
         Write-Host "Scoop is not installed. Installing Scoop..." -ForegroundColor Yellow
-        
+
         try {
             # Set execution policy for current user (required for Scoop installation)
             Write-Host "Setting execution policy for current user..." -ForegroundColor Gray
             Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-            
+
             # Download and install Scoop
             Write-Host "Downloading and installing Scoop..." -ForegroundColor Gray
             $installScript = Invoke-RestMethod -Uri https://get.scoop.sh
             & ([scriptblock]::Create($installScript))
-            
+
             # Verify installation
             if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
                 Write-Host "[OK] Scoop installed successfully" -ForegroundColor Green
-            } else {
+            }
+            else {
                 Write-Warning "Scoop installation completed but command not found. Please restart your shell."
                 return $false
             }
@@ -188,9 +190,9 @@ function Install-ScoopPackage {
             return $false
         }
     }
-    
+
     Write-Host "Installing scoop packages: $($Packages -join ', ')" -ForegroundColor Cyan
-    
+
     # Extract unique buckets from packages
     $bucketsToAdd = @()
     foreach ($package in $Packages) {
@@ -201,7 +203,7 @@ function Install-ScoopPackage {
             }
         }
     }
-    
+
     # Get list of existing buckets to avoid unnecessary add attempts
     $existingBuckets = @()
     if ($bucketsToAdd.Count -gt 0) {
@@ -217,18 +219,20 @@ function Install-ScoopPackage {
             Write-Debug "Failed to list buckets: $($_.Exception.Message)"
         }
     }
-    
+
     # Add required buckets (only if they don't already exist)
     foreach ($bucket in $bucketsToAdd) {
         if ($bucket -in $existingBuckets) {
             Write-Host "[OK] Bucket already exists: $bucket" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "Adding bucket: $bucket" -ForegroundColor Yellow
             try {
                 $result = Invoke-Scoop @("bucket", "add", $bucket) 2>&1
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "[OK] Added bucket: $bucket" -ForegroundColor Green
-                } else {
+                }
+                else {
                     Write-Warning "Failed to add bucket $bucket (exit code: $LASTEXITCODE): $result"
                 }
             }
@@ -237,17 +241,18 @@ function Install-ScoopPackage {
             }
         }
     }
-    
+
     # Install packages
     foreach ($package in $Packages) {
         if ($package) {
             # Check if package is already installed
-            $packageName = if ($package -match '/') { 
-                ($package -split '/')[-1] 
-            } else { 
-                $package 
+            $packageName = if ($package -match '/') {
+                ($package -split '/')[-1]
             }
-            
+            else {
+                $package
+            }
+
             try {
                 $listResult = Invoke-Scoop @("list", $packageName) 2>$null
                 $isInstalled = $LASTEXITCODE -eq 0 -and $listResult
@@ -256,31 +261,35 @@ function Install-ScoopPackage {
                 # If listing fails, assume package is not installed
                 $isInstalled = $false
             }
-            
+
             if ($isInstalled) {
                 Write-Host "Updating existing package: $package" -ForegroundColor Cyan
                 try {
                     $null = Invoke-Scoop @("update", $package) 2>&1
                     if ($LASTEXITCODE -eq 0) {
                         Write-Host "[OK] Updated: $package" -ForegroundColor Green
-                    } else {
+                    }
+                    else {
                         Write-Host "[OK] Already up-to-date: $package" -ForegroundColor Green
                     }
                 }
                 catch {
                     Write-Host "[OK] Already installed (update failed): $package" -ForegroundColor Green
                 }
-            } else {
+            }
+            else {
                 Write-Host "Installing: $package" -ForegroundColor Yellow
                 try {
                     $result = Invoke-Scoop @("install", $package) 2>&1
-                    
+
                     # Handle different scenarios
                     if ($LASTEXITCODE -eq 0) {
                         Write-Host "[OK] Installed: $package" -ForegroundColor Green
-                    } elseif ($result -like "*not found*") {
+                    }
+                    elseif ($result -like "*not found*") {
                         Write-Warning "Package not found: $package"
-                    } else {
+                    }
+                    else {
                         Write-Warning "Failed to install $package (exit code: $LASTEXITCODE)"
                         # Only show detailed output for actual errors
                         if ($result -and $result.ToString().Length -lt 500) {
@@ -294,7 +303,7 @@ function Install-ScoopPackage {
             }
         }
     }
-    
+
     return $true
 }
 
@@ -310,7 +319,7 @@ function Install-ScoopPackage {
 function Get-CurrentUser {
     # Get username, mapping special cases
     $username = $env:USERNAME.ToLower()
-    
+
     switch ($username) {
         "timmy" { return "timmmmmmer" }
         "david" { return "mrdavidlaing" }
@@ -333,19 +342,19 @@ function Get-CurrentUser {
 #>
 function Expand-WindowsPath {
     param([string]$Path)
-    
+
     if (-not $Path) { return "" }
-    
+
     # Replace common environment variables
     $expandedPath = $Path -replace '\$APPDATA', $env:APPDATA
     $expandedPath = $expandedPath -replace '\$LOCALAPPDATA', $env:LOCALAPPDATA
     $expandedPath = $expandedPath -replace '\$USERPROFILE', $env:USERPROFILE
-    
+
     # If no environment variables were found and it's a relative path, use USERPROFILE as base
     if ($expandedPath -eq $Path -and -not [System.IO.Path]::IsPathRooted($expandedPath)) {
         $expandedPath = Join-Path $env:USERPROFILE $expandedPath
     }
-    
+
     return $expandedPath
 }
 
@@ -360,4 +369,3 @@ function Expand-WindowsPath {
 function Get-CurrentHostname {
     return $env:COMPUTERNAME.ToLower()
 }
-

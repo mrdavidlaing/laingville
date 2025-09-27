@@ -114,26 +114,26 @@ function Get-PackagesFromYaml {
     param(
         [string]$YamlFile
     )
-    
+
     if (-not (Test-Path $YamlFile)) {
         return @{}
     }
-    
+
     $packages = @{
-        pacman = @()
-        aur = @()
-        winget = @()
-        scoop = @()
+        pacman   = @()
+        aur      = @()
+        winget   = @()
+        scoop    = @()
         psmodule = @()
     }
-    
+
     try {
         $content = Get-Content $YamlFile -Raw
-        
+
         # Simple YAML parsing for Windows packages
         if ($content -match "windows:\s*\r?\n((?:\s+.*\r?\n?)*)") {
             $windowsSection = $Matches[1]
-            
+
             # Extract packages for all Windows package managers using helper functions
             $packageTypes = @('winget', 'scoop', 'psmodule')
             foreach ($packageType in $packageTypes) {
@@ -144,7 +144,7 @@ function Get-PackagesFromYaml {
     catch {
         Write-Warning "Failed to parse YAML file ${YamlFile}: $_"
     }
-    
+
     return $packages
 }
 
@@ -164,34 +164,34 @@ function Get-SymlinksFromYaml {
         [string]$YamlFile,
         [string]$Platform = "windows"
     )
-    
+
     if (-not (Test-Path $YamlFile)) {
         return @()
     }
-    
+
     $symlinks = @()
-    
+
     try {
         $content = Get-Content $YamlFile -Raw
-        
+
         # Simple YAML parsing for platform section
         if ($content -match "${Platform}:\s*\r?\n((?:\s+[^\r\n]+(?:\r?\n|$))*)") {
             $platformSection = $Matches[1]
-            
+
             # Split into lines and process each symlink entry
             $lines = $platformSection -split "\r?\n" | Where-Object { $_.Trim() -ne "" }
-            
+
             $currentEntry = $null
             foreach ($line in $lines) {
                 # Skip if we hit another platform section
                 if ($line -match "^[a-zA-Z]") {
                     break
                 }
-                
+
                 # Process list items
                 if ($line -match "^\s+-\s*(.+)$") {
                     $value = $Matches[1].Trim()
-                    
+
                     # Check if it's a simple string or complex object
                     if ($value -match "^source:\s*(.+)$") {
                         # Start of complex object with source/target
@@ -199,7 +199,8 @@ function Get-SymlinksFromYaml {
                             source = $Matches[1].Trim()
                             target = $null
                         }
-                    } else {
+                    }
+                    else {
                         # Simple string entry - both source and target are the same
                         $entry = @{
                             source = $value
@@ -207,7 +208,8 @@ function Get-SymlinksFromYaml {
                         }
                         $symlinks += $entry
                     }
-                } elseif ($line -match "^\s+target:\s*(.+)$" -and $currentEntry) {
+                }
+                elseif ($line -match "^\s+target:\s*(.+)$" -and $currentEntry) {
                     # Target line for complex object
                     $currentEntry.target = $Matches[1].Trim()
                     $symlinks += $currentEntry
@@ -219,6 +221,6 @@ function Get-SymlinksFromYaml {
     catch {
         Write-Warning "Failed to parse symlinks YAML file ${YamlFile}: $_"
     }
-    
-    return ,$symlinks
+
+    return , $symlinks
 }

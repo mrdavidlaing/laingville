@@ -2,60 +2,60 @@
 # This configuration follows the same patterns as ShellSpec for consistency
 
 @{
-    Run = @{
-        Path = @('./spec/powershell')
-        ExcludePath = @()
-        ScriptBlock = @()
-        Container = @()
+    Run          = @{
+        Path          = @('./spec/powershell')
+        ExcludePath   = @()
+        ScriptBlock   = @()
+        Container     = @()
         TestExtension = '.Tests.ps1'
-        Exit = $false
-        Throw = $false
-        PassThru = $true
-        SkipRun = $false
+        Exit          = $false
+        Throw         = $false
+        PassThru      = $true
+        SkipRun       = $false
     }
-    
-    Filter = @{
-        Tag = @()
-        ExcludeTag = @()
-        Line = @()
+
+    Filter       = @{
+        Tag         = @()
+        ExcludeTag  = @()
+        Line        = @()
         ExcludeLine = @()
-        FullName = @()
+        FullName    = @()
     }
-    
+
     CodeCoverage = @{
-        Enabled = $true
-        Path = @('./lib/*.ps1', './bin/*.ps1')
-        RecursePaths = $true
-        OutputFormat = 'JaCoCo'
-        OutputPath = './coverage.xml'
+        Enabled        = $true
+        Path           = @('./lib/*.ps1', './bin/*.ps1')
+        RecursePaths   = $true
+        OutputFormat   = 'JaCoCo'
+        OutputPath     = './coverage.xml'
         OutputEncoding = 'UTF8'
-        ExcludeTests = $true
+        ExcludeTests   = $true
         UseBreakpoints = $true
     }
-    
-    Output = @{
-        Verbosity = 'Detailed'
+
+    Output       = @{
+        Verbosity           = 'Detailed'
         StackTraceVerbosity = 'Filtered'
-        CIFormat = 'Auto'
+        CIFormat            = 'Auto'
     }
-    
-    Should = @{
+
+    Should       = @{
         ErrorAction = 'Stop'
     }
-    
-    Debug = @{
-        ShowFullErrors = $false
-        WriteDebugMessages = $false
+
+    Debug        = @{
+        ShowFullErrors         = $false
+        WriteDebugMessages     = $false
         WriteDebugMessagesFrom = @()
-        ShowNavigationMarkers = $false
-        ReturnRawResultObject = $false
+        ShowNavigationMarkers  = $false
+        ReturnRawResultObject  = $false
     }
-    
-    TestResult = @{
-        Enabled = $true
-        OutputFormat = 'NUnitXml'
-        OutputPath = './testresults.xml'
+
+    TestResult   = @{
+        Enabled        = $true
+        OutputFormat   = 'NUnitXml'
+        OutputPath     = './testresults.xml'
         OutputEncoding = 'UTF8'
-        TestSuiteName = 'Laingville PowerShell Tests'
+        TestSuiteName  = 'Laingville PowerShell Tests'
     }
 }

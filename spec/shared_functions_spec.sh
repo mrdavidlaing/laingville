@@ -262,7 +262,7 @@ EOF
                     When call extract_packages_from_yaml "arch" "yay" "${DOTFILES_DIR}/packages.yaml"
 
                     The output should not be blank
-                    The output should include "hyprland"
+                    The output should include "starship"
                   End
 
                   It "extracts macOS packages from real config"
