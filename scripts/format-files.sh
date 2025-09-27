@@ -310,8 +310,12 @@ format_batch_files() {
     fi
 
     # Invoke separately to respect set -e
-    format_single_file "$file" "$check_mode"
-    result=$?
+    # shellcheck disable=SC2310  # Function invoked in if condition, set -e disabled intentionally
+    if format_single_file "$file" "$check_mode"; then
+      result=0
+    else
+      result=$?
+    fi
 
     if [[ $result -eq 0 ]]; then
       if [[ "$check_mode" != "true" ]]; then
