@@ -124,40 +124,19 @@ format_powershell_file() {
     return 0
   fi
 
-  # Enhanced check: verify Invoke-Formatter is available and functional
-  # First check if PSScriptAnalyzer module can be imported
+  # Check if PowerShell formatting is available and functional
+  # Use a simple test that should work if PSScriptAnalyzer is properly installed
   if ! $pwsh_cmd -NoProfile -Command "
     try {
-      Import-Module PSScriptAnalyzer -ErrorAction SilentlyContinue
-      if (Get-Module PSScriptAnalyzer) {
-        exit 0
-      } else {
-        exit 1
-      }
-    } catch {
-      exit 1
-    }
-  " > /dev/null 2>&1; then
-    if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
-      echo "ℹ️  Skipping PowerShell formatting: PSScriptAnalyzer module not available" >&2
-      echo "    Install PSScriptAnalyzer module to enable .ps1 file formatting" >&2
-    fi
-    return 0
-  fi
-
-  # Second check: verify Invoke-Formatter actually works
-  if ! $pwsh_cmd -NoProfile -Command "
-    try {
-      \$testCode = 'Write-Host \"test\"'
-      Invoke-Formatter -ScriptDefinition \$testCode -ErrorAction Stop | Out-Null
+      \$null = Get-Command Invoke-Formatter -ErrorAction Stop
       exit 0
     } catch {
       exit 1
     }
   " > /dev/null 2>&1; then
     if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
-      echo "ℹ️  Skipping PowerShell formatting: Invoke-Formatter not functional" >&2
-      echo "    PSScriptAnalyzer module may need updating" >&2
+      echo "ℹ️  Skipping PowerShell formatting: Invoke-Formatter not available" >&2
+      echo "    Install PSScriptAnalyzer module to enable .ps1 file formatting" >&2
     fi
     return 0
   fi
