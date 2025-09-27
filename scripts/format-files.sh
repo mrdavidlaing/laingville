@@ -124,11 +124,20 @@ format_powershell_file() {
     return 0
   fi
 
-  # Check if Invoke-Formatter cmdlet is available
-  if ! $pwsh_cmd -NoProfile -Command "Get-Command Invoke-Formatter -ErrorAction SilentlyContinue" > /dev/null 2>&1; then
+  # Enhanced check: verify Invoke-Formatter is available and functional
+  if ! $pwsh_cmd -NoProfile -Command "
+    try {
+      Import-Module PSScriptAnalyzer -ErrorAction Stop
+      \$testCode = 'Write-Host \"test\"'
+      Invoke-Formatter -ScriptDefinition \$testCode -ErrorAction Stop | Out-Null
+      exit 0
+    } catch {
+      exit 1
+    }
+  " > /dev/null 2>&1; then
     if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
-      echo "ℹ️  Skipping PowerShell formatting: Invoke-Formatter not available" >&2
-      echo "    Install PSScriptAnalyzer module to enable .ps1 file formatting" >&2
+      echo "ℹ️  Skipping PowerShell formatting: Invoke-Formatter not functional" >&2
+      echo "    Install/update PSScriptAnalyzer module to enable .ps1 file formatting" >&2
     fi
     return 0
   fi
