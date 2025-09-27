@@ -8,10 +8,14 @@ arch:
     - tmux
     - openssh
     - geoip
+    - fail2ban          # Automatic IP banning for security
+    - ipset             # Efficient IP set management
+    # Note: iptables-nft already installed - ipset works with both
   yay:
     # No AUR packages currently needed
   custom:
     - ensure_sshd_running
+    - ensure_minecraft_security_running
 
 windows:
   winget:
