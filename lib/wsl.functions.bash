@@ -134,20 +134,27 @@ handle_wsl_packages() {
       local pkg_array=()
       populate_package_array "${valid_packages}" pkg_array
 
-      if [[ "${dry_run}" = true ]]; then
-        log_dry_run_package_list "pacman" "${pkg_array[@]}"
-      elif [[ ${#pkg_array[@]} -gt 0 ]]; then
-        log_info "Installing pacman packages: ${pkg_array[*]}"
-        local quoted_packages=()
-        for pkg in "${pkg_array[@]}"; do
-          local quoted_pkg
-          printf -v quoted_pkg '%q' "${pkg}"
-          quoted_packages+=("${quoted_pkg}")
-        done
+       if [[ "${dry_run}" = true ]]; then
+         log_dry_run_package_list "pacman" "${pkg_array[@]}"
+       elif [[ ${#pkg_array[@]} -gt 0 ]]; then
+         log_info "Updating package databases..."
+         if ! sudo pacman -Syu --noconfirm; then
+           log_warning "Failed to update package databases"
+           return 1
+         fi
 
-        if ! eval "pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
-          log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
-        fi
+         log_info "Installing pacman packages: ${pkg_array[*]}"
+         local quoted_packages=()
+         for pkg in "${pkg_array[@]}"; do
+           local quoted_pkg
+           printf -v quoted_pkg '%q' "${pkg}"
+           quoted_packages+=("${quoted_pkg}")
+         done
+
+         if ! eval "sudo pacman -S --needed --noconfirm ${quoted_packages[*]}"; then
+           log_warning "Failed to install some pacman packages: ${pkg_array[*]}"
+         fi
+       fi
       fi
     fi
   fi

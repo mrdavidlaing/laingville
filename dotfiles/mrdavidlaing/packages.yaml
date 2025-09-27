@@ -15,18 +15,37 @@ arch:
     - pipewire-alsa
     - qt6-wayland
     - qt5-wayland
-  yay:
-    # Development tools
+    - nodejs
+    - npm
     - base-devel
     - make
     - bash
+    - git
+    - openssh
+    - tmux
+    - neovim
+    - go
+    - ripgrep
+    - bat
+    - fd
+    - fzf
+    - jq
+    - shellcheck
+    - hyprland
+    - waybar
+    - rofi
+    - thunar
+    - brightnessctl
+    - playerctl
+    - alacritty
+    - gimp
+  yay:
+    # AUR-only packages
     - glibc-locales
     - direnv
-    - git
     - github-cli
     - tig
     - lazygit
-    - neovim
     - lua-language-server
     - bash-language-server
     - marksman
@@ -38,21 +57,11 @@ arch:
     - go-yq
     - starship
     - zoxide
-    - ripgrep
-    - bat
     - eza
-    - fd
-    - fzf
-    - jq
-    - tmux
     - kubectl
-    - go
-    - nodejs
     - pnpm
     - uv
-    - openssh
     - shellspec
-    - shellcheck
     - shfmt
     - glow
     - navi
@@ -60,17 +69,7 @@ arch:
     - opencode
     - k9s
     - speedtest-cli
-    # Hyprland Desktop Environment
-    - hyprland
-    - waybar
-    - rofi
-    - thunar
-    - brightnessctl
-    - playerctl
     - hyprpaper
-    # Applications
-    - alacritty
-    - gimp
     - ttf-jetbrains-mono-nerd
     - vivaldi
     - zen-bin
@@ -80,19 +79,32 @@ arch:
 
 # WSL - terminal-focused, no GUI
 wsl:
-  yay:
-    # Essential development tools
+  pacman:
     - base-devel
     - make
     - bash
+    - git
+    - openssh
+    - tmux
+    - neovim
+    - go
+    - nodejs
+    - npm
+    - ripgrep
+    - bat
+    - fd
+    - fzf
+    - jq
+    - shellcheck
+    - rsync
+    - docker
+  yay:
+    # AUR-only packages
     - glibc-locales
     - direnv
-    - git
     - github-cli
     - tig
     - lazygit
-    - rsync
-    - neovim
     - lua-language-server
     - bash-language-server
     - marksman
@@ -103,28 +115,18 @@ wsl:
     - dockerfile-language-server
     - starship
     - zoxide
-    - ripgrep
-    - bat
     - eza
-    - fd
-    - fzf
-    - jq
-    - tmux
     - navi
-    - go
-    - nodejs
     - pnpm
     - uv
-    - openssh
-    - docker
     - kubectl
     - shellspec
-    - shellcheck
     - shfmt
     - glow
     - crush-bin
     - k9s
     - speedtest-cli
+    - opencode
   custom:
     - install_claude_code
 
