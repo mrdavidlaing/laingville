@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 #Requires -Version 5.1
 
 <#
@@ -232,7 +232,7 @@ function Test-ArchWSLReadiness {
 
     # Check if mrdavidlaing user is configured
     try {
-        $userCheck = & wsl.exe -d archlinux -u root id mrdavidlaing 2>$null
+        & wsl.exe -d archlinux -u root id mrdavidlaing 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             return "configured"
         }
