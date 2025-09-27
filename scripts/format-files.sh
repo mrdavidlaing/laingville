@@ -124,6 +124,15 @@ format_powershell_file() {
     return 0
   fi
 
+  # Check if Invoke-Formatter cmdlet is available
+  if ! $pwsh_cmd -NoProfile -Command "Get-Command Invoke-Formatter -ErrorAction SilentlyContinue" > /dev/null 2>&1; then
+    if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
+      echo "ℹ️  Skipping PowerShell formatting: Invoke-Formatter not available" >&2
+      echo "    Install PSScriptAnalyzer module to enable .ps1 file formatting" >&2
+    fi
+    return 0
+  fi
+
   if [[ "$check_mode" == "true" ]]; then
     # Convert Unix path to Windows path if we're in WSL
     local ps_file_path="$file_path"
