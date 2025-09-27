@@ -4,18 +4,29 @@
     "PATH": "~/.claude/wrappers:$PATH",
     "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1"
   },
-  "model": "sonnet[1m]",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.local/bin/claude-code-bash-direnv-wrapper"
-          }
-        ]
-      }
-    ]
-  }
+  "model": "opusplan",
+   "hooks": {
+     "PreToolUse": [
+       {
+         "matcher": "Bash",
+         "hooks": [
+           {
+             "type": "command",
+             "command": "~/.local/bin/claude-code-bash-direnv-wrapper"
+           }
+         ]
+       }
+     ],
+     "PostToolUse": [
+       {
+         "matcher": "Edit",
+         "hooks": [
+           {
+             "type": "command",
+             "command": "~/.claude/format-hook.sh"
+           }
+         ]
+       }
+     ]
+   }
 }

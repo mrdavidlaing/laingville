@@ -59,7 +59,8 @@ function Test-Command {
         if (Get-Command $Command -ErrorAction SilentlyContinue) {
             return $true
         }
-    } catch {
+    }
+    catch {
         return $false
     }
     return $false
@@ -125,7 +126,8 @@ function Test-WindowsPrerequisite {
         Write-Host "4. Run this script again after restart" -ForegroundColor Yellow
         Write-Host ""
         $prerequisitesMet = $false
-    } else {
+    }
+    else {
         Write-Host "WSL feature is enabled" -ForegroundColor Green
     }
     
@@ -140,13 +142,15 @@ function Test-WindowsPrerequisite {
         Write-Host "4. Run this script again after enabling" -ForegroundColor Yellow
         Write-Host ""
         $prerequisitesMet = $false
-    } else {
+    }
+    else {
         Write-Host "Developer Mode is enabled" -ForegroundColor Green
     }
     
     if ($prerequisitesMet) {
         Write-Host "All Windows prerequisites are satisfied!" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "Please satisfy the prerequisites above and run this script again." -ForegroundColor Red
         exit 1
     }
@@ -175,7 +179,7 @@ function Install-Git {
         
         # Refresh PATH
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + 
-                    [System.Environment]::GetEnvironmentVariable("Path", "User")
+        [System.Environment]::GetEnvironmentVariable("Path", "User")
         
         # Wait a moment for installation to complete
         Start-Sleep -Seconds 3
@@ -197,6 +201,148 @@ function Install-Git {
     }
 }
 
+function Test-ArchWSLReadiness {
+    <#
+    .SYNOPSIS
+        Checks the current state of Arch Linux WSL installation and user configuration
+    .DESCRIPTION
+        Returns one of three states:
+        - "not_installed": archlinux distribution is not installed
+        - "needs_setup": archlinux exists but mrdavidlaing user is not configured
+        - "configured": archlinux exists and mrdavidlaing user is properly configured
+    .EXAMPLE
+        $status = Test-ArchWSLReadiness
+    #>
+
+    # Check if archlinux distribution exists
+    try {
+        $distributions = & wsl.exe --list --quiet 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $distributions) {
+            return "not_installed"
+        }
+
+        $archExists = $distributions | Where-Object { $_.Trim() -eq "archlinux" }
+        if (-not $archExists) {
+            return "not_installed"
+        }
+    }
+    catch {
+        return "not_installed"
+    }
+
+    # Check if mrdavidlaing user is configured
+    try {
+        $userCheck = & wsl.exe -d archlinux -u root id mrdavidlaing 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            return "configured"
+        }
+        else {
+            return "needs_setup"
+        }
+    }
+    catch {
+        return "needs_setup"
+    }
+}
+
+function Invoke-ArchInitialSetup {
+    <#
+    .SYNOPSIS
+        Performs initial setup of Arch Linux WSL with mrdavidlaing user
+    .DESCRIPTION
+        This function automates the steps previously done by setup-arch-user.ps1:
+        1. Updates package database and installs sudo
+        2. Creates mrdavidlaing user with wheel group membership
+        3. Sets up password (interactive)
+        4. Configures sudo access for wheel group
+        5. Sets mrdavidlaing as default user in /etc/wsl.conf
+    .EXAMPLE
+        Invoke-ArchInitialSetup
+    #>
+
+    Write-Step "Setting up Arch WSL user (mrdavidlaing)..."
+
+    try {
+        # Step 1: Update package database
+        Write-Host "Updating package database..." -ForegroundColor Yellow
+        & wsl.exe -d archlinux -u root pacman -Sy --noconfirm
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to update package database"
+            return $false
+        }
+
+        # Step 2: Install sudo
+        Write-Host "Installing sudo..." -ForegroundColor Yellow
+        & wsl.exe -d archlinux -u root pacman -S --noconfirm sudo
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to install sudo"
+            return $false
+        }
+
+        # Step 3: Create user
+        Write-Host "Creating user mrdavidlaing..." -ForegroundColor Yellow
+        & wsl.exe -d archlinux -u root useradd -m -G wheel mrdavidlaing
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create user mrdavidlaing"
+            return $false
+        }
+
+        # Step 4: Set password (interactive)
+        Write-Host "Setting password for mrdavidlaing (you will be prompted)..." -ForegroundColor Yellow
+        & wsl.exe -d archlinux -u root passwd mrdavidlaing
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to set password for mrdavidlaing"
+            return $false
+        }
+
+        # Step 5: Configure sudo access
+        Write-Host "Configuring sudo access..." -ForegroundColor Yellow
+        & wsl.exe -d archlinux -u root sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to configure sudo access"
+            return $false
+        }
+
+        # Step 6: Configure default user in wsl.conf
+        Write-Host "Setting as default user..." -ForegroundColor Yellow
+        $wslConfScript = @'
+if [ -f /etc/wsl.conf ]; then cp /etc/wsl.conf /etc/wsl.conf.backup; fi
+grep -v "^\[user\]" /etc/wsl.conf 2>/dev/null | grep -v "^default=" > /tmp/wsl.conf.temp || true
+echo "" >> /tmp/wsl.conf.temp
+echo "[user]" >> /tmp/wsl.conf.temp
+echo "default=mrdavidlaing" >> /tmp/wsl.conf.temp
+mv /tmp/wsl.conf.temp /etc/wsl.conf
+'@
+
+        $wslConfScript | & wsl.exe -d archlinux -u root bash
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to configure default user"
+            return $false
+        }
+
+        # Verification
+        Write-Host "Verifying setup..." -ForegroundColor Yellow
+        & wsl.exe -d archlinux -u root groups mrdavidlaing
+        & wsl.exe -d archlinux -u root grep '%wheel' /etc/sudoers
+
+        Write-Host @"
+
+✅ Arch WSL Initial Setup Complete!
+
+Your user 'mrdavidlaing' has been:
+- Created with home directory (/home/mrdavidlaing)
+- Added to the 'wheel' group
+- Given sudo privileges
+- Set as the default user in /etc/wsl.conf
+"@ -ForegroundColor Cyan
+
+        return $true
+    }
+    catch {
+        Write-Error "Failed to setup Arch WSL user: $_"
+        return $false
+    }
+}
 
 function Invoke-Setup {
     
@@ -231,7 +377,8 @@ function Invoke-Setup {
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
             Write-Host "`nSetup completed successfully!" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "`nSetup failed with exit code: $exitCode" -ForegroundColor Red
             exit $exitCode
         }
@@ -265,8 +412,31 @@ function Main {
             exit 1
         }
     }
-    
-    # Step 3: Provide setup instructions
+
+    # Step 3: Check and setup Arch WSL if needed
+    $archStatus = Test-ArchWSLReadiness
+    switch ($archStatus) {
+        "not_installed" {
+            Write-Host "Arch Linux not installed in WSL. Install with: wsl --install archlinux" -ForegroundColor Yellow
+        }
+        "needs_setup" {
+            Write-Step "Fresh Arch WSL installation detected"
+            if (-not (Invoke-ArchInitialSetup)) {
+                Write-Error "Failed to setup Arch WSL user"
+                exit 1
+            }
+            Write-Host "Please restart WSL and run setup.ps1 again:" -ForegroundColor Cyan
+            Write-Host "  wsl --shutdown" -ForegroundColor Cyan
+            Write-Host "  wsl -d archlinux" -ForegroundColor Cyan
+            Write-Host "  ./setup.ps1" -ForegroundColor Cyan
+            exit 0
+        }
+        "configured" {
+            Write-Host "Arch WSL user already configured" -ForegroundColor Green
+        }
+    }
+
+    # Step 4: Provide setup instructions
     Invoke-Setup
 }
 

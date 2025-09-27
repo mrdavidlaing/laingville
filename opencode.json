@@ -3,7 +3,7 @@
   "formatter": {
     "shell-scripts": {
       "command": ["./scripts/format-files.sh", "$FILE"],
-      "extensions": [".sh", ".bash"]
+      "extensions": [".sh", ".bash", ".ps1"]
     }
   }
 }

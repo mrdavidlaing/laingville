@@ -31,7 +31,7 @@ if [ -n "$EDITED_FILE" ] && [ -f "$EDITED_FILE" ]; then
     spec/fixtures/*)
       # Skip fixture files - they are test data
       ;;
-    *.sh | *.bash)
+    *.sh | *.bash | *.ps1)
       # Store original content checksum
       BEFORE_CHECKSUM=$(cksum "$EDITED_FILE" 2> /dev/null | awk '{print $1}')
 

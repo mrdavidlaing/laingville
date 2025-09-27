@@ -31,7 +31,8 @@ show_usage() {
   echo ""
   echo "Supports:"
   echo "  *.sh, *.bash (non-spec) - shfmt formatting"
-  echo "  *_spec.sh              - ShellSpec formatting"
+  echo "  *_spec.sh               - ShellSpec formatting"
+  echo "  *.ps1                   - PowerShell formatting (requires pwsh/PowerShell 7+)"
   echo ""
   echo "Examples:"
   echo "  $0 script.sh                    # Format single file"
@@ -104,6 +105,79 @@ format_shellspec_file() {
   return 0
 }
 
+# Format a single PowerShell file using pwsh
+format_powershell_file() {
+  local file_path="$1"
+  local check_mode="$2"
+
+  # Check if pwsh is available (check both Unix and Windows paths for WSL compatibility)
+  local pwsh_cmd=""
+  if command -v pwsh > /dev/null 2>&1; then
+    pwsh_cmd="pwsh"
+  elif command -v pwsh.exe > /dev/null 2>&1; then
+    pwsh_cmd="pwsh.exe"
+  else
+    if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
+      echo "ℹ️  Skipping PowerShell formatting: pwsh not available on this platform" >&2
+      echo "    Install PowerShell 7+ to enable .ps1 file formatting" >&2
+    fi
+    return 0
+  fi
+
+  if [[ "$check_mode" == "true" ]]; then
+    # Check mode - verify if file needs formatting
+    # Use PowerShell's parser to check for syntax issues that formatting would fix
+    if $pwsh_cmd -NoProfile -Command "
+      try {
+        [System.Management.Automation.Language.Parser]::ParseFile('$file_path', [ref]\$null, [ref]\$null) | Out-Null
+        exit 0
+      } catch {
+        exit 1
+      }
+    " 2> /dev/null; then
+      # File parses correctly, no formatting needed
+      return 0
+    else
+      echo "File needs PowerShell formatting: $file_path" >&2
+      return 1
+    fi
+  else
+    # Format mode - apply formatting
+    if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
+      echo "Formatting PowerShell file: $(basename "$file_path")" >&2
+    fi
+
+    # Use PowerShell's built-in formatting capabilities
+    # Use PowerShell's built-in formatting capabilities and post-process
+    if $pwsh_cmd -NoProfile -Command "
+      try {
+        \$content = Get-Content '$file_path' -Raw
+        \$formatted = Invoke-Formatter -ScriptDefinition \$content
+        \$formatted | Out-File '$file_path' -Encoding UTF8
+      } catch {
+        Write-Error \"Failed to format PowerShell file: \$_\"
+        exit 1
+      }
+    " 2> /dev/null; then
+      # Remove trailing whitespace from lines and normalize line endings
+      sed -i 's/[ \t]*$//' "$file_path"
+      # Convert Windows line endings to Unix
+      sed -i 's/\r$//' "$file_path"
+      # Ensure file ends with exactly one newline
+      # Use printf to ensure exactly one trailing newline
+      printf '%s\n' "$(cat "$file_path")" > "$file_path"
+    fi
+
+    # Check if formatting actually changed the file
+    if [[ $? -eq 0 ]]; then
+      return 0
+    else
+      echo "Error: Failed to format PowerShell file: $file_path" >&2
+      return 1
+    fi
+  fi
+}
+
 # AWK-based ShellSpec formatting function using external script
 format_shellspec_awk() {
   local input_file="$1"
@@ -133,6 +207,9 @@ get_file_info() {
       ;;
     *.sh | *.bash)
       echo "shfmt format_bash_file"
+      ;;
+    *.ps1)
+      echo "powershell format_powershell_file"
       ;;
     *)
       echo "none none"
