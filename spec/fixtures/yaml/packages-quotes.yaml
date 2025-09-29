@@ -1,0 +1,23 @@
+# Package configuration with quoted strings
+# Tests that parsers correctly strip quotes from package names
+
+arch:
+  pacman:
+    - "git"
+    - 'vim'
+    - tmux
+  yay:
+    - "starship"
+    - 'yay'
+
+windows:
+  winget:
+    - "Git.Git"
+    - 'Microsoft.PowerShell'
+    - Microsoft.VisualStudioCode
+  scoop:
+    - "git"
+    - 'versions/wezterm-nightly'
+  psmodule:
+    - "PowerShellGet"
+    - 'Pester'

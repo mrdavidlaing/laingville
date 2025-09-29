@@ -1,0 +1,18 @@
+# Package configuration with missing platform sections
+# Tests that parsers handle absent platforms gracefully
+
+arch:
+  pacman:
+    - git
+    - vim
+  yay:
+    - starship
+
+# No 'wsl' section
+
+# No 'windows' section
+
+macos:
+  homebrew:
+    - git
+  # No 'cask' section

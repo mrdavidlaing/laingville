@@ -1,0 +1,27 @@
+# Package configuration with comments
+# Tests that parsers correctly handle both inline and standalone comments
+
+arch:
+  # Core system packages
+  pacman:
+    # Version control
+    - git  # Distributed version control
+    - vim  # Text editor
+    # Terminal multiplexer
+    - tmux
+  # AUR packages
+  yay:
+    - starship  # Cross-shell prompt
+    - yay  # AUR helper
+
+windows:
+  # Package managers
+  winget:
+    # Development tools
+    - Git.Git  # Version control system
+    - Microsoft.PowerShell  # PowerShell 7+
+    # Editors
+    - Microsoft.VisualStudioCode  # VS Code
+  scoop:
+    # Terminal emulators
+    - versions/wezterm-nightly  # GPU-accelerated terminal

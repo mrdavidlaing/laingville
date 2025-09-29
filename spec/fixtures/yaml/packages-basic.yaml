@@ -1,0 +1,38 @@
+# Basic package configuration - simple list format
+# Used to test standard YAML list parsing
+
+arch:
+  pacman:
+    - git
+    - vim
+    - tmux
+  yay:
+    - starship
+    - yay
+
+wsl:
+  pacman:
+    - git
+    - neovim
+    - tmux
+
+windows:
+  winget:
+    - Git.Git
+    - Microsoft.PowerShell
+    - Microsoft.VisualStudioCode
+  scoop:
+    - git
+    - versions/wezterm-nightly
+  psmodule:
+    - PowerShellGet
+    - Pester
+
+macos:
+  homebrew:
+    - git
+    - starship
+    - ripgrep
+  cask:
+    - visual-studio-code
+    - docker

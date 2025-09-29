@@ -1,0 +1,26 @@
+# Package configuration with mixed formats
+# Tests parsers can handle quotes, comments, and various spacing
+
+arch:
+  pacman:
+    - git  # Quoted below
+    - "vim"
+    - 'tmux'  # Different quote style
+    # Comment-only line
+    - bash
+  yay:
+    - starship
+    - "yay"  # Quoted
+
+windows:
+  winget:
+    - Git.Git
+    - "Microsoft.PowerShell"  # PowerShell 7+
+    - 'Microsoft.VisualStudioCode'
+  scoop:
+    # Terminal emulators
+    - git
+    - "versions/wezterm-nightly"  # Nightly build
+  psmodule:
+    - PowerShellGet  # Package manager
+    - "Pester"

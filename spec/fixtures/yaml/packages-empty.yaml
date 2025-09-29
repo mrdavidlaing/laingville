@@ -1,0 +1,18 @@
+# Package configuration with empty sections
+# Tests that parsers handle missing package lists gracefully
+
+arch:
+  pacman:
+  yay:
+    - starship
+
+windows:
+  winget:
+  scoop:
+    - git
+  psmodule:
+
+macos:
+  homebrew:
+    - git
+  cask:
