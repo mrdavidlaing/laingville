@@ -1,0 +1,27 @@
+# Package configuration with flexible indentation
+# Tests that parser handles 2-space, 3-space, 4-space indentation
+
+# 2-space indentation (standard YAML)
+arch:
+  pacman:
+    - git
+    - vim
+  yay:
+    - starship
+
+# 4-space indentation
+windows:
+    winget:
+        - Git.Git
+        - Microsoft.PowerShell
+    scoop:
+        - git
+        - versions/wezterm-nightly
+
+# 3-space indentation (unusual but valid)
+macos:
+   homebrew:
+      - git
+      - starship
+   cask:
+      - docker

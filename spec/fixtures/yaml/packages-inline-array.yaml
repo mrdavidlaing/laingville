@@ -1,6 +1,5 @@
 # Package configuration with inline array format
 # Tests that parsers handle [item1, item2] syntax
-# Note: Bash parser currently does NOT support this format
 
 windows:
   winget: [Git.Git, Microsoft.PowerShell]

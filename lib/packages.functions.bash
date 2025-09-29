@@ -52,6 +52,7 @@ log_dry_run_package_list() {
 }
 
 # Extract packages from YAML config file with secure parsing
+# Uses awk state machine for efficient single-pass parsing
 extract_packages_from_yaml() {
   local platform="$1" manager="$2" packages_file="$3"
 
@@ -71,17 +72,124 @@ extract_packages_from_yaml() {
     return 1
   }
 
-  # Use sed for reliable YAML parsing (no external dependencies)
-  # Updated for flattened structure (no nested packages: key)
+  # Single-pass awk parser with state machine
+  # Handles: list format, inline arrays, comments, quotes, flexible indentation
   local result
-  result=$(head -n 1000 "${packages_file}" \
-    | sed -n "/^${platform}:/,/^[a-z]/p" \
-    | sed -n "/^  ${manager}:/,/^  [a-z]/p" \
-    | grep "^    - " | sed 's/^    - //' \
-    | sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//' \
-    | sed 's/^"\(.*\)"$/\1/' \
-    | sed "s/^'\(.*\)'$/\1/" \
-    | head -n 100 || true) # Limit number of packages and strip quotes
+  result=$(head -n 1000 "${packages_file}" | awk -v platform="${platform}" -v manager="${manager}" '
+    BEGIN {
+      state = "searching"  # States: searching -> in_platform -> in_manager
+      count = 0
+      max_packages = 100
+    }
+
+    # Skip empty lines and comment-only lines
+    /^[[:space:]]*$/ || /^[[:space:]]*#/ { next }
+
+    # Top-level platform key (no leading whitespace)
+    /^[a-z]/ {
+      if (state == "in_manager") exit  # Left manager section
+      if (state == "in_platform") state = "searching"  # Left platform section
+
+      # Extract platform name (remove trailing colon)
+      key = $1
+      sub(/:$/, "", key)
+
+      if (key == platform) {
+        state = "in_platform"
+        # Detect platform indentation (for next level)
+        platform_indent = match($0, /[a-z]/) - 1
+      }
+      next
+    }
+
+    # In platform section: look for manager key
+    state == "in_platform" && /^[[:space:]]+[a-z]/ {
+      # Calculate indent level
+      indent = match($0, /[a-z]/) - 1
+
+      # If back to platform level, we left the section
+      if (indent <= platform_indent) {
+        state = "searching"
+        next
+      }
+
+      # Extract manager name (remove leading whitespace and trailing colon)
+      key = $0
+      sub(/^[[:space:]]+/, "", key)
+
+      # Check for inline array format: "manager: [item1, item2]"
+      if (key ~ /:.*\[.*\]/) {
+        mgr_name = key
+        sub(/:.*$/, "", mgr_name)
+
+        if (mgr_name == manager) {
+          # Extract array content between brackets
+          array_content = key
+          sub(/^[^[]*\[/, "", array_content)
+          sub(/\][^]]*$/, "", array_content)
+
+          # Split by comma and process each item
+          n = split(array_content, items, /,/)
+          for (i = 1; i <= n && count < max_packages; i++) {
+            item = items[i]
+            # Strip leading/trailing whitespace
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
+            # Strip quotes
+            gsub(/^["'\'']|["'\'']$/, "", item)
+            # Strip comments
+            sub(/[[:space:]]*#.*$/, "", item)
+
+            if (item != "") {
+              print item
+              count++
+            }
+          }
+          exit
+        }
+      } else {
+        # Regular list format
+        sub(/:.*$/, "", key)
+
+        if (key == manager) {
+          state = "in_manager"
+          manager_indent = indent
+        }
+      }
+      next
+    }
+
+    # In manager section: extract list items
+    state == "in_manager" {
+      # Calculate indent level
+      indent = match($0, /[^[:space:]]/) - 1
+
+      # If indent decreased to manager level or less, we left the section
+      if (indent <= manager_indent) {
+        exit
+      }
+
+      # List item format: "  - package"
+      if ($0 ~ /^[[:space:]]+-[[:space:]]/) {
+        if (count >= max_packages) exit
+
+        line = $0
+        # Strip list marker and leading whitespace
+        sub(/^[[:space:]]*-[[:space:]]*/, "", line)
+        # Strip comments
+        sub(/[[:space:]]*#.*$/, "", line)
+        # Strip trailing whitespace
+        sub(/[[:space:]]*$/, "", line)
+        # Strip quotes (both single and double)
+        gsub(/^["'\'']|["'\'']$/, "", line)
+
+        if (line != "") {
+          print line
+          count++
+        }
+      }
+    }
+  ' || true)
+
   echo "${result}"
 }
 

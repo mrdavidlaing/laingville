@@ -323,4 +323,86 @@ Describe "YAML Parser (bash implementation)"
 
   End
 
+  Describe "extract_packages_from_yaml - flexible indentation"
+
+    It "handles 2-space indentation (standard)"
+      When call extract_packages_from_yaml "arch" "pacman" "spec/fixtures/yaml/packages-flexible-indent.yaml"
+      The output should include "git"
+      The output should include "vim"
+      The line 1 of output should equal "git"
+      The line 2 of output should equal "vim"
+    End
+
+    It "handles 4-space indentation"
+      When call extract_packages_from_yaml "windows" "winget" "spec/fixtures/yaml/packages-flexible-indent.yaml"
+      The output should include "Git.Git"
+      The output should include "Microsoft.PowerShell"
+      The line 1 of output should equal "Git.Git"
+      The line 2 of output should equal "Microsoft.PowerShell"
+    End
+
+    It "handles 3-space indentation (unusual but valid)"
+      When call extract_packages_from_yaml "macos" "homebrew" "spec/fixtures/yaml/packages-flexible-indent.yaml"
+      The output should include "git"
+      The output should include "starship"
+      The line 1 of output should equal "git"
+      The line 2 of output should equal "starship"
+    End
+
+    It "handles 4-space indentation for scoop"
+      When call extract_packages_from_yaml "windows" "scoop" "spec/fixtures/yaml/packages-flexible-indent.yaml"
+      The output should include "git"
+      The output should include "versions/wezterm-nightly"
+      The line 1 of output should equal "git"
+      The line 2 of output should equal "versions/wezterm-nightly"
+    End
+
+  End
+
+  Describe "extract_packages_from_yaml - inline array format"
+
+    It "extracts packages from inline array (windows/winget)"
+      When call extract_packages_from_yaml "windows" "winget" "spec/fixtures/yaml/packages-inline-array.yaml"
+      The output should include "Git.Git"
+      The output should include "Microsoft.PowerShell"
+      The line 1 of output should equal "Git.Git"
+      The line 2 of output should equal "Microsoft.PowerShell"
+    End
+
+    It "extracts packages from inline array (windows/scoop)"
+      When call extract_packages_from_yaml "windows" "scoop" "spec/fixtures/yaml/packages-inline-array.yaml"
+      The output should include "git"
+      The output should include "versions/wezterm-nightly"
+      The line 1 of output should equal "git"
+      The line 2 of output should equal "versions/wezterm-nightly"
+    End
+
+    It "extracts packages from inline array (windows/psmodule)"
+      When call extract_packages_from_yaml "windows" "psmodule" "spec/fixtures/yaml/packages-inline-array.yaml"
+      The output should include "PowerShellGet"
+      The output should include "Pester"
+      The line 1 of output should equal "PowerShellGet"
+      The line 2 of output should equal "Pester"
+    End
+
+    It "extracts packages from inline array (arch/pacman)"
+      When call extract_packages_from_yaml "arch" "pacman" "spec/fixtures/yaml/packages-inline-array.yaml"
+      The output should include "git"
+      The output should include "vim"
+      The output should include "tmux"
+      The line 1 of output should equal "git"
+      The line 2 of output should equal "vim"
+      The line 3 of output should equal "tmux"
+    End
+
+    It "extracts packages from inline array (arch/yay)"
+      When call extract_packages_from_yaml "arch" "yay" "spec/fixtures/yaml/packages-inline-array.yaml"
+      The output should include "starship"
+      The output should include "yay"
+      The line 1 of output should equal "starship"
+      The line 2 of output should equal "yay"
+    End
+
+  End
+
 End
