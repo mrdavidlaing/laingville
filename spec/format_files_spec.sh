@@ -174,6 +174,124 @@ Describe "format-files.sh - Comprehensive Formatting Test Suite"
       End
     End
 
+    Describe "Batch Processing Optimizations"
+      It "processes multiple bash files efficiently"
+        # Create 5 bash files to test batch processing
+        temp_files=()
+        for i in 1 2 3 4 5; do
+        temp_files+=("$(create_temp_test_file "#!/bin/bash\necho 'test$i'")")
+        done
+
+        When run ./scripts/format-files.sh --batch "${temp_files[@]}"
+        The status should be success
+        The stderr should include "🎨 Processing 5 files"
+        The stderr should include "[shfmt"
+
+        # Cleanup
+        for f in "${temp_files[@]}"; do
+        cleanup_temp_file "$f"
+        done
+      End
+
+      It "processes multiple PowerShell files efficiently"
+        Skip if "PowerShell not available" ! command -v pwsh > /dev/null 2>&1 && ! command -v pwsh.exe > /dev/null 2>&1
+
+        # Create 3 PowerShell files to test batch processing
+        temp_files=()
+        for i in 1 2 3; do
+        temp_files+=("$(create_temp_test_file "Write-Host 'test$i'" "ps1")")
+        done
+
+        When run ./scripts/format-files.sh --batch "${temp_files[@]}"
+        The status should be success
+        The stderr should include "🎨 Processing 3 files"
+        The stderr should include "[powershell"
+
+        # Cleanup
+        for f in "${temp_files[@]}"; do
+        cleanup_temp_file "$f"
+        done
+      End
+
+      It "processes multiple ShellSpec files efficiently"
+        # Create 3 ShellSpec files
+        temp_files=()
+        for i in 1 2 3; do
+        temp_files+=("$(create_temp_test_file "Describe 'test$i'\nIt 'works'\nEnd\nEnd" "_spec.sh")")
+        done
+
+        When run ./scripts/format-files.sh --batch "${temp_files[@]}"
+        The status should be success
+        The stderr should include "🎨 Processing 3 files"
+        The stderr should include "[shellspec"
+
+        # Cleanup
+        for f in "${temp_files[@]}"; do
+        cleanup_temp_file "$f"
+        done
+      End
+
+      It "handles large batches of mixed file types"
+        # Create 10 bash, 5 ShellSpec, 3 PowerShell files
+        temp_files=()
+
+        # Bash files
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+        temp_files+=("$(create_temp_test_file "#!/bin/bash\necho 'bash$i'")")
+        done
+
+        # ShellSpec files
+        for i in 1 2 3 4 5; do
+        temp_files+=("$(create_temp_test_file "Describe 'test$i'\nEnd" "_spec.sh")")
+        done
+
+        # PowerShell files (only if available)
+        if command -v pwsh > /dev/null 2>&1 || command -v pwsh.exe > /dev/null 2>&1; then
+        for i in 1 2 3; do
+        temp_files+=("$(create_temp_test_file "Write-Host 'ps$i'" "ps1")")
+        done
+        expected_count=18
+        else
+        expected_count=15
+        fi
+
+        When run ./scripts/format-files.sh --batch "${temp_files[@]}"
+        The status should be success
+        The stderr should include "🎨 Processing $expected_count files"
+
+        # Cleanup
+        for f in "${temp_files[@]}"; do
+        cleanup_temp_file "$f"
+        done
+      End
+
+      It "detects changes correctly in batch mode"
+        # Create a file with poor formatting (no indentation)
+        temp_file=$(mktemp_with_suffix ".sh")
+        cat > "$temp_file" << 'TESTEOF'
+#!/bin/bash
+if true; then
+echo 'test'
+fi
+TESTEOF
+
+        # Get checksum before formatting
+        before_sum=$(cksum "$temp_file" | awk '{print $1}')
+
+        # Format the file
+        ./scripts/format-files.sh --batch "$temp_file" > /dev/null 2>&1
+
+        # Get checksum after formatting
+        after_sum=$(cksum "$temp_file" | awk '{print $1}')
+
+        # Checksums should differ (file was changed)
+        When run test "$before_sum" != "$after_sum"
+        The status should be success
+
+        cleanup_temp_file "$temp_file"
+      End
+    End
+
     Describe "ShellSpec Formatting with Fixtures"
     # Test helper function that uses format-files.sh directly
       format_test_file() {

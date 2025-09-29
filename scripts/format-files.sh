@@ -68,6 +68,32 @@ format_bash_file() {
   return 0
 }
 
+# Batch format multiple bash files using shfmt (shfmt supports multiple files natively)
+batch_format_shfmt_files() {
+  local check_mode="$1"
+  shift
+  local files=("$@")
+
+  [[ ${#files[@]} -eq 0 ]] && return 0
+
+  if ! command -v shfmt > /dev/null 2>&1; then
+    echo "Error: shfmt not found. Please install shfmt to format bash files." >&2
+    return 1
+  fi
+
+  if [[ "$check_mode" == "true" ]]; then
+    # Check mode - shfmt -d returns non-zero if files need formatting
+    if ! shfmt -d "${files[@]}" > /dev/null 2>&1; then
+      return 1
+    fi
+  else
+    # Format mode - shfmt can format multiple files at once
+    shfmt -w "${files[@]}"
+  fi
+
+  return 0
+}
+
 # Format ShellSpec files using integrated AWK logic
 format_shellspec_file() {
   local file_path="$1"
@@ -207,6 +233,100 @@ format_powershell_file() {
   fi
 }
 
+# Batch format multiple PowerShell files in a single pwsh invocation
+batch_format_powershell_files() {
+  local check_mode="$1"
+  shift
+  local files=("$@")
+
+  [[ ${#files[@]} -eq 0 ]] && return 0
+
+  # Check if pwsh is available
+  local pwsh_cmd=""
+  if command -v pwsh > /dev/null 2>&1; then
+    pwsh_cmd="pwsh"
+  elif command -v pwsh.exe > /dev/null 2>&1; then
+    pwsh_cmd="pwsh.exe"
+  else
+    return 0
+  fi
+
+  # Check if PowerShell formatting is functional (do once for all files)
+  if ! $pwsh_cmd -NoProfile -Command "
+    try {
+      \$testCode = 'Write-Host test'
+      \$formatted = Invoke-Formatter -ScriptDefinition \$testCode -ErrorAction Stop
+      exit 0
+    } catch {
+      exit 1
+    }
+  " > /dev/null 2>&1; then
+    return 0
+  fi
+
+  # Build PowerShell script to process all files
+  local ps_script=""
+  local file_list=""
+
+  # Convert file paths for WSL if needed
+  for file in "${files[@]}"; do
+    local ps_file_path="$file"
+    if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
+      ps_file_path=$(wslpath -w "$file")
+    fi
+    file_list="${file_list}'${ps_file_path}',"
+  done
+  file_list="${file_list%,}" # Remove trailing comma
+
+  if [[ "$check_mode" == "true" ]]; then
+    # Check mode - just verify syntax
+    ps_script="
+      \$files = @($file_list)
+      \$errors = 0
+      foreach (\$file in \$files) {
+        try {
+          [System.Management.Automation.Language.Parser]::ParseFile(\$file, [ref]\$null, [ref]\$null) | Out-Null
+        } catch {
+          \$errors++
+        }
+      }
+      exit \$errors
+    "
+  else
+    # Format mode - format all files
+    ps_script="
+      \$files = @($file_list)
+      \$errors = 0
+      foreach (\$file in \$files) {
+        try {
+          \$content = Get-Content \$file -Raw
+          \$formatted = Invoke-Formatter -ScriptDefinition \$content
+          \$formatted | Out-File \$file -Encoding UTF8
+        } catch {
+          Write-Error \"Failed to format \$file\"
+          \$errors++
+        }
+      }
+      exit \$errors
+    "
+  fi
+
+  # Execute PowerShell script
+  if $pwsh_cmd -NoProfile -Command "$ps_script" 2> /dev/null; then
+    if [[ "$check_mode" != "true" ]]; then
+      # Post-process files: normalize line endings
+      for file in "${files[@]}"; do
+        sed -i 's/[ \t]*$//' "$file"
+        sed -i 's/\r$//' "$file"
+        printf '%s\n' "$(cat "$file")" > "$file"
+      done
+    fi
+    return 0
+  else
+    return 1
+  fi
+}
+
 # AWK-based ShellSpec formatting function using external script
 format_shellspec_awk() {
   local input_file="$1"
@@ -290,27 +410,147 @@ format_batch_files() {
     echo "🎨 Processing ${#files[@]} files..." >&2
   fi
 
+  # Group files by formatter type for batch processing
+  local shfmt_files=()
+  local shellspec_files=()
+  local powershell_files=()
+  local other_files=()
+
+  # Store checksums before formatting (for format mode only)
+  declare -A before_checksums
+
   for file in "${files[@]}"; do
     [[ -f "$file" ]] || continue
     total=$((total + 1))
 
-    # Store file checksum before formatting (for format mode only)
-    local before_checksum=""
+    # Store checksum if in format mode
     if [[ "$check_mode" != "true" ]]; then
-      before_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
+      before_checksums["$file"]=$(cksum "$file" 2> /dev/null | awk '{print $1}')
     fi
 
-    # Show file being processed inline (no newline yet) unless in quiet mode
+    # Group by formatter type
     local file_info formatter_name
-    # shellcheck disable=SC2311  # Function in command substitution, set -e disabled intentionally
+    # shellcheck disable=SC2311
     file_info=$(get_file_info "$file")
     formatter_name=$(echo "$file_info" | awk '{print $1}')
+
+    case "$formatter_name" in
+      shfmt)
+        shfmt_files+=("$file")
+        ;;
+      shellspec)
+        shellspec_files+=("$file")
+        ;;
+      powershell)
+        powershell_files+=("$file")
+        ;;
+      *)
+        other_files+=("$file")
+        ;;
+    esac
+  done
+
+  # Process shfmt files in batch
+  if [[ ${#shfmt_files[@]} -gt 0 ]]; then
     if [[ "$QUIET_MODE" != "true" ]]; then
-      printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "$formatter_name" >&2
+      echo "  📦 Batch formatting ${#shfmt_files[@]} bash files with shfmt..." >&2
+    fi
+    # shellcheck disable=SC2310
+    if batch_format_shfmt_files "$check_mode" "${shfmt_files[@]}"; then
+      # Process each file for reporting
+      for file in "${shfmt_files[@]}"; do
+        if [[ "$QUIET_MODE" != "true" ]]; then
+          printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "shfmt" >&2
+        fi
+
+        if [[ "$check_mode" != "true" ]]; then
+          local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
+          if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+            formatted=$((formatted + 1))
+            changed_files+=("$file")
+            if [[ "$QUIET_MODE" != "true" ]]; then
+              echo "re-formatted" >&2
+            fi
+          else
+            if [[ "$QUIET_MODE" != "true" ]]; then
+              echo "no-changes" >&2
+            fi
+          fi
+        else
+          if [[ "$QUIET_MODE" != "true" ]]; then
+            echo "ok" >&2
+          fi
+        fi
+      done
+    else
+      errors=$((errors + ${#shfmt_files[@]}))
+      for file in "${shfmt_files[@]}"; do
+        if [[ "$QUIET_MODE" != "true" ]]; then
+          printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "shfmt" >&2
+          if [[ "$check_mode" == "true" ]]; then
+            echo "needs-formatting" >&2
+          else
+            echo "failed" >&2
+          fi
+        fi
+      done
+    fi
+  fi
+
+  # Process PowerShell files in batch
+  if [[ ${#powershell_files[@]} -gt 0 ]]; then
+    if [[ "$QUIET_MODE" != "true" ]]; then
+      echo "  📦 Batch formatting ${#powershell_files[@]} PowerShell files..." >&2
+    fi
+    # shellcheck disable=SC2310
+    if batch_format_powershell_files "$check_mode" "${powershell_files[@]}"; then
+      # Process each file for reporting
+      for file in "${powershell_files[@]}"; do
+        if [[ "$QUIET_MODE" != "true" ]]; then
+          printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "powershell" >&2
+        fi
+
+        if [[ "$check_mode" != "true" ]]; then
+          local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
+          if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+            formatted=$((formatted + 1))
+            changed_files+=("$file")
+            if [[ "$QUIET_MODE" != "true" ]]; then
+              echo "re-formatted" >&2
+            fi
+          else
+            if [[ "$QUIET_MODE" != "true" ]]; then
+              echo "no-changes" >&2
+            fi
+          fi
+        else
+          if [[ "$QUIET_MODE" != "true" ]]; then
+            echo "ok" >&2
+          fi
+        fi
+      done
+    else
+      errors=$((errors + ${#powershell_files[@]}))
+      for file in "${powershell_files[@]}"; do
+        if [[ "$QUIET_MODE" != "true" ]]; then
+          printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "powershell" >&2
+          if [[ "$check_mode" == "true" ]]; then
+            echo "needs-formatting" >&2
+          else
+            echo "failed" >&2
+          fi
+        fi
+      done
+    fi
+  fi
+
+  # Process ShellSpec files individually (AWK is already efficient)
+  for file in "${shellspec_files[@]}"; do
+    if [[ "$QUIET_MODE" != "true" ]]; then
+      printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "shellspec" >&2
     fi
 
-    # Invoke separately to respect set -e
-    # shellcheck disable=SC2310  # Function invoked in if condition, set -e disabled intentionally
+    # shellcheck disable=SC2310
     if format_single_file "$file" "$check_mode"; then
       result=0
     else
@@ -319,9 +559,8 @@ format_batch_files() {
 
     if [[ $result -eq 0 ]]; then
       if [[ "$check_mode" != "true" ]]; then
-        # Check if file actually changed
         local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
-        if [[ "$before_checksum" != "$after_checksum" ]]; then
+        if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
           formatted=$((formatted + 1))
           changed_files+=("$file")
           if [[ "$QUIET_MODE" != "true" ]]; then
@@ -339,12 +578,59 @@ format_batch_files() {
       fi
     else
       errors=$((errors + 1))
-      if [[ "$check_mode" == "true" ]]; then
-        if [[ "$QUIET_MODE" != "true" ]]; then
+      if [[ "$QUIET_MODE" != "true" ]]; then
+        if [[ "$check_mode" == "true" ]]; then
           echo "needs-formatting" >&2
+        else
+          echo "failed" >&2
+        fi
+      fi
+    fi
+  done
+
+  # Process other files individually
+  for file in "${other_files[@]}"; do
+    local file_info formatter_name
+    # shellcheck disable=SC2311
+    file_info=$(get_file_info "$file")
+    formatter_name=$(echo "$file_info" | awk '{print $1}')
+
+    if [[ "$QUIET_MODE" != "true" ]]; then
+      printf "  formatting %-40s [%-10s] ... " "$(basename "$file")" "$formatter_name" >&2
+    fi
+
+    # shellcheck disable=SC2310
+    if format_single_file "$file" "$check_mode"; then
+      result=0
+    else
+      result=$?
+    fi
+
+    if [[ $result -eq 0 ]]; then
+      if [[ "$check_mode" != "true" ]]; then
+        local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
+        if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+          formatted=$((formatted + 1))
+          changed_files+=("$file")
+          if [[ "$QUIET_MODE" != "true" ]]; then
+            echo "re-formatted" >&2
+          fi
+        else
+          if [[ "$QUIET_MODE" != "true" ]]; then
+            echo "no-changes" >&2
+          fi
         fi
       else
         if [[ "$QUIET_MODE" != "true" ]]; then
+          echo "ok" >&2
+        fi
+      fi
+    else
+      errors=$((errors + 1))
+      if [[ "$QUIET_MODE" != "true" ]]; then
+        if [[ "$check_mode" == "true" ]]; then
+          echo "needs-formatting" >&2
+        else
           echo "failed" >&2
         fi
       fi
