@@ -16,11 +16,7 @@ dotfiles/**/.zshrc text eol=lf
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# PowerShell files that need BOM for PSScriptAnalyzer
-scripts/lint-powershell.ps1 binary
-setup.ps1 binary
-
-# Other PowerShell files can use standard text handling
+# PowerShell files use standard text handling
 *.ps1 text eol=crlf
 
 # Binary files
