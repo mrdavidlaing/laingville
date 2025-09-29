@@ -327,7 +327,7 @@ mv /tmp/wsl.conf.temp /etc/wsl.conf
 
         Write-Host @"
 
-✅ Arch WSL Initial Setup Complete!
+Arch WSL Initial Setup Complete!
 
 Your user 'mrdavidlaing' has been:
 - Created with home directory (/home/mrdavidlaing)

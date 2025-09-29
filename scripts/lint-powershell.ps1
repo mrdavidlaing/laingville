@@ -4,7 +4,7 @@ param()
 # PowerShell script to lint all .ps1 files using PSScriptAnalyzer
 
 if (Get-Module -ListAvailable PSScriptAnalyzer) {
-    Write-Host "🔍 Linting PowerShell scripts with PSScriptAnalyzer..."
+    Write-Host "Linting PowerShell scripts with PSScriptAnalyzer..."
 
     $files = Get-ChildItem -Path . -Include *.ps1 -Recurse | Where-Object { $_.FullName -notmatch '\.git' }
 
@@ -24,14 +24,14 @@ if (Get-Module -ListAvailable PSScriptAnalyzer) {
     }
 
     if ($issueCount -eq 0) {
-        Write-Host "✅ No issues found in PowerShell scripts"
+        Write-Host "No issues found in PowerShell scripts"
     }
     else {
-        Write-Host "⚠️  Found $issueCount issues in PowerShell scripts"
+        Write-Host "Found $issueCount issues in PowerShell scripts"
         exit 1
     }
 }
 else {
-    Write-Host "⚠️  PSScriptAnalyzer not found. Install with: Install-Module -Name PSScriptAnalyzer"
+    Write-Host "PSScriptAnalyzer not found. Install with: Install-Module -Name PSScriptAnalyzer"
     exit 1
 }
