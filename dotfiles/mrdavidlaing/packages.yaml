@@ -186,6 +186,7 @@ macos:
     - opencode
     - codex  # OpenAI Codex CLI - AI coding assistant
     - gemini-cli  # Google Gemini CLI - AI coding assistant
+    - charmbracelet/tap/crush  # Glamorous AI coding agent TUI
   cask:
     - jordanbaird-ice  # Menu bar manager for notch-aware icon management
     - nikitabobko/tap/aerospace
