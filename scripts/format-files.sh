@@ -417,7 +417,9 @@ format_batch_files() {
   local other_files=()
 
   # Store checksums before formatting (for format mode only)
-  declare -A before_checksums
+  # Using parallel arrays for bash 3.2 compatibility
+  local checksum_files=()
+  local checksum_values=()
 
   for file in "${files[@]}"; do
     [[ -f "$file" ]] || continue
@@ -425,7 +427,8 @@ format_batch_files() {
 
     # Store checksum if in format mode
     if [[ "$check_mode" != "true" ]]; then
-      before_checksums["$file"]=$(cksum "$file" 2> /dev/null | awk '{print $1}')
+      checksum_files+=("$file")
+      checksum_values+=("$(cksum "$file" 2> /dev/null | awk '{print $1}')")
     fi
 
     # Group by formatter type
@@ -465,7 +468,15 @@ format_batch_files() {
 
         if [[ "$check_mode" != "true" ]]; then
           local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
-          if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+          # Find before checksum from parallel arrays
+          local before_checksum=""
+          for ((i = 0; i < ${#checksum_files[@]}; i++)); do
+            if [[ "${checksum_files[$i]}" == "$file" ]]; then
+              before_checksum="${checksum_values[$i]}"
+              break
+            fi
+          done
+          if [[ "$before_checksum" != "$after_checksum" ]]; then
             formatted=$((formatted + 1))
             changed_files+=("$file")
             if [[ "$QUIET_MODE" != "true" ]]; then
@@ -512,7 +523,15 @@ format_batch_files() {
 
         if [[ "$check_mode" != "true" ]]; then
           local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
-          if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+          # Find before checksum from parallel arrays
+          local before_checksum=""
+          for ((i = 0; i < ${#checksum_files[@]}; i++)); do
+            if [[ "${checksum_files[$i]}" == "$file" ]]; then
+              before_checksum="${checksum_values[$i]}"
+              break
+            fi
+          done
+          if [[ "$before_checksum" != "$after_checksum" ]]; then
             formatted=$((formatted + 1))
             changed_files+=("$file")
             if [[ "$QUIET_MODE" != "true" ]]; then
@@ -560,7 +579,15 @@ format_batch_files() {
     if [[ $result -eq 0 ]]; then
       if [[ "$check_mode" != "true" ]]; then
         local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
-        if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+        # Find before checksum from parallel arrays
+        local before_checksum=""
+        for ((i = 0; i < ${#checksum_files[@]}; i++)); do
+          if [[ "${checksum_files[$i]}" == "$file" ]]; then
+            before_checksum="${checksum_values[$i]}"
+            break
+          fi
+        done
+        if [[ "$before_checksum" != "$after_checksum" ]]; then
           formatted=$((formatted + 1))
           changed_files+=("$file")
           if [[ "$QUIET_MODE" != "true" ]]; then
@@ -609,7 +636,15 @@ format_batch_files() {
     if [[ $result -eq 0 ]]; then
       if [[ "$check_mode" != "true" ]]; then
         local after_checksum=$(cksum "$file" 2> /dev/null | awk '{print $1}')
-        if [[ "${before_checksums[$file]}" != "$after_checksum" ]]; then
+        # Find before checksum from parallel arrays
+        local before_checksum=""
+        for ((i = 0; i < ${#checksum_files[@]}; i++)); do
+          if [[ "${checksum_files[$i]}" == "$file" ]]; then
+            before_checksum="${checksum_values[$i]}"
+            break
+          fi
+        done
+        if [[ "$before_checksum" != "$after_checksum" ]]; then
           formatted=$((formatted + 1))
           changed_files+=("$file")
           if [[ "$QUIET_MODE" != "true" ]]; then
