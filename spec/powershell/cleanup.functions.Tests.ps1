@@ -13,21 +13,21 @@ Describe "Windows Package Cleanup Functions" {
 
         It "removes packages using winget uninstall" {
             $packages = @("Git.Git", "Alacritty.Alacritty")
-            
+
             Remove-WingetPackage -Packages $packages
-            
+
             Should -Invoke Invoke-Winget -Times 2
-            Should -Invoke Invoke-Winget -ParameterFilter { 
+            Should -Invoke Invoke-Winget -ParameterFilter {
                 $Arguments -contains "uninstall" -and $Arguments -contains "Git.Git"
             }
-            Should -Invoke Invoke-Winget -ParameterFilter { 
+            Should -Invoke Invoke-Winget -ParameterFilter {
                 $Arguments -contains "uninstall" -and $Arguments -contains "Alacritty.Alacritty"
             }
         }
 
         It "handles empty package list" {
             $result = Remove-WingetPackage -Packages @()
-            
+
             $result | Should -Be $true
             Should -Invoke Invoke-Winget -Times 0
         }
@@ -58,30 +58,30 @@ Describe "Windows Package Cleanup Functions" {
 
         It "removes packages using scoop uninstall" {
             $packages = @("git", "alacritty")
-            
+
             Remove-ScoopPackage -Packages $packages
-            
+
             Should -Invoke Invoke-Scoop -Times 2
-            Should -Invoke Invoke-Scoop -ParameterFilter { 
+            Should -Invoke Invoke-Scoop -ParameterFilter {
                 $Arguments -contains "uninstall" -and $Arguments -contains "git"
             }
         }
 
         It "handles bucket/package format" {
             $packages = @("versions/wezterm-nightly")
-            
+
             Remove-ScoopPackage -Packages $packages
-            
-            Should -Invoke Invoke-Scoop -ParameterFilter { 
+
+            Should -Invoke Invoke-Scoop -ParameterFilter {
                 $Arguments -contains "uninstall" -and $Arguments -contains "wezterm-nightly"
             }
         }
 
         It "skips when scoop not available" {
             Mock Get-Command { return $null } -ParameterFilter { $Name -eq "scoop" }
-            
+
             $result = Remove-ScoopPackage -Packages @("git")
-            
+
             $result | Should -Be $true
             Should -Invoke Invoke-Scoop -Times 0
         }
@@ -157,28 +157,28 @@ windows:
 
         It "extracts winget_cleanup packages" {
             $packages = Get-PackagesFromYaml -YamlFile $testFile
-            
+
             $packages.winget_cleanup | Should -Contain "Alacritty.Alacritty"
             $packages.winget_cleanup.Count | Should -Be 1
         }
 
         It "extracts scoop_cleanup packages" {
             $packages = Get-PackagesFromYaml -YamlFile $testFile
-            
+
             $packages.scoop_cleanup | Should -Contain "alacritty"
             $packages.scoop_cleanup.Count | Should -Be 1
         }
 
         It "extracts psmodule_cleanup packages" {
             $packages = Get-PackagesFromYaml -YamlFile $testFile
-            
+
             $packages.psmodule_cleanup | Should -Contain "OldModule"
             $packages.psmodule_cleanup.Count | Should -Be 1
         }
 
         It "still extracts regular packages" {
             $packages = Get-PackagesFromYaml -YamlFile $testFile
-            
+
             $packages.winget | Should -Contain "Git.Git"
             $packages.scoop | Should -Contain "versions/wezterm-nightly"
             $packages.psmodule | Should -Contain "Pester"

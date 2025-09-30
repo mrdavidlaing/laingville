@@ -568,9 +568,15 @@ setup_symlinks_from_yaml() {
   # Use the symlinks.functions.bash to process platform symlinks
   if [[ "${dry_run}" = true ]]; then
     echo "SYMLINKS (from symlinks.yaml):"
+    # Process cleanup first
+    process_cleanup_symlinks "${symlinks_yaml}" "${platform}" "${src_dir}" "${dest_dir}" true
+    # Then create new symlinks
     process_platform_symlinks "${symlinks_yaml}" "${platform}" "${src_dir}" "${dest_dir}" true
   else
     log_info "Setting up symlinks from symlinks.yaml for platform: ${platform}"
+    # Process cleanup first
+    process_cleanup_symlinks "${symlinks_yaml}" "${platform}" "${src_dir}" "${dest_dir}" false
+    # Then create new symlinks
     process_platform_symlinks "${symlinks_yaml}" "${platform}" "${src_dir}" "${dest_dir}" false
   fi
 

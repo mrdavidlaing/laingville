@@ -1,0 +1,35 @@
+# Symlinks configuration with cleanup section
+# Used to test cleanup functionality
+
+arch:
+  - .bashrc
+  - .config/nvim
+  - .config/wezterm
+
+arch_cleanup:
+  - .config/alacritty  # Removed 2025-09-30, switched to wezterm
+  - .config/vim  # Removed 2025-09-30, switched to neovim
+
+wsl:
+  - .bashrc
+  - .config/nvim
+
+wsl_cleanup:
+  - .config/vim  # Removed 2025-09-30
+
+windows:
+  - source: .config/wezterm/wezterm.lua
+    target: $USERPROFILE/.config/wezterm/wezterm.lua
+
+windows_cleanup:
+  - source: .config/alacritty/alacritty.toml
+    target: $APPDATA/alacritty/alacritty.toml
+  - source: .config/alacritty/themes
+    target: $APPDATA/alacritty/themes
+
+macos:
+  - .bashrc
+  - .config/wezterm
+
+macos_cleanup:
+  - .config/alacritty  # Removed 2025-09-30
