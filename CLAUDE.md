@@ -81,8 +81,62 @@ Server package configurations follow the same format but are located in `servers
 - Configuration files are primarily in dotfile format (hidden files starting with .)
 - Functions are separated into multiple files for maintainability:
   - `shared.functions.bash` - Common functions used by both user and server setup
-  - `setup-user.functions.bash` - User-specific functions  
+  - `setup-user.functions.bash` - User-specific functions
   - `setup-server.functions.bash` - Server-specific functions
+
+### Bash Compatibility Requirements
+
+**CRITICAL: All bash scripts must be compatible with bash 3.2+**
+
+macOS ships with bash 3.2 as `/bin/sh`, and the Makefile uses this shell by default. Scripts must avoid bash 4+ features to ensure cross-platform compatibility.
+
+#### Forbidden Features (bash 4+ only)
+- **Associative arrays**: `declare -A array` - Use parallel arrays instead
+- **Case modification**: `${var^^}`, `${var,,}` - Use `tr` or `awk` instead
+- **Globstar**: `shopt -s globstar` and `**/*.sh` - Use `find` instead
+- **Negative substring lengths**: `${var: -1}` - Use `${var:${#var}-1:1}` instead
+- **`;;&` and `;&` in case statements** - Use multiple patterns instead
+- **`|&` operator** - Use `2>&1 |` instead
+- **`coproc` command** - Use named pipes or process substitution instead
+
+#### Safe Alternatives
+```bash
+# ❌ DON'T: Associative arrays (bash 4+)
+declare -A checksums
+checksums["file.txt"]="abc123"
+
+# ✅ DO: Parallel arrays (bash 3.2+)
+files=("file.txt")
+checksums=("abc123")
+for ((i=0; i<${#files[@]}; i++)); do
+  echo "${files[$i]}: ${checksums[$i]}"
+done
+
+# ❌ DON'T: Case modification (bash 4+)
+echo "${var^^}"  # uppercase
+
+# ✅ DO: Use tr or awk (bash 3.2+)
+echo "$var" | tr '[:lower:]' '[:upper:]'
+
+# ❌ DON'T: Globstar (bash 4+)
+shopt -s globstar
+files=(**/*.sh)
+
+# ✅ DO: Use find (bash 3.2+)
+files=$(find . -name "*.sh")
+```
+
+#### Testing Bash 3.2 Compatibility
+```bash
+# Test scripts with /bin/sh (bash 3.2 on macOS)
+/bin/sh -c 'source ./scripts/your-script.sh'
+
+# Or temporarily switch to bash 3.2
+bash --version  # Check current version
+/bin/sh --version  # Check system sh (usually bash 3.2 on macOS)
+```
+
+**Why this matters**: The Makefile runs scripts through `/bin/sh`, which is bash 3.2 on macOS. Using bash 4+ features will cause `make` to fail with cryptic errors like "invalid option" or "operand expected".
 
 ## Git Commit Guidelines
 
