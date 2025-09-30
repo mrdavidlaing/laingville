@@ -45,7 +45,7 @@ parse_symlinks_from_yaml() {
 
         # Start new entry
         local value="${BASH_REMATCH[1]}"
-        
+
         # Strip comments from value
         value="${value%%#*}"
         # Strip trailing whitespace
@@ -333,4 +333,3 @@ process_cleanup_symlinks() {
     remove_symlink "${target_path}" "${dry_run}"
   done <<< "${cleanup_symlinks}"
 }
-

@@ -16,7 +16,8 @@
       "Bash(git push:*)",
       "Bash(git cherry-pick:*)",
       "Bash(ssh.exe:*)",
-      "Bash(pwsh.exe:*)"
+      "Bash(pwsh.exe:*)",
+      "Bash(GIT_SEQUENCE_EDITOR=\"cat > /dev/null && echo ''pick 0fafc4a\nsquash 9e57534\npick 77d268f'' >\" git rebase -i HEAD~3)"
     ],
     "deny": []
   },

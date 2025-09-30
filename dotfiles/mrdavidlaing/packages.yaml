@@ -37,7 +37,6 @@ arch:
     - thunar
     - brightnessctl
     - playerctl
-    - alacritty
     - gimp
   yay:
     # AUR-only packages
@@ -74,6 +73,8 @@ arch:
     - vivaldi
     - zen-bin
     - 1password-cli
+  pacman_cleanup:
+    - alacritty  # Removed 2025-09-30, switched to wezterm
   custom:
     - install_claude_code
 
@@ -134,7 +135,6 @@ wsl:
 # Windows - GUI applications
 windows:
   winget:
-    - Alacritty.Alacritty
     - Mozilla.Firefox
     - Zen-Team.Zen-Browser
     - Microsoft.PowerToys
@@ -147,6 +147,8 @@ windows:
   psmodule:
     - Pester
     - PSScriptAnalyzer
+  winget_cleanup:
+    - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
 
 # macOS - Unix tools and GUI apps
 macos:
@@ -191,7 +193,6 @@ macos:
     - jordanbaird-ice  # Menu bar manager for notch-aware icon management
     - nikitabobko/tap/aerospace
     - rectangle
-    - alacritty
     - wezterm@nightly
     - zen
     - 1password-cli
@@ -204,6 +205,8 @@ macos:
     - install_nil
     - configure_rectangle
     - configure_ice
+  cask_cleanup:
+    - alacritty  # Removed 2025-09-30, switched to wezterm
 
 # Nix - package management
 nix:

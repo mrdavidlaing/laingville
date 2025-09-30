@@ -120,13 +120,13 @@ function Get-PackagesFromYaml {
     }
 
     $packages = @{
-        pacman          = @()
-        aur             = @()
-        winget          = @()
-        scoop           = @()
-        psmodule        = @()
-        winget_cleanup  = @()
-        scoop_cleanup   = @()
+        pacman           = @()
+        aur              = @()
+        winget           = @()
+        scoop            = @()
+        psmodule         = @()
+        winget_cleanup   = @()
+        scoop_cleanup    = @()
         psmodule_cleanup = @()
     }
 

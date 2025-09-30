@@ -16,10 +16,10 @@ Describe "Symlinks cleanup functionality"
   AfterEach 'cleanup_temp_dir'
   
   cleanup_temp_dir() {
-    if [[ -n "${temp_dir:-}" && -d "${temp_dir}" ]]; then
-      rm -rf "${temp_dir}"
-      unset temp_dir
-    fi
+  if [[ -n "${temp_dir:-}" && -d "${temp_dir}" ]]; then
+  rm -rf "${temp_dir}"
+  unset temp_dir
+  fi
   }
 
   Describe "parse_cleanup_symlinks_from_yaml"
