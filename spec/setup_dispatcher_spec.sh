@@ -1,4 +1,4 @@
-Describe "setup.sh secrets"
+Describe "setup.sh dispatcher"
 
 # ShellSpec framework functions (Before, After, It, etc.) trigger SC2218 false positives
 # shellcheck disable=SC2218
@@ -11,11 +11,12 @@ Describe "setup.sh secrets"
             Before "source ./lib/packages.functions.bash"
               Before "source ./lib/shared.functions.bash"
 
-                It "usage includes secrets command"
+                It "usage shows available commands"
                   When call ./setup.sh
                   The status should be failure
-                  The stderr should include "secrets"
-                  The stderr should include "Usage: ./setup.sh {user|server|secrets}"
+                  The stderr should include "user"
+                  The stderr should include "server"
+                  The stderr should include "Usage: ./setup.sh {user|server}"
                 End
 
               End

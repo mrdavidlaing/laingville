@@ -51,7 +51,7 @@ find_claude_scripts() {
 
 # Get core setup scripts that should always be linted
 get_setup_scripts() {
-  local scripts=("setup.sh" "setup-secrets")
+  local scripts=("setup.sh")
   for script in "${scripts[@]}"; do
     if [[ -f "$script" ]]; then
       echo "$script"

@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 
 # Check if we have any arguments
 if [[ $# -eq 0 ]]; then
-  echo "Usage: $0 {user|server|secrets} [args...]" >&2
+  echo "Usage: $0 {user|server} [args...]" >&2
   echo "  user    : Run user dotfile setup" >&2
   echo "  server  : Run server configuration" >&2
   exit 1
@@ -27,11 +27,8 @@ case "${COMMAND}" in
   server)
     exec "${SCRIPT_DIR}/bin/setup-server" "$@"
     ;;
-  secrets)
-    exec "${SCRIPT_DIR}/setup-secrets" "$@"
-    ;;
   *)
-    echo "Usage: $0 {user|server|secrets} [args...]" >&2
+    echo "Usage: $0 {user|server} [args...]" >&2
     echo "  user    : Run user dotfile setup" >&2
     echo "  server  : Run server configuration" >&2
     exit 1
