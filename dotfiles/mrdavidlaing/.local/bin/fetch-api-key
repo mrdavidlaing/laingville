@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    local exit_code="${1:-0}"
+    cat <<EOF
+Usage: fetch-api-key [OPTIONS] [ENV_VAR_NAME]
+
+Fetch API credentials from 1Password and output as export statement.
+
+Options:
+  -a, --account URL   Specify 1Password account URL (e.g., my.1password.com)
+                      If omitted, prompts for account selection when multiple accounts exist.
+  -h, --help          Show this help message
+
+Arguments:
+  ENV_VAR_NAME        Optional. Name of environment variable to fetch.
+                      If omitted, shows interactive fzf menu.
+
+Examples:
+  # Interactive mode - select account and credential
+  eval \$(fetch-api-key)
+
+  # Non-interactive mode - specify account and variable
+  eval \$(fetch-api-key --account my.1password.com OPENAI_API_KEY)
+
+  # Interactive credential selection with specific account
+  eval \$(fetch-api-key --account my.1password.com)
+
+1Password Setup:
+  Create "API Credential" items in any 1Password vault with:
+  - Title: Human-readable name (e.g., "OpenAI API")
+  - credential: The actual API key
+  - hostname: Service URL (optional)
+  - Tag: env-var-name=OPENAI_API_KEY (format: env-var-name=YOUR_VAR_NAME)
+
+EOF
+    exit "$exit_code"
+}
+
+check_dependencies() {
+    if ! command -v op &> /dev/null; then
+        echo "Error: 1Password CLI (op) not found" >&2
+        echo "Install from: https://1password.com/downloads/command-line/" >&2
+        exit 1
+    fi
+    
+    if ! command -v jq &> /dev/null; then
+        echo "Error: jq not found" >&2
+        echo "Install: pacman -S jq, brew install jq, or apt install jq" >&2
+        exit 1
+    fi
+}
+
+select_account() {
+    local accounts
+    accounts=$(op account list --format json 2>/dev/null) || {
+        echo "Error: Failed to list 1Password accounts" >&2
+        echo "Make sure you're signed in: op signin" >&2
+        exit 1
+    }
+    
+    if [[ $(echo "$accounts" | jq 'length') -eq 0 ]]; then
+        echo "Error: No 1Password accounts found" >&2
+        echo "Sign in with: op signin" >&2
+        exit 1
+    elif [[ $(echo "$accounts" | jq 'length') -eq 1 ]]; then
+        echo "$accounts" | jq -r '.[0].url'
+    else
+        if ! command -v fzf &> /dev/null; then
+            echo "Error: Multiple accounts found but fzf not available for selection" >&2
+            echo "Install fzf or use --account flag to specify account" >&2
+            echo "Available accounts:" >&2
+            echo "$accounts" | jq -r '.[] | "  - \(.url) (\(.email))"' >&2
+            exit 1
+        fi
+        
+        echo "Select 1Password account:" >&2
+        local selection
+        selection=$(echo "$accounts" | jq -r '.[] | "\(.url)\t\(.email)"' | \
+            fzf --delimiter='\t' --with-nth=2 --prompt="Select account: " --height=40% --reverse) || {
+            echo "Error: No account selected" >&2
+            exit 1
+        }
+        echo "$selection" | cut -f1
+    fi
+}
+
+list_api_credentials() {
+    local account_url="$1"
+    
+    echo "Searching account: ${account_url}" >&2
+    
+    local items
+    items=$(op item list --account "${account_url}" --categories "API Credential" --format json 2>/dev/null || echo "[]")
+    
+    # Filter to only items with env-var-name=* tags
+    items=$(echo "$items" | jq '[.[] | select(.tags[]? | startswith("env-var-name="))]')
+    
+    echo "Found $(echo "$items" | jq 'length') API Credential(s) with env-var-name tag" >&2
+    echo "" >&2
+    
+    echo "$items"
+}
+
+get_env_var_name_from_tags() {
+    local item_json="$1"
+    echo "$item_json" | jq -r '.tags[]? | select(startswith("env-var-name=")) | sub("env-var-name="; "")' | head -1
+}
+
+get_credential() {
+    local item_id="$1"
+    local account_url="$2"
+    
+    op item get "${item_id}" --account "${account_url}" --fields credential --reveal 2>/dev/null || {
+        echo "Error: Failed to fetch credential from 1Password" >&2
+        exit 1
+    }
+}
+
+interactive_mode() {
+    local account_url="$1"
+    
+    if ! command -v fzf &> /dev/null; then
+        echo "Error: fzf not found (required for interactive mode)" >&2
+        echo "Install: pacman -S fzf, brew install fzf, or apt install fzf" >&2
+        exit 1
+    fi
+    
+    local items
+    items=$(list_api_credentials "$account_url")
+    
+    if [[ "$items" == "[]" ]]; then
+        echo "Error: No API Credentials with env-var-name tag found" >&2
+        echo "" >&2
+        echo "To use this tool, add a tag like 'env-var-name=OPENAI_API_KEY' to your API Credential items." >&2
+        exit 1
+    fi
+    
+    local selection
+    selection=$(echo "$items" | jq -r '.[] | "\(.id)\t\(.vault.name): \(.title) [\((.tags[]? | select(startswith("env-var-name=")) | sub("env-var-name="; "")))]"' | \
+        fzf --delimiter='\t' --with-nth=2 --prompt="Select API Credential: " --height=40% --reverse) || {
+        echo "Error: No selection made" >&2
+        exit 1
+    }
+    
+    local item_id
+    item_id=$(echo "$selection" | cut -f1)
+    
+    local item_json
+    item_json=$(echo "$items" | jq --arg id "$item_id" '.[] | select(.id == $id)')
+    
+    local env_var_name
+    env_var_name=$(get_env_var_name_from_tags "$item_json")
+    
+    if [[ -z "$env_var_name" ]]; then
+        echo "Error: Selected item has no env-var-name tag" >&2
+        echo "Add a tag like 'env-var-name=OPENAI_API_KEY' to this item in 1Password" >&2
+        exit 1
+    fi
+    
+    local credential
+    credential=$(get_credential "$item_id" "$account_url")
+    
+    echo "" >&2
+    echo "To fetch this key non-interactively, run:" >&2
+    echo "  fetch-api-key --account ${account_url} ${env_var_name}" >&2
+    echo "" >&2
+    
+    printf "export %s=%q\n" "${env_var_name}" "${credential}"
+}
+
+non_interactive_mode() {
+    local account_url="$1"
+    local target_var="$2"
+    local show_hint="${3:-false}"
+    local target_tag="env-var-name=${target_var}"
+    
+    if [[ "$show_hint" == "true" ]]; then
+        echo "Searching for ${target_var} in ${account_url}..." >&2
+    fi
+    
+    local items
+    items=$(op item list --account "${account_url}" --categories "API Credential" --tags "${target_tag}" --format json 2>/dev/null || echo "[]")
+    
+    if [[ "$(echo "$items" | jq 'length')" -eq 0 ]]; then
+        echo "Error: No API Credential found with tag '${target_tag}'" >&2
+        echo "" >&2
+        echo "Available credentials in this account:" >&2
+        list_api_credentials "$account_url" | jq -r '.[] | .tags[]? | select(startswith("env-var-name=")) | sub("env-var-name="; "") | "  - " + .' >&2
+        exit 1
+    fi
+    
+    local item_id
+    item_id=$(echo "$items" | jq -r '.[0].id')
+    
+    if [[ "$show_hint" == "true" ]]; then
+        echo "Found!" >&2
+    fi
+    
+    local credential
+    credential=$(get_credential "$item_id" "$account_url")
+    
+    if [[ "$show_hint" == "true" ]]; then
+        echo "" >&2
+        echo "To fetch this key again, run:" >&2
+        echo "  fetch-api-key --account ${account_url} ${target_var}" >&2
+        echo "" >&2
+    fi
+    
+    printf "export %s=%q\n" "${target_var}" "${credential}"
+}
+
+main() {
+    local account_url=""
+    local env_var_name=""
+    local show_hint=false
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                usage
+                ;;
+            -a|--account)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --account requires an argument" >&2
+                    usage 1
+                fi
+                account_url="$2"
+                shift 2
+                ;;
+            -*)
+                echo "Error: Unknown option: $1" >&2
+                usage 1
+                ;;
+            *)
+                env_var_name="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    check_dependencies
+    
+    # Select account if not specified
+    if [[ -z "$account_url" ]]; then
+        account_url=$(select_account)
+        show_hint=true
+    fi
+    
+    # Interactive or non-interactive mode
+    if [[ -z "$env_var_name" ]]; then
+        interactive_mode "$account_url"
+    else
+        non_interactive_mode "$account_url" "$env_var_name" "$show_hint"
+    fi
+}
+
+main "$@"

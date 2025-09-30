@@ -18,9 +18,11 @@ arch:
   - .config/lazygit
   # Editor
   - .config/nvim
-  # Git identity script
+  # Helper scripts
   - source: .local/bin/git-identity
     target: ~/.local/bin/git-identity
+  - source: .local/bin/fetch-api-key
+    target: ~/.local/bin/fetch-api-key
   # Claude Code
   - source: .claude/CLAUDE.md
     target: ~/.claude/CLAUDE.md
@@ -60,9 +62,11 @@ wsl:
   - .config/lazygit
   # Editor
   - .config/nvim
-  # Git identity script
+  # Helper scripts
   - source: .local/bin/git-identity
     target: ~/.local/bin/git-identity
+  - source: .local/bin/fetch-api-key
+    target: ~/.local/bin/fetch-api-key
   # Claude Code
   - source: .claude/CLAUDE.md
     target: ~/.claude/CLAUDE.md
@@ -124,9 +128,11 @@ macos:
   - .config/lazygit
   # Editor
   - .config/nvim
-  # Git identity script
+  # Helper scripts
   - source: .local/bin/git-identity
     target: ~/.local/bin/git-identity
+  - source: .local/bin/fetch-api-key
+    target: ~/.local/bin/fetch-api-key
   # Claude Code
   - source: .claude/CLAUDE.md
     target: ~/.claude/CLAUDE.md
@@ -158,9 +164,11 @@ nix:
   - .config/lazygit
   # Editor
   - .config/nvim
-  # Git identity script
+  # Helper scripts
   - source: .local/bin/git-identity
     target: ~/.local/bin/git-identity
+  - source: .local/bin/fetch-api-key
+    target: ~/.local/bin/fetch-api-key
   # Claude Code
   - source: .claude/scripts/claude-code-bash-direnv-wrapper.bash
     target: ~/.local/bin/claude-code-bash-direnv-wrapper
