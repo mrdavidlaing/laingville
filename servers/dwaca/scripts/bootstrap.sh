@@ -19,7 +19,17 @@ sleep 2
 echo "Testing DNS..."
 nslookup google.com || echo "DNS still not working, continuing anyway..."
 
-# Set system hostname to match router configuration
+# Set router hostname and domain persistently via NVRAM
+echo "Setting router hostname and domain in NVRAM..."
+nvram set router_name=dwaca
+nvram set lan_hostname=dwaca
+nvram set wan_hostname=dwaca
+nvram set lan_domain=laingville.internal
+nvram set domain=laingville.internal
+# Note: wan_domain is auto-constructed by FreshTomato as hostname.domain
+nvram commit
+
+# Apply hostname immediately for current session
 echo "Setting system hostname to dwaca..."
 hostname dwaca
 echo "dwaca" > /proc/sys/kernel/hostname
