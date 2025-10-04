@@ -215,6 +215,9 @@ jobs:
           # Extract coverage percentage from kcov JSON report
           COVERAGE=$(jq -r .percent_covered "$COVERAGE_JSON")
           
+          # Save coverage percentage to file for PR comment
+          echo "$COVERAGE" > coverage-bash-${{ matrix.platform }}.txt
+          
           echo "Bash Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
           echo "📊 **Bash Test Coverage (${{ matrix.platform }})**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -269,6 +272,14 @@ jobs:
         else
           echo "⚠️ Coverage JSON file not found" >> $GITHUB_STEP_SUMMARY
         fi
+
+    - name: Upload bash coverage summary
+      if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-summary-bash-${{ matrix.platform }}
+        path: coverage-bash-${{ matrix.platform }}.txt
+        if-no-files-found: ignore
       
     - name: Test dry-run functionality
       shell: bash
@@ -343,6 +354,9 @@ jobs:
           $coveragePercent = [math]::Round(($coverage.CoveragePercent), 2)
           
           Write-Host "📊 PowerShell Coverage: $coveragePercent%" -ForegroundColor Cyan
+          
+          # Save coverage percentage to file for PR comment
+          $coveragePercent | Out-File -FilePath "coverage-powershell.txt" -Encoding UTF8 -NoNewline
           
           # Add to GitHub Step Summary
           "## 📊 PowerShell Test Results" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
@@ -425,6 +439,13 @@ jobs:
         }
         
         Write-Host "✅ All $($result.PassedCount) PowerShell tests passed on ${{ matrix.os }}" -ForegroundColor Green
+
+    - name: Upload PowerShell coverage summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-summary-powershell
+        path: coverage-powershell.txt
+        if-no-files-found: ignore
 
     - name: Test PowerShell dry-run functionality
       shell: pwsh
@@ -549,12 +570,34 @@ jobs:
           echo "| Windows | N/A | ❌ | $PS_STATUS |" >> code-coverage-results.md
         fi
         
-        cat >> code-coverage-results.md << 'EOF'
+        # Extract coverage data from artifacts
+        echo "" >> code-coverage-results.md
+        echo "## 📈 Code Coverage" >> code-coverage-results.md
+        echo "" >> code-coverage-results.md
         
-        ## 📈 Coverage Reports
+        # Read PowerShell coverage if available
+        PS_COV="N/A"
+        if [ -f "artifacts/coverage-summary-powershell/coverage-powershell.txt" ]; then
+          PS_COV=$(cat artifacts/coverage-summary-powershell/coverage-powershell.txt)
+          PS_COV="${PS_COV}%"
+        fi
         
-        Coverage reports have been uploaded as artifacts and can be downloaded from the workflow run.
-        EOF
+        # Read Bash coverage (prefer nix, fallback to archlinux)
+        BASH_COV="N/A"
+        if [ -f "artifacts/coverage-summary-bash-nix/coverage-bash-nix.txt" ]; then
+          BASH_COV=$(cat artifacts/coverage-summary-bash-nix/coverage-bash-nix.txt)
+          BASH_COV="${BASH_COV}%"
+        elif [ -f "artifacts/coverage-summary-bash-archlinux/coverage-bash-archlinux.txt" ]; then
+          BASH_COV=$(cat artifacts/coverage-summary-bash-archlinux/coverage-bash-archlinux.txt)
+          BASH_COV="${BASH_COV}%"
+        fi
+        
+        echo "| Platform | Coverage |" >> code-coverage-results.md
+        echo "|----------|----------|" >> code-coverage-results.md
+        echo "| Bash (ShellSpec) | ${BASH_COV} |" >> code-coverage-results.md
+        echo "| PowerShell (Pester) | ${PS_COV} |" >> code-coverage-results.md
+        echo "" >> code-coverage-results.md
+        echo "_Full coverage reports are available as artifacts in the workflow run._" >> code-coverage-results.md
 
     # Disabled: XML parsing issues with Pester-generated NUnit format
     # - name: Publish Test Results
