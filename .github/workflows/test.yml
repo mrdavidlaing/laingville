@@ -169,7 +169,7 @@ jobs:
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
           -exec shellcheck {} \;
-        shellcheck setup.sh setup-secrets
+        shellcheck setup.sh
         
     - name: Run shellspec tests with coverage (Linux)
       if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
