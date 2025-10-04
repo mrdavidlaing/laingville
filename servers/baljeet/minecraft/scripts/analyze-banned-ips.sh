@@ -144,13 +144,13 @@ analyze_effectiveness() {
 
   # Count different types of log entries from systemd journal
   local temp_log="/tmp/minecraft_effectiveness_$$"
-  sudo journalctl --since="24 hours ago" > "$temp_log" 2> /dev/null
+  sudo journalctl --since="24 hours ago" 2> /dev/null | sudo tee "$temp_log" > /dev/null
 
-  # Use grep and wc to avoid grep -c exit status issues
-  local total_attempts=$(grep "MINECRAFT" "$temp_log" 2> /dev/null | wc -l)
-  local blocked=$(grep "MC-BLOCKED" "$temp_log" 2> /dev/null | wc -l)
-  local rate_limited=$(grep "MC-RATE-LIMITED" "$temp_log" 2> /dev/null | wc -l)
-  local temp_blocked=$(grep "MC-TEMP-BLOCKED" "$temp_log" 2> /dev/null | wc -l)
+  # Count log entries
+  local total_attempts=$(grep -c "MINECRAFT" "$temp_log" 2> /dev/null || echo "0")
+  local blocked=$(grep -c "MC-BLOCKED" "$temp_log" 2> /dev/null || echo "0")
+  local rate_limited=$(grep -c "MC-RATE-LIMITED" "$temp_log" 2> /dev/null || echo "0")
+  local temp_blocked=$(grep -c "MC-TEMP-BLOCKED" "$temp_log" 2> /dev/null || echo "0")
 
   echo "Connection attempts (24h): $total_attempts"
   echo "Blocked by rules: $blocked"
@@ -180,7 +180,7 @@ analyze_ipsets() {
 
   for set_name in "${sets[@]}"; do
     if sudo ipset list "$set_name" > /dev/null 2>&1; then
-      local count=$(sudo ipset list "$set_name" | grep "^[0-9]" | wc -l 2> /dev/null)
+      local count=$(sudo ipset list "$set_name" | grep -c "^[0-9]" 2> /dev/null || echo "0")
       echo "$set_name: $count entries"
 
       # Clean count variable
@@ -278,19 +278,19 @@ dashboard_protection_status() {
   local sets_total=2
 
   if sudo ipset list ireland_ips > /dev/null 2>&1; then
-    irish_ips=$(sudo ipset list ireland_ips | grep "^[0-9]" | wc -l 2> /dev/null || echo "0")
+    irish_ips=$(sudo ipset list ireland_ips | grep -c "^[0-9]" 2> /dev/null || echo "0")
     sets_active=$((sets_active + 1))
   fi
 
   if sudo ipset list temp_scanners > /dev/null 2>&1; then
-    temp_blocked=$(sudo ipset list temp_scanners | grep "^[0-9]" | wc -l 2> /dev/null || echo "0")
+    temp_blocked=$(sudo ipset list temp_scanners | grep -c "^[0-9]" 2> /dev/null || echo "0")
     sets_active=$((sets_active + 1))
   fi
 
   # Get rate limiting stats
   local temp_log="/tmp/rate_check_$$"
-  sudo journalctl --since="today" > "$temp_log" 2> /dev/null
-  local rate_limited=$(grep "MC-RATE-LIMITED" "$temp_log" 2> /dev/null | wc -l || echo "0")
+  sudo journalctl --since="today" 2> /dev/null | sudo tee "$temp_log" > /dev/null
+  local rate_limited=$(grep -c "MC-RATE-LIMITED" "$temp_log" 2> /dev/null || echo "0")
   rm -f "$temp_log"
 
   # Clean up variables to ensure they're numeric
@@ -399,12 +399,12 @@ dashboard_statistics() {
   echo "📊 24-HOUR STATISTICS:"
 
   local temp_log="/tmp/stats_analysis_$$"
-  sudo journalctl --since="24 hours ago" > "$temp_log" 2> /dev/null
+  sudo journalctl --since="24 hours ago" 2> /dev/null | sudo tee "$temp_log" > /dev/null
 
-  local total_attempts=$(grep "MINECRAFT" "$temp_log" 2> /dev/null | wc -l || echo "0")
-  local blocked=$(grep "MC-BLOCKED" "$temp_log" 2> /dev/null | wc -l || echo "0")
-  local rate_limited=$(grep "MC-RATE-LIMITED" "$temp_log" 2> /dev/null | wc -l || echo "0")
-  local temp_blocked=$(grep "MC-TEMP-BLOCKED" "$temp_log" 2> /dev/null | wc -l || echo "0")
+  local total_attempts=$(grep -c "MINECRAFT" "$temp_log" 2> /dev/null || echo "0")
+  local blocked=$(grep -c "MC-BLOCKED" "$temp_log" 2> /dev/null || echo "0")
+  local rate_limited=$(grep -c "MC-RATE-LIMITED" "$temp_log" 2> /dev/null || echo "0")
+  local temp_blocked=$(grep -c "MC-TEMP-BLOCKED" "$temp_log" 2> /dev/null || echo "0")
 
   # Clean up variables to ensure they're numeric
   total_attempts=${total_attempts//[^0-9]/}
@@ -477,7 +477,7 @@ dashboard_geographic_analysis() {
   grep -o 'SRC=[0-9.]*' "$temp_dir/attacks.txt" | cut -d'=' -f2 | sort -u > "$temp_dir/unique_ips.txt"
 
   # Count by country (simplified)
-  > "$temp_dir/countries.txt"
+  true > "$temp_dir/countries.txt"
   while read -r ip; do
     # Skip local IPs
     if echo "$ip" | grep -qE "(192\.168\.|10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.)"; then
@@ -563,7 +563,7 @@ dashboard_recommendations() {
   fi
 
   # Check Irish IP rate limiting
-  local irish_limited=$(sudo journalctl --since="today" | grep "MC-RATE-LIMITED" | wc -l 2> /dev/null || echo "0")
+  local irish_limited=$(sudo journalctl --since="today" | grep -c "MC-RATE-LIMITED" 2> /dev/null || echo "0")
   irish_limited=${irish_limited//[^0-9]/}
   [[ -z "$irish_limited" ]] && irish_limited=0
   if [[ $irish_limited -gt 10 ]]; then
@@ -603,7 +603,7 @@ generate_recommendations() {
   log_section "Security Recommendations"
 
   # Check if Irish IPs are being rate-limited (potential issue)
-  local irish_limited=$(sudo journalctl --since="today" | grep "MC-RATE-LIMITED" | wc -l 2> /dev/null || echo "0")
+  local irish_limited=$(sudo journalctl --since="today" | grep -c "MC-RATE-LIMITED" 2> /dev/null || echo "0")
   # Clean up any newlines or non-numeric characters
   irish_limited=${irish_limited//[^0-9]/}
   if [[ $irish_limited -gt 10 ]]; then
@@ -648,8 +648,8 @@ draw_box() {
   local title="$1"
   local width=77
   echo "┌─────────────────────────────────────────────────────────────────────────────────┐"
-  printf "│%*s│\n" $width "$(printf "%*s" $(((width + ${#title}) / 2)) "$title")"
-  printf "│%*s│\n" $width "$(printf "%*s" $(((width - ${#title}) / 2)) "")"
+  printf "│%*s│\n" "$width" "$(printf "%*s" $(((width + ${#title}) / 2)) "$title")"
+  printf "│%*s│\n" "$width" "$(printf "%*s" $(((width - ${#title}) / 2)) "")"
   echo "└─────────────────────────────────────────────────────────────────────────────────┘"
 }
 

@@ -41,7 +41,7 @@ else
   fi
 
   # Check if reboot would help
-  AVAILABLE_KERNELS=$(ls /lib/modules/ | grep -v build | sort -V | tail -1)
+  AVAILABLE_KERNELS=$(find /lib/modules/ -maxdepth 1 -type d -not -name "*build*" -printf "%f\n" | sort -V | tail -1)
   if [[ "$RUNNING_KERNEL" != "$AVAILABLE_KERNELS" ]]; then
     log_warn "🔄 REBOOT REQUIRED"
     echo ""
