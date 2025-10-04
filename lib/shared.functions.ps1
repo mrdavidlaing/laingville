@@ -79,15 +79,16 @@ function Install-WingetPackage {
 
 <#
 .SYNOPSIS
-    Removes packages using the Windows Package Manager (winget)
+    Removes packages using winget package manager
 .PARAMETER Packages
-    Array of package IDs to remove
+    Array of package identifiers to remove
 .DESCRIPTION
     Removes each package with proper error handling and progress reporting
 .EXAMPLE
     Remove-WingetPackage @("Git.Git", "Microsoft.PowerShell")
 #>
 function Remove-WingetPackage {
+    [CmdletBinding(SupportsShouldProcess)]
     param([string[]]$Packages)
 
     if (-not $Packages -or $Packages.Count -eq 0) {
@@ -214,6 +215,7 @@ function Install-PowerShellModule {
     Remove-PowerShellModule @("Pester", "PSReadLine")
 #>
 function Remove-PowerShellModule {
+    [CmdletBinding(SupportsShouldProcess)]
     param([string[]]$Modules)
 
     if (-not $Modules -or $Modules.Count -eq 0) {
@@ -483,6 +485,7 @@ function Get-CurrentHostname {
     Remove-ScoopPackage @("git", "versions/wezterm-nightly")
 #>
 function Remove-ScoopPackage {
+    [CmdletBinding(SupportsShouldProcess)]
     param([string[]]$Packages)
 
     if (-not $Packages -or $Packages.Count -eq 0) {
@@ -509,7 +512,7 @@ function Remove-ScoopPackage {
 
             Write-Host "Removing: $packageName" -ForegroundColor Yellow
             try {
-                $result = Invoke-Scoop @("uninstall", $packageName) 2>&1
+                $null = Invoke-Scoop @("uninstall", $packageName) 2>&1
 
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "[OK] Removed: $packageName" -ForegroundColor Green

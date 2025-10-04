@@ -96,6 +96,8 @@ Describe "Windows Package Cleanup Functions" {
             # Create a simple mock function since Uninstall-Module may not be available
             function script:Uninstall-Module {
                 param($Name, [switch]$Force, $ErrorAction)
+                # Mock implementation - parameters used for signature matching only
+                $null = $Name, $Force, $ErrorAction
             }
 
             $modules = @("Pester", "PSScriptAnalyzer")
@@ -121,6 +123,8 @@ Describe "Windows Package Cleanup Functions" {
             # Create a mock that throws an error
             function script:Uninstall-Module {
                 param($Name, [switch]$Force, $ErrorAction)
+                # Mock implementation - parameters used for signature matching only
+                $null = $Name, $Force, $ErrorAction
                 throw "Simulated uninstall error"
             }
 
