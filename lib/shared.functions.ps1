@@ -88,6 +88,7 @@ function Install-WingetPackage {
     Remove-WingetPackage @("Git.Git", "Microsoft.PowerShell")
 #>
 function Remove-WingetPackage {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSShouldProcess', '')]
     [CmdletBinding(SupportsShouldProcess)]
     param([string[]]$Packages)
 
@@ -485,6 +486,7 @@ function Get-CurrentHostname {
     Remove-ScoopPackage @("git", "versions/wezterm-nightly")
 #>
 function Remove-ScoopPackage {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSShouldProcess', '')]
     [CmdletBinding(SupportsShouldProcess)]
     param([string[]]$Packages)
 
