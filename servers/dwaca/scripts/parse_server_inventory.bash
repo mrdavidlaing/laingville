@@ -41,7 +41,7 @@ parse_server_table() {
 
     case "$format" in
       dhcp)
-        echo "${mac}<${ip}<${hostname}"
+        echo "${mac}<${ip}<${hostname}<0"
         ;;
       hosts)
         echo "${ip} ${hostname}.laingville.internal ${hostname}"
