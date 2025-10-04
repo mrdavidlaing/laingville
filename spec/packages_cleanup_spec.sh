@@ -3,6 +3,7 @@
 Describe 'Package cleanup functionality'
   Include lib/logging.functions.bash
   Include lib/security.functions.bash
+  Include lib/platform.functions.bash
   Include lib/polyfill.functions.bash
   Include lib/packages.functions.bash
 
