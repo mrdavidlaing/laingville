@@ -1,0 +1,61 @@
+# Package configuration with cleanup sections
+# Used to test cleanup functionality
+
+arch:
+  pacman:
+    - git
+    - neovim
+    - tmux
+  pacman_cleanup:
+    - vim  # Removed 2025-09-30, switched to neovim
+    - alacritty  # Removed 2025-09-30, switched to wezterm
+  yay:
+    - starship
+    - wezterm-git
+  yay_cleanup:
+    - alacritty-git  # Removed 2025-09-30, switched to wezterm
+
+wsl:
+  pacman:
+    - git
+    - neovim
+  pacman_cleanup:
+    - vim  # Removed 2025-09-30
+
+windows:
+  winget:
+    - Git.Git
+    - Microsoft.PowerShell
+  winget_cleanup:
+    - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
+  scoop:
+    - versions/wezterm-nightly
+  scoop_cleanup:
+    - alacritty  # Removed 2025-09-30
+
+macos:
+  homebrew:
+    - git
+    - neovim
+  homebrew_cleanup:
+    - vim  # Removed 2025-09-30
+  cask:
+    - wezterm@nightly
+  cask_cleanup:
+    - alacritty  # Removed 2025-09-30
+
+freshtomato:
+  opkg:
+    - git
+    - rsync
+  opkg_cleanup:
+    - vim  # Removed 2025-09-30
+
+nix:
+  nixpkgs-25.05:
+    - git
+    - neovim
+    - ripgrep
+  nixpkgs-25.05_cleanup:
+    - vim  # Removed 2025-09-30, switched to neovim
+    - emacs  # Removed 2025-09-30

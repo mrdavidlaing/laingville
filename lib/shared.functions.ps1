@@ -79,6 +79,70 @@ function Install-WingetPackage {
 
 <#
 .SYNOPSIS
+    Removes packages using winget package manager
+.PARAMETER Packages
+    Array of package identifiers to remove
+.DESCRIPTION
+    Removes each package with proper error handling and progress reporting
+.EXAMPLE
+    Remove-WingetPackage @("Git.Git", "Microsoft.PowerShell")
+#>
+function Remove-WingetPackage {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSShouldProcess', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string[]]$Packages)
+
+    if (-not $Packages -or $Packages.Count -eq 0) {
+        return $true
+    }
+
+    Write-Host "Removing winget packages: $($Packages -join ', ')" -ForegroundColor Cyan
+
+    foreach ($package in $Packages) {
+        if ($package) {
+            Write-Host "Removing: $package" -ForegroundColor Yellow
+            try {
+                $result = Invoke-Winget @("uninstall", "--id", $package, "-e", "--silent") 2>&1
+
+                # Handle different exit codes
+                switch ($LASTEXITCODE) {
+                    0 {
+                        Write-Host "[OK] Removed: $package" -ForegroundColor Green
+                    }
+                    -1978335212 {
+                        # Package not found (already removed)
+                        Write-Host "[OK] Not installed: $package" -ForegroundColor Green
+                    }
+                    -1978335184 {
+                        # Uninstaller error (exit code 1603) - typically means app is running or locked
+                        Write-Warning "Failed to remove $package (exit code: $LASTEXITCODE - uninstaller error)"
+                        Write-Warning "This usually means:"
+                        Write-Warning "  - The application is currently running (close it and try again)"
+                        Write-Warning "  - Files are locked by another process"
+                        Write-Warning "  - Insufficient permissions"
+                        if ($result -and $result.ToString().Length -lt 500) {
+                            Write-Host "$result" -ForegroundColor Red
+                        }
+                    }
+                    default {
+                        Write-Warning "Failed to remove $package (exit code: $LASTEXITCODE)"
+                        if ($result -and $result.ToString().Length -lt 500) {
+                            Write-Host "$result" -ForegroundColor Red
+                        }
+                    }
+                }
+            }
+            catch {
+                Write-Warning "Error removing ${package}: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    return $true
+}
+
+<#
+.SYNOPSIS
     Installs PowerShell modules from PowerShell Gallery
 .PARAMETER Modules
     Array of module names to install
@@ -134,6 +198,47 @@ function Install-PowerShellModule {
             catch {
                 Write-Warning "Failed to install PowerShell module $module`: $($_.Exception.Message)"
                 return $false
+            }
+        }
+    }
+
+    return $true
+}
+
+<#
+.SYNOPSIS
+    Removes PowerShell modules
+.PARAMETER Modules
+    Array of module names to remove
+.DESCRIPTION
+    Removes each PowerShell module with proper error handling
+.EXAMPLE
+    Remove-PowerShellModule @("Pester", "PSReadLine")
+#>
+function Remove-PowerShellModule {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string[]]$Modules)
+
+    if (-not $Modules -or $Modules.Count -eq 0) {
+        return $true
+    }
+
+    Write-Host "Removing PowerShell modules: $($Modules -join ', ')" -ForegroundColor Cyan
+
+    foreach ($module in $Modules) {
+        if ($module) {
+            Write-Host "Removing: $module" -ForegroundColor Yellow
+            try {
+                if (Get-Module -ListAvailable -Name $module) {
+                    Uninstall-Module -Name $module -Force -ErrorAction Stop
+                    Write-Host "[OK] Removed: $module" -ForegroundColor Green
+                }
+                else {
+                    Write-Host "[OK] Not installed: $module" -ForegroundColor Green
+                }
+            }
+            catch {
+                Write-Warning "Error removing ${module}: $($_.Exception.Message)"
             }
         }
     }
@@ -368,4 +473,61 @@ function Expand-WindowsPath {
 #>
 function Get-CurrentHostname {
     return $env:COMPUTERNAME.ToLower()
+}
+
+<#
+.SYNOPSIS
+    Removes packages using Scoop package manager
+.PARAMETER Packages
+    Array of package identifiers to remove
+.DESCRIPTION
+    Removes each package with proper error handling
+.EXAMPLE
+    Remove-ScoopPackage @("git", "versions/wezterm-nightly")
+#>
+function Remove-ScoopPackage {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSShouldProcess', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string[]]$Packages)
+
+    if (-not $Packages -or $Packages.Count -eq 0) {
+        return $true
+    }
+
+    # Check if scoop is available
+    if (-not (Get-Command "scoop" -ErrorAction SilentlyContinue)) {
+        Write-Warning "Scoop not found, skipping scoop package removal"
+        return $true
+    }
+
+    Write-Host "Removing scoop packages: $($Packages -join ', ')" -ForegroundColor Cyan
+
+    foreach ($package in $Packages) {
+        if ($package) {
+            # Extract package name (remove bucket prefix if present)
+            $packageName = if ($package -match "/") {
+                $package.Split("/")[1]
+            }
+            else {
+                $package
+            }
+
+            Write-Host "Removing: $packageName" -ForegroundColor Yellow
+            try {
+                $null = Invoke-Scoop @("uninstall", $packageName) 2>&1
+
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "[OK] Removed: $packageName" -ForegroundColor Green
+                }
+                else {
+                    Write-Warning "Failed to remove $packageName (exit code: $LASTEXITCODE)"
+                }
+            }
+            catch {
+                Write-Warning "Error removing ${packageName}: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    return $true
 }

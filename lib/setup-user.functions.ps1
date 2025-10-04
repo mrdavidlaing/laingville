@@ -452,6 +452,23 @@ function Install-UserPackage {
 
     if ($DryRun) {
         Write-Host "PACKAGES:" -ForegroundColor White
+        # Show cleanup operations
+        if ($packages.winget_cleanup.Count -gt 0) {
+            foreach ($pkg in $packages.winget_cleanup) {
+                Write-Host "* Would: remove winget package: $pkg" -ForegroundColor Magenta
+            }
+        }
+        if ($packages.scoop_cleanup.Count -gt 0) {
+            foreach ($pkg in $packages.scoop_cleanup) {
+                Write-Host "* Would: remove scoop package: $pkg" -ForegroundColor Magenta
+            }
+        }
+        if ($packages.psmodule_cleanup.Count -gt 0) {
+            foreach ($module in $packages.psmodule_cleanup) {
+                Write-Host "* Would: remove PowerShell module: $module" -ForegroundColor Magenta
+            }
+        }
+        # Show install operations
         if ($packages.winget.Count -gt 0) {
             foreach ($pkg in $packages.winget) {
                 Write-Host "* Would: install winget package: $pkg" -ForegroundColor Cyan
@@ -467,10 +484,36 @@ function Install-UserPackage {
                 Write-Host "* Would: install PowerShell module: $module" -ForegroundColor Cyan
             }
         }
-        if ($packages.winget.Count -eq 0 -and $packages.scoop.Count -eq 0 -and $packages.psmodule.Count -eq 0) {
+        if ($packages.winget.Count -eq 0 -and $packages.scoop.Count -eq 0 -and $packages.psmodule.Count -eq 0 -and
+            $packages.winget_cleanup.Count -eq 0 -and $packages.scoop_cleanup.Count -eq 0 -and $packages.psmodule_cleanup.Count -eq 0) {
             Write-Host "* Would: skip (no Windows packages defined)" -ForegroundColor Gray
         }
         return $true
+    }
+
+    # Remove cleanup packages first
+    if ($packages.winget_cleanup.Count -gt 0) {
+        Write-Step "Removing Windows Packages"
+        $wingetCleanupResult = Remove-WingetPackage $packages.winget_cleanup
+        if (-not $wingetCleanupResult) {
+            return $false
+        }
+    }
+
+    if ($packages.scoop_cleanup.Count -gt 0) {
+        Write-Step "Removing Scoop Packages"
+        $scoopCleanupResult = Remove-ScoopPackage $packages.scoop_cleanup
+        if (-not $scoopCleanupResult) {
+            return $false
+        }
+    }
+
+    if ($packages.psmodule_cleanup.Count -gt 0) {
+        Write-Step "Removing PowerShell Modules"
+        $moduleCleanupResult = Remove-PowerShellModule $packages.psmodule_cleanup
+        if (-not $moduleCleanupResult) {
+            return $false
+        }
     }
 
     # Install winget packages

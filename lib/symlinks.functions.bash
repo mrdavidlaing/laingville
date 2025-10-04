@@ -46,6 +46,11 @@ parse_symlinks_from_yaml() {
         # Start new entry
         local value="${BASH_REMATCH[1]}"
 
+        # Strip comments from value
+        value="${value%%#*}"
+        # Strip trailing whitespace
+        value="${value%"${value##*[![:space:]]}"}"
+
         # Check if it's an object (has source: prefix)
         if [[ "${value}" =~ ^source: ]]; then
           is_object=1
@@ -217,4 +222,114 @@ get_all_symlinks() {
   for platform in ${platforms}; do
     parse_symlinks_from_yaml "${yaml_file}" "${platform}" | cut -d'|' -f1 || true
   done | sort -u
+}
+
+# Parse cleanup symlinks configuration from symlinks.yaml for a specific platform
+# Args: $1 - path to symlinks.yaml, $2 - platform name
+# Output: List of symlinks in format "source|target" (target is optional)
+parse_cleanup_symlinks_from_yaml() {
+  local yaml_file="$1"
+  local platform="$2"
+
+  # Check if file exists
+  if [[ ! -f "${yaml_file}" ]]; then
+    return 1
+  fi
+
+  # Look for <platform>_cleanup as a top-level key
+  local cleanup_platform="${platform}_cleanup"
+
+  # Reuse the same parser as parse_symlinks_from_yaml, just with different platform name
+  parse_symlinks_from_yaml "${yaml_file}" "${cleanup_platform}"
+}
+
+# Remove a symlink
+# Args:
+#   $1 - target path (symlink to remove)
+#   $2 - dry_run flag (true/false)
+remove_symlink() {
+  local target="$1"
+  local dry_run="${2:-true}"
+
+  # Check if target is a symlink (works for both valid and broken symlinks)
+  if [[ ! -L "${target}" ]]; then
+    # Check if it exists as something else
+    if [[ -e "${target}" ]]; then
+      echo "Skipped (not a symlink): ${target}"
+    else
+      echo "Skipped (not found): ${target}"
+    fi
+    return 0
+  fi
+
+  # Remove the symlink
+  if [[ "${dry_run}" = "true" ]]; then
+    echo "Would remove: ${target}"
+  else
+    rm -f "${target}"
+    echo "Removed: ${target}"
+  fi
+}
+
+# Process cleanup symlinks from symlinks.yaml for current platform
+# Args:
+#   $1 - symlinks.yaml path
+#   $2 - platform
+#   $3 - source dotfiles directory (not used for cleanup, but kept for consistency)
+#   $4 - destination directory (e.g., ${HOME})
+#   $5 - dry_run flag
+process_cleanup_symlinks() {
+  local yaml_file="$1"
+  local platform="$2"
+  local src_dir="$3"
+  local dest_dir="$4"
+  local dry_run="${5:-false}"
+
+  # Get cleanup symlinks configuration for platform
+  local cleanup_symlinks
+  cleanup_symlinks=$(parse_cleanup_symlinks_from_yaml "${yaml_file}" "${platform}")
+
+  if [[ -z "${cleanup_symlinks}" ]]; then
+    return 0
+  fi
+
+  # Process each cleanup symlink
+  while IFS= read -r symlink_entry; do
+    [[ -z "${symlink_entry}" ]] && continue
+
+    # Split source and target
+    local source="${symlink_entry%%|*}"
+    local target="${symlink_entry#*|}"
+
+    # Determine the target path
+    local target_path
+    if [[ -n "${target}" ]]; then
+      # Use custom target, expanding environment variables
+      target_path=$(eval echo "${target}")
+    else
+      # Use default target based on source path
+      local filename
+      filename=$(basename "${source}")
+
+      # Construct default target path
+      if [[ "${source}" == .config/* || "${source}" == */.config/* ]]; then
+        target_path="${dest_dir}/.config/${source##*/.config/}"
+        # Handle case where source starts with .config/
+        if [[ "${source}" == .config/* ]]; then
+          target_path="${dest_dir}/${source}"
+        fi
+      elif [[ "${source}" == .local/* || "${source}" == */.local/* ]]; then
+        target_path="${dest_dir}/.local/${source##*/.local/}"
+        # Handle case where source starts with .local/
+        if [[ "${source}" == .local/* ]]; then
+          target_path="${dest_dir}/${source}"
+        fi
+      else
+        target_path="${dest_dir}/${filename}"
+      fi
+    fi
+
+    # Remove the symlink
+    remove_symlink "${target_path}" "${dry_run}"
+  done <<< "${cleanup_symlinks}"
 }

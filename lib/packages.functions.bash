@@ -193,6 +193,127 @@ extract_packages_from_yaml() {
   echo "${result}"
 }
 
+# Extract cleanup packages from YAML config file
+# Same as extract_packages_from_yaml but looks for <manager>_cleanup keys
+extract_cleanup_packages_from_yaml() {
+  local platform="$1" manager="$2" packages_file="$3"
+
+  # Validate inputs
+  validate_yaml_key "${platform}" || {
+    log_security_event "INVALID_PLATFORM" "Invalid platform key: ${platform}"
+    return 1
+  }
+
+  validate_yaml_key "${manager}" || {
+    log_security_event "INVALID_MANAGER" "Invalid manager key: ${manager}"
+    return 1
+  }
+
+  validate_yaml_file "${packages_file}" || {
+    log_security_event "INVALID_YAML" "YAML validation failed for: ${packages_file}"
+    return 1
+  }
+
+  # Look for <manager>_cleanup instead of <manager>
+  local cleanup_manager="${manager}_cleanup"
+
+  # Reuse the same awk parser, just with different manager name
+  local result
+  result=$(head -n 1000 "${packages_file}" | awk -v platform="${platform}" -v manager="${cleanup_manager}" '
+    BEGIN {
+      state = "searching"
+      count = 0
+      max_packages = 100
+    }
+
+    /^[[:space:]]*$/ || /^[[:space:]]*#/ { next }
+
+    /^[a-z]/ {
+      if (state == "in_manager") exit
+      if (state == "in_platform") state = "searching"
+
+      key = $1
+      sub(/:$/, "", key)
+
+      if (key == platform) {
+        state = "in_platform"
+        platform_indent = match($0, /[a-z]/) - 1
+      }
+      next
+    }
+
+    state == "in_platform" && /^[[:space:]]+[a-z]/ {
+      indent = match($0, /[a-z]/) - 1
+
+      if (indent <= platform_indent) {
+        state = "searching"
+        next
+      }
+
+      key = $0
+      sub(/^[[:space:]]+/, "", key)
+
+      if (key ~ /:.*\[.*\]/) {
+        mgr_name = key
+        sub(/:.*$/, "", mgr_name)
+
+        if (mgr_name == manager) {
+          array_content = key
+          sub(/^[^[]*\[/, "", array_content)
+          sub(/\][^]]*$/, "", array_content)
+
+          n = split(array_content, items, /,/)
+          for (i = 1; i <= n && count < max_packages; i++) {
+            item = items[i]
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
+            gsub(/^["'\'']|["'\'']$/, "", item)
+            sub(/[[:space:]]*#.*$/, "", item)
+
+            if (item != "") {
+              print item
+              count++
+            }
+          }
+          exit
+        }
+      } else {
+        sub(/:.*$/, "", key)
+
+        if (key == manager) {
+          state = "in_manager"
+          manager_indent = indent
+        }
+      }
+      next
+    }
+
+    state == "in_manager" {
+      indent = match($0, /[^[:space:]]/) - 1
+
+      if (indent <= manager_indent) {
+        exit
+      }
+
+      if ($0 ~ /^[[:space:]]+-[[:space:]]/) {
+        if (count >= max_packages) exit
+
+        line = $0
+        sub(/^[[:space:]]*-[[:space:]]*/, "", line)
+        sub(/[[:space:]]*#.*$/, "", line)
+        sub(/[[:space:]]*$/, "", line)
+        gsub(/^["'\'']|["'\'']$/, "", line)
+
+        if (line != "") {
+          print line
+          count++
+        }
+      }
+    }
+  ' || true)
+
+  echo "${result}"
+}
+
 # Common package validation - returns array of validated packages
 validate_and_filter_packages() {
   local packages="$1"
@@ -294,6 +415,80 @@ install_yay_packages() {
     if ! eval "yay -S --needed --noconfirm --batchinstall ${quoted_packages}"; then
       log_warning "Failed to install some yay packages: ${pkg_array[*]}"
       log_info "Tip: If you see connection errors, the AUR servers may be temporarily unavailable. Try again later."
+    fi
+  fi
+}
+
+# Remove pacman packages (batch mode)
+remove_pacman_packages() {
+  local packages="$1" dry_run="$2"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Validate packages first
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Check if pacman is available
+  if ! command -v pacman > /dev/null 2>&1; then
+    log_warning "pacman not found, skipping pacman package removal"
+    return
+  fi
+
+  # Convert to array for processing
+  local pkg_array=()
+  populate_package_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "remove via pacman: $(format_package_list "${pkg_array[@]}")"
+  else
+    log_info "Removing pacman packages: ${pkg_array[*]}"
+
+    # Batch removal with proper quoting
+    local quoted_packages
+    quoted_packages=$(quote_packages "${pkg_array[@]}")
+
+    if ! eval "sudo pacman -R --noconfirm ${quoted_packages}"; then
+      log_warning "Failed to remove some pacman packages: ${pkg_array[*]}"
+    fi
+  fi
+}
+
+# Remove yay packages (batch mode)
+remove_yay_packages() {
+  local packages="$1" dry_run="$2"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Validate packages first
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Check if yay is available
+  if ! command -v yay > /dev/null 2>&1; then
+    log_warning "yay not found, skipping AUR package removal"
+    return
+  fi
+
+  # Convert to array for processing
+  local pkg_array=()
+  populate_package_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "remove via yay: $(format_package_list "${pkg_array[@]}")"
+  else
+    log_info "Removing yay packages: ${pkg_array[*]}"
+
+    # Batch removal with proper quoting
+    local quoted_packages
+    quoted_packages=$(quote_packages "${pkg_array[@]}")
+
+    if ! eval "yay -R --noconfirm ${quoted_packages}"; then
+      log_warning "Failed to remove some yay packages: ${pkg_array[*]}"
     fi
   fi
 }
@@ -435,6 +630,96 @@ install_cask_packages() {
   fi
 }
 
+# Remove homebrew packages
+remove_homebrew_packages() {
+  local packages="$1" dry_run="$2"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Check if brew is available
+  if ! command -v brew > /dev/null 2>&1; then
+    log_warning "homebrew not found, skipping homebrew package removal"
+    return
+  fi
+
+  # Validate packages
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Convert to array for processing
+  local pkg_array=()
+  populate_package_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "remove via homebrew: $(format_package_list "${pkg_array[@]}")"
+  else
+    log_info "Removing homebrew packages: ${pkg_array[*]}"
+
+    # Individual removal
+    local failed_packages=()
+    for pkg in "${pkg_array[@]}"; do
+      local quoted_pkg
+      printf -v quoted_pkg '%q' "${pkg}"
+
+      if ! eval "brew uninstall ${quoted_pkg}" 2>&1; then
+        failed_packages+=("${pkg}")
+      fi
+    done
+
+    # Report any failures
+    if [[ ${#failed_packages[@]} -gt 0 ]]; then
+      log_warning "Failed to remove homebrew packages: ${failed_packages[*]}"
+    fi
+  fi
+}
+
+# Remove cask packages
+remove_cask_packages() {
+  local packages="$1" dry_run="$2"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Check if brew is available
+  if ! command -v brew > /dev/null 2>&1; then
+    log_warning "homebrew not found, skipping cask package removal"
+    return
+  fi
+
+  # Validate packages
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Convert to array for processing
+  local pkg_array=()
+  populate_package_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "remove via cask: $(format_package_list "${pkg_array[@]}")"
+  else
+    log_info "Removing cask packages: ${pkg_array[*]}"
+
+    # Individual removal
+    local failed_packages=()
+    for pkg in "${pkg_array[@]}"; do
+      local quoted_pkg
+      printf -v quoted_pkg '%q' "${pkg}"
+
+      if ! eval "brew uninstall --cask ${quoted_pkg}" 2>&1; then
+        failed_packages+=("${pkg}")
+      fi
+    done
+
+    # Report any failures
+    if [[ ${#failed_packages[@]} -gt 0 ]]; then
+      log_warning "Failed to remove cask packages: ${failed_packages[*]}"
+    fi
+  fi
+}
+
 # Install opkg packages (Entware package manager on routers)
 install_opkg_packages() {
   local packages="$1" dry_run="$2"
@@ -487,6 +772,105 @@ install_opkg_packages() {
       if [[ ${#failed_packages[@]} -gt 0 ]]; then
         log_error "Failed to install opkg packages: ${failed_packages[*]}"
       fi
+    fi
+  fi
+}
+
+# Remove opkg packages
+remove_opkg_packages() {
+  local packages="$1" dry_run="$2"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Validate packages first
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Check if opkg is available
+  if ! command -v opkg > /dev/null 2>&1; then
+    log_warning "opkg not found, skipping opkg package removal"
+    return
+  fi
+
+  # Convert to array for processing
+  local pkg_array=()
+  populate_package_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "remove via opkg: $(format_package_list "${pkg_array[@]}")"
+  else
+    log_info "Removing opkg packages: ${pkg_array[*]}"
+
+    # Batch removal with proper quoting
+    local quoted_packages
+    quoted_packages=$(quote_packages "${pkg_array[@]}")
+
+    if ! eval "opkg remove ${quoted_packages}"; then
+      log_warning "Failed to remove some opkg packages: ${pkg_array[*]}"
+    fi
+  fi
+}
+
+# Remove nix packages (individual mode)
+remove_nix_packages() {
+  local packages="$1" nix_version="$2" dry_run="$3"
+
+  # Handle empty package lists
+  [[ -z "${packages}" ]] && return 0
+
+  # Check if nix is available
+  if ! command -v nix > /dev/null 2>&1; then
+    log_warning "nix not found, skipping nix package removal"
+    return
+  fi
+
+  # Validate packages
+  local valid_packages
+  valid_packages=$(validate_and_filter_packages "${packages}")
+  [[ -z "${valid_packages}" ]] && return 0
+
+  # Convert to array for processing
+  local pkg_array=()
+  populate_package_array "${valid_packages}" pkg_array
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "remove via nixpkgs-${nix_version}: $(format_package_list "${pkg_array[@]}")"
+  else
+    log_info "Removing nixpkgs-${nix_version} packages: ${pkg_array[*]}"
+
+    # Individual removal (nix requirement)
+    local failed_packages=()
+    for pkg in "${pkg_array[@]}"; do
+      local quoted_pkg
+      printf -v quoted_pkg '%q' "${pkg}"
+
+      # Use nix profile remove - package names are stored in the profile
+      # List profiles to find the package name
+      if ! eval "nix profile remove ${quoted_pkg}" 2> /dev/null; then
+        # If direct removal fails, try finding by package name in profile list
+        local profile_entries
+        profile_entries=$(nix profile list 2> /dev/null | grep -F "${pkg}" | awk '{print $1}' || true)
+
+        if [[ -n "${profile_entries}" ]]; then
+          # Remove by profile index
+          while IFS= read -r entry_index; do
+            if ! nix profile remove "${entry_index}"; then
+              failed_packages+=("${pkg}")
+              break
+            fi
+          done <<< "${profile_entries}"
+        else
+          # Package not found in profile
+          log_info "Package not installed or already removed: ${pkg}"
+        fi
+      fi
+    done
+
+    # Report any failures
+    if [[ ${#failed_packages[@]} -gt 0 ]]; then
+      log_warning "Failed to remove nix packages: ${failed_packages[*]}"
     fi
   fi
 }
@@ -561,6 +945,14 @@ handle_packages_from_file() {
       # Install yay first for unified package management
       install_yay "${dry_run}"
 
+      # Extract cleanup packages and remove them first
+      local pacman_cleanup yay_cleanup
+      pacman_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "pacman" "${packages_file}")
+      yay_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "yay" "${packages_file}")
+
+      remove_pacman_packages "${pacman_cleanup}" "${dry_run}"
+      remove_yay_packages "${yay_cleanup}" "${dry_run}"
+
       # Extract and install packages
       local pacman_packages yay_packages
       pacman_packages=$(extract_packages_from_yaml "${platform}" "pacman" "${packages_file}")
@@ -578,6 +970,14 @@ handle_packages_from_file() {
       fi
       ;;
     "macos")
+      # Extract cleanup packages and remove them first
+      local homebrew_cleanup cask_cleanup
+      homebrew_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "homebrew" "${packages_file}")
+      cask_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "cask" "${packages_file}")
+
+      remove_homebrew_packages "${homebrew_cleanup}" "${dry_run}"
+      remove_cask_packages "${cask_cleanup}" "${dry_run}"
+
       # Use Brewfile for batch installation on macOS
       install_packages_with_brewfile "${packages_file}" "${platform}" "${dry_run}"
       ;;
@@ -585,6 +985,16 @@ handle_packages_from_file() {
       # Process versioned nixpkgs (e.g., nixpkgs-25.05)
       # Find all nixpkgs-* managers in the file
       if [[ -f "${packages_file}" ]]; then
+        # First pass: remove cleanup packages
+        while IFS= read -r manager; do
+          [[ -n "${manager}" ]] || continue
+          local nix_version="${manager#nixpkgs-}"
+          local nix_cleanup
+          nix_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "${manager}" "${packages_file}")
+          remove_nix_packages "${nix_cleanup}" "${nix_version}" "${dry_run}"
+        done < <(grep -E "^  nixpkgs-[0-9]+\.[0-9]+:" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
+
+        # Second pass: install packages
         while IFS= read -r manager; do
           [[ -n "${manager}" ]] || continue
           local nix_version="${manager#nixpkgs-}"
@@ -595,6 +1005,11 @@ handle_packages_from_file() {
       fi
       ;;
     "freshtomato")
+      # Extract cleanup packages and remove them first
+      local opkg_cleanup
+      opkg_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "opkg" "${packages_file}")
+      remove_opkg_packages "${opkg_cleanup}" "${dry_run}"
+
       # Extract and install opkg packages (FreshTomato uses Entware/opkg)
       local opkg_packages
       opkg_packages=$(extract_packages_from_yaml "${platform}" "opkg" "${packages_file}")

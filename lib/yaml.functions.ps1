@@ -120,11 +120,14 @@ function Get-PackagesFromYaml {
     }
 
     $packages = @{
-        pacman   = @()
-        aur      = @()
-        winget   = @()
-        scoop    = @()
-        psmodule = @()
+        pacman           = @()
+        aur              = @()
+        winget           = @()
+        scoop            = @()
+        psmodule         = @()
+        winget_cleanup   = @()
+        scoop_cleanup    = @()
+        psmodule_cleanup = @()
     }
 
     try {
@@ -135,7 +138,7 @@ function Get-PackagesFromYaml {
             $windowsSection = $Matches[1]
 
             # Extract packages for all Windows package managers using helper functions
-            $packageTypes = @('winget', 'scoop', 'psmodule')
+            $packageTypes = @('winget', 'scoop', 'psmodule', 'winget_cleanup', 'scoop_cleanup', 'psmodule_cleanup')
             foreach ($packageType in $packageTypes) {
                 $packages.$packageType = Get-PackageSection -Section $windowsSection -PackageType $packageType -AllTypes $packageTypes
             }

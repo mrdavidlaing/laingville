@@ -13,7 +13,6 @@ arch:
   # Terminal tools
   - .config/tmux
   - .config/navi
-  - .config/alacritty
   - .config/starship.toml
   - .config/lazygit
   # Editor
@@ -45,6 +44,9 @@ arch:
   - .config/plasma-workspace
   # Zen Browser
   - .zen
+
+arch_cleanup:
+  - .config/alacritty  # Removed 2025-09-30, switched to wezterm
 
 # WSL - terminal-focused, no GUI
 wsl:
@@ -78,9 +80,10 @@ wsl:
     target: ~/.claude/settings.json
   - source: .claude/wrappers
     target: ~/.claude/wrappers
-  # Alacritty config (for Windows Alacritty to read)
-  - .config/alacritty
   # Note: No desktop environment configs (hypr, waybar, dynamic-wallpaper, dconf, systemd)
+
+wsl_cleanup:
+  - .config/alacritty  # Removed 2025-09-30, switched to wezterm
 
 # Windows - minimal config with custom paths
 windows:
@@ -89,11 +92,6 @@ windows:
   # PowerShell Profile
   - source: .config/PowerShell/Microsoft.PowerShell_profile.ps1
     target: $USERPROFILE/Documents/PowerShell/Microsoft.PowerShell_profile.ps1
-  # Alacritty with Windows-specific paths
-  - source: .config/alacritty/alacritty.toml
-    target: $APPDATA/alacritty/alacritty.toml
-  - source: .config/alacritty/themes
-    target: $APPDATA/alacritty/themes
   # WezTerm
   - source: .config/wezterm/wezterm.lua
     target: $USERPROFILE/.config/wezterm/wezterm.lua
@@ -110,6 +108,12 @@ windows:
   - source: .zen
     target: "$APPDATA/zen"
 
+windows_cleanup:
+  - source: .config/alacritty/alacritty.toml
+    target: $APPDATA/alacritty/alacritty.toml
+  - source: .config/alacritty/themes
+    target: $APPDATA/alacritty/themes
+
 # macOS - Unix-like with some differences
 macos:
   # Shell configs
@@ -122,7 +126,6 @@ macos:
   # Terminal tools
   - .config/tmux
   - .config/navi
-  - .config/alacritty
   - .config/wezterm
   - .config/starship.toml
   - .config/lazygit
@@ -147,6 +150,9 @@ macos:
   # Zen Browser - custom target path
   - source: .zen
     target: "$HOME/Library/Application Support/zen"
+
+macos_cleanup:
+  - .config/alacritty  # Removed 2025-09-30, switched to wezterm
 
 # Nix - terminal-focused like WSL
 nix:

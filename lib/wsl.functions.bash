@@ -120,6 +120,14 @@ handle_wsl_packages() {
   # Install yay first for unified package management
   install_yay "${dry_run}"
 
+  # Extract cleanup packages and remove them first
+  local pacman_cleanup yay_cleanup
+  pacman_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "pacman" "${packages_file}")
+  yay_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "yay" "${packages_file}")
+
+  remove_pacman_packages "${pacman_cleanup}" "${dry_run}"
+  remove_yay_packages "${yay_cleanup}" "${dry_run}"
+
   # Extract and install packages using new manager-specific functions
   # WSL uses its own YAML section to ensure correct terminal-only packages
   local pacman_packages yay_packages

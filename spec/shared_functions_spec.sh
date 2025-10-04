@@ -285,7 +285,7 @@ EOF
                     When call extract_packages_from_yaml "macos" "cask" "${DOTFILES_DIR}/packages.yaml"
 
                     The output should not be blank
-                    The output should include "alacritty"
+                    The output should include "wezterm@nightly"
                     The output should include "claude"
                     The output should include "font-jetbrains-mono-nerd-font"
                   End
