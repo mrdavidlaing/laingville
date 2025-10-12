@@ -54,7 +54,10 @@ get_setup_scripts() {
   local scripts=("setup.sh")
   for script in "${scripts[@]}"; do
     if [[ -f "$script" ]]; then
-      echo "$script"
+      case "$script" in
+        ./*) echo "$script" ;;
+        *) echo "./$script" ;;
+      esac
     fi
   done
 }
