@@ -21,6 +21,11 @@ lg() {
 alias lt='eza --tree --icons --level=2'
 alias lt3='eza --tree --icons --level=3'
 
+# Ensure Windows tree.com is available in Git Bash
+if ! command -v tree >/dev/null 2>&1 && [ -x /c/Windows/System32/tree.com ]; then
+  alias tree='/c/Windows/System32/tree.com'
+fi
+
 # Sort variations for development workflows
 alias lm='eza -la --icons --sort=modified'  # Most recent first
 alias lsize='eza -la --icons --sort=size'   # Largest first

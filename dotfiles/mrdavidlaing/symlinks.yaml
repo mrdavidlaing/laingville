@@ -87,6 +87,9 @@ wsl_cleanup:
 
 # Windows - minimal config with custom paths
 windows:
+  - .profile
+  - .bash_profile
+  - .bashrc
   - .gitconfig
   - .gitmessage
   # PowerShell Profile

@@ -10,6 +10,11 @@ export PATH="$HOME/.local/bin:$PATH"
 # Add Cargo (Rust) bin directory to PATH
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Add Scoop shims to PATH when available (Git Bash on Windows)
+if [ -d "$HOME/scoop/shims" ]; then
+    export PATH="$HOME/scoop/shims:$PATH"
+fi
+
 # Set default editor for all applications
 export EDITOR=nvim
 

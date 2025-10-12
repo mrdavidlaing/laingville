@@ -144,6 +144,9 @@ windows:
   scoop:
     - versions/wezterm-nightly
     - lazygit
+    - tree
+    - direnv
+    - zoxide
   psmodule:
     - Pester
     - PSScriptAnalyzer
