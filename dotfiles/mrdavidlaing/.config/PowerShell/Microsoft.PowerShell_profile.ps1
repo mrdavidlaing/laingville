@@ -4,6 +4,48 @@ param()
 # PowerShell Profile for mrdavidlaing
 # This profile is automatically loaded when PowerShell starts
 
+# Ensure Claude Code can locate Git Bash for native CLI integration
+if (-not $env:CLAUDE_CODE_GIT_BASH_PATH -or -not (Test-Path $env:CLAUDE_CODE_GIT_BASH_PATH)) {
+    $candidateRoots = @(
+        $Env:ProgramFiles,
+        ${Env:ProgramFiles(x86)}
+    ) | Where-Object { $_ }
+
+    $gitBashCandidates = @()
+    foreach ($root in $candidateRoots) {
+        $gitBashCandidates += @(
+            Join-Path $root 'Git\bin\bash.exe'
+            Join-Path $root 'Git\usr\bin\bash.exe'
+        )
+    }
+
+    foreach ($candidate in $gitBashCandidates) {
+        if (Test-Path $candidate) {
+            $env:CLAUDE_CODE_GIT_BASH_PATH = $candidate
+            break
+        }
+    }
+
+    if (-not $env:CLAUDE_CODE_GIT_BASH_PATH) {
+        $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+        if ($gitCommand) {
+            $gitRoot = Split-Path $gitCommand.Path -Parent
+            $gitRootBase = Split-Path $gitRoot -Parent
+            $derivedCandidate = Join-Path $gitRootBase 'bin\bash.exe'
+            if (Test-Path $derivedCandidate) {
+                $env:CLAUDE_CODE_GIT_BASH_PATH = $derivedCandidate
+            }
+        }
+    }
+
+    if ($env:CLAUDE_CODE_GIT_BASH_PATH) {
+        Write-Verbose "CLAUDE_CODE_GIT_BASH_PATH set to $($env:CLAUDE_CODE_GIT_BASH_PATH)"
+    }
+    else {
+        Write-Verbose 'CLAUDE_CODE_GIT_BASH_PATH not set; Git Bash was not found automatically.'
+    }
+}
+
 # Initialize Starship prompt
 if (Get-Command starship -ErrorAction SilentlyContinue) {
     Invoke-Expression (&starship init powershell)

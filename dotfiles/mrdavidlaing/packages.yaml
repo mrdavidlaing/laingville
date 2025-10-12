@@ -149,6 +149,8 @@ windows:
   psmodule:
     - Pester
     - PSScriptAnalyzer
+  custom:
+    - install_claude_code_windows
   winget_cleanup:
     - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
     - Zen-Team.Zen-Browser  # Removed 2025-10, no longer using Zen browser

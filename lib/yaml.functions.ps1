@@ -86,7 +86,7 @@ function Get-PackageSection {
 
     # Create lookahead pattern excluding current type
     $otherTypes = $AllTypes | Where-Object { $_ -ne $PackageType }
-    $lookahead = if ($otherTypes.Count -gt 0) { "(?=\s*(?:$($otherTypes -join '|')|custom):|$)" } else { "(?=\s*custom:|$)" }
+    $lookahead = if ($otherTypes.Count -gt 0) { "(?=\s*(?:$($otherTypes -join '|')):|$)" } else { "(?=$)" }
 
     # Try list format first
     if ($Section -match "$PackageType`:\s*\r?\n((?:\s+.*\r?\n?)*?)$lookahead") {
@@ -128,6 +128,7 @@ function Get-PackagesFromYaml {
         winget_cleanup   = @()
         scoop_cleanup    = @()
         psmodule_cleanup = @()
+        custom           = @()
     }
 
     try {
@@ -138,7 +139,7 @@ function Get-PackagesFromYaml {
             $windowsSection = $Matches[1]
 
             # Extract packages for all Windows package managers using helper functions
-            $packageTypes = @('winget', 'scoop', 'psmodule', 'winget_cleanup', 'scoop_cleanup', 'psmodule_cleanup')
+            $packageTypes = @('winget', 'scoop', 'psmodule', 'winget_cleanup', 'scoop_cleanup', 'psmodule_cleanup', 'custom')
             foreach ($packageType in $packageTypes) {
                 $packages.$packageType = Get-PackageSection -Section $windowsSection -PackageType $packageType -AllTypes $packageTypes
             }

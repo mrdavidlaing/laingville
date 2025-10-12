@@ -20,9 +20,38 @@ function Invoke-Winget {
     & winget @Arguments
 }
 
+function Ensure-NuGetProvider {
+    param()
+
+    $minimumVersion = [Version]"2.8.5.201"
+
+    $provider = Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1
+    if ($provider -and $provider.Version -ge $minimumVersion) {
+        return $true
+    }
+
+    Write-Host "Installing NuGet provider (required for PowerShell Gallery access)..." -ForegroundColor Yellow
+
+    try {
+        if (-not ([System.Net.ServicePointManager]::SecurityProtocol -band [Net.SecurityProtocolType]::Tls12)) {
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        }
+
+        Install-PackageProvider -Name NuGet -MinimumVersion $minimumVersion -Force -Scope CurrentUser -ErrorAction Stop | Out-Null
+        Write-Host "[OK] NuGet provider installed" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Warning "Failed to install NuGet provider: $($_.Exception.Message)"
+        Write-Warning "Run 'Install-PackageProvider -Name NuGet -MinimumVersion $minimumVersion -Force' manually and re-run setup."
+        return $false
+    }
+}
+
 <#
 .SYNOPSIS
     Installs packages using the Windows Package Manager (winget)
+
 .PARAMETER Packages
     Array of package IDs to install
 .DESCRIPTION
@@ -159,11 +188,16 @@ function Install-PowerShellModule {
         return $true
     }
 
+    if (-not (Ensure-NuGetProvider)) {
+        return $false
+    }
+
     Write-Host "Installing PowerShell modules: $($Modules -join ', ')" -ForegroundColor Cyan
 
     foreach ($module in $Modules) {
         if ($module) {
             Write-Host "Installing PowerShell module: $module" -ForegroundColor Yellow
+
             try {
                 # Check if we need to install/upgrade
                 $latest = Find-Module -Name $module -ErrorAction SilentlyContinue

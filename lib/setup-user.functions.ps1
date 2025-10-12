@@ -429,6 +429,98 @@ function Invoke-SymlinksFromConfig {
 .EXAMPLE
     Install-UserPackage "C:\repo\dotfiles\user" $false
 #>
+function Invoke-CustomWindowsScripts {
+    param(
+        [string]$DotfilesDir,
+        [string[]]$Scripts,
+        [bool]$DryRun = $false
+    )
+
+    if (-not $Scripts -or $Scripts.Count -eq 0) {
+        return $true
+    }
+
+    $repoRoot = Split-Path $DotfilesDir -Parent
+    $sharedScriptsDir = Join-Path $repoRoot "dotfiles\shared\scripts"
+    $userScriptsDir = Join-Path $DotfilesDir "scripts"
+
+    $success = $true
+
+    foreach ($scriptName in $Scripts) {
+        if (-not $scriptName) {
+            continue
+        }
+
+        $scriptName = $scriptName.Trim()
+        if (-not $scriptName) {
+            continue
+        }
+
+        $scriptFile = if ($scriptName.EndsWith('.ps1', [System.StringComparison]::OrdinalIgnoreCase)) {
+
+            $scriptName
+        }
+        else {
+            "$scriptName.ps1"
+        }
+
+        $safeName = Split-Path $scriptFile -Leaf
+        if (-not (Test-SafeFilename $safeName)) {
+            Write-LogWarning "Skipping custom script with unsafe name: $scriptName"
+            $success = $false
+            continue
+        }
+
+        $candidatePaths = @()
+        if (Test-Path $sharedScriptsDir) {
+        $candidatePaths += Join-Path $sharedScriptsDir $scriptFile
+    }
+    if (Test-Path $userScriptsDir) {
+        $candidatePaths += Join-Path $userScriptsDir $scriptFile
+    }
+
+    $scriptPath = $candidatePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $scriptPath -and (Test-Path $sharedScriptsDir)) {
+        $scriptPath = Get-ChildItem -Path $sharedScriptsDir -Filter $scriptFile -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1 | Select-Object -ExpandProperty FullName
+    }
+
+    if (-not $scriptPath) {
+
+            if ($DryRun) {
+                Write-Host "* Would: run custom script (missing): $scriptName" -ForegroundColor Yellow
+            }
+            else {
+                Write-LogWarning "Custom script not found: $scriptName"
+                $success = $false
+            }
+            continue
+        }
+
+        if ($DryRun) {
+            Write-Host "* Would: run custom script: $scriptName" -ForegroundColor Cyan
+            continue
+        }
+
+        if (-not (Test-SafePath $scriptPath $repoRoot $false)) {
+            Write-LogWarning "Custom script outside repository scope: $scriptName"
+            $success = $false
+            continue
+        }
+
+        Write-LogInfo "Running custom script: $scriptName"
+        try {
+            & $scriptPath
+            Write-LogSuccess "Custom script $scriptName completed successfully"
+        }
+        catch {
+            Write-LogWarning "Custom script $scriptName failed: $_"
+            $success = $false
+        }
+    }
+
+    return $success
+}
+
 function Install-UserPackage {
     param(
         [string]$DotfilesDir,
@@ -484,8 +576,14 @@ function Install-UserPackage {
                 Write-Host "* Would: install PowerShell module: $module" -ForegroundColor Cyan
             }
         }
+        if ($packages.custom.Count -gt 0) {
+            foreach ($script in $packages.custom) {
+                Write-Host "* Would: run custom script: $script" -ForegroundColor Cyan
+            }
+        }
         if ($packages.winget.Count -eq 0 -and $packages.scoop.Count -eq 0 -and $packages.psmodule.Count -eq 0 -and
-            $packages.winget_cleanup.Count -eq 0 -and $packages.scoop_cleanup.Count -eq 0 -and $packages.psmodule_cleanup.Count -eq 0) {
+            $packages.winget_cleanup.Count -eq 0 -and $packages.scoop_cleanup.Count -eq 0 -and $packages.psmodule_cleanup.Count -eq 0 -and
+            $packages.custom.Count -eq 0) {
             Write-Host "* Would: skip (no Windows packages defined)" -ForegroundColor Gray
         }
         return $true
@@ -539,6 +637,14 @@ function Install-UserPackage {
         Write-Step "Installing PowerShell Modules"
         $moduleResult = Install-PowerShellModule $packages.psmodule
         if (-not $moduleResult) {
+            return $false
+        }
+    }
+
+    if ($packages.custom.Count -gt 0) {
+        Write-Step "Running Custom Scripts"
+        $customResult = Invoke-CustomWindowsScripts -DotfilesDir $DotfilesDir -Scripts $packages.custom -DryRun:$DryRun
+        if (-not $customResult) {
             return $false
         }
     }
