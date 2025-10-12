@@ -683,6 +683,9 @@ Describe "logging.functions.bash"
               When call log_finish "0"
 
               The output should include "[OK] Completed test-script successfully"
+
+              export SHELLSPEC_PROJECT_ROOT="/test/path"
+              export SHELLSPEC_RUNNING="true"
             End
 
             It "logs failure with exit code"
@@ -697,6 +700,9 @@ Describe "logging.functions.bash"
 
               The stderr should include "[ERROR] ERROR: Failed test-script with exit code 1"
               The stdout should equal ""
+
+              export SHELLSPEC_PROJECT_ROOT="/test/path"
+              export SHELLSPEC_RUNNING="true"
             End
           End
 
