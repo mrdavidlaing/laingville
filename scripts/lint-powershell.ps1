@@ -35,3 +35,4 @@ else {
     Write-Host "PSScriptAnalyzer not found. Install with: Install-Module -Name PSScriptAnalyzer"
     exit 1
 }
+

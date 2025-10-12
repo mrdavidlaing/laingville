@@ -52,3 +52,4 @@ catch {
     Write-Error "$logPrefix Installation failed: $_"
     exit 1
 }
+
