@@ -5,31 +5,22 @@ param(
 
 $logPrefix = '[Claude Code]'
 
+# Check if claude.exe is already available in PATH
+$claudeCommand = Get-Command claude.exe -ErrorAction SilentlyContinue
+if ($claudeCommand) {
+    Write-Host "$logPrefix Claude Code CLI is already installed at: $($claudeCommand.Source)" -ForegroundColor Green
+    return
+}
+
 if ($DryRun) {
     Write-Host "$logPrefix [DRY RUN] Would install native Claude Code via https://claude.ai/install.ps1" -ForegroundColor Cyan
-    $message = "{0} [DRY RUN] Would execute: & ([scriptblock]::Create((Invoke-RestMethod 'https://claude.ai/install.ps1'))))" -f $logPrefix
-    Write-Host $message -ForegroundColor Cyan
     return
 }
 
 Write-Host "$logPrefix Installing native Windows binary..."
 
-$pauseAction = {
-    Write-Host ""
-    Write-Host "Press any key to continue..." -ForegroundColor Gray
-    try {
-        [void][System.Console]::ReadKey($true)
-    }
-    catch {
-        try {
-            cmd.exe /c "pause" | Out-Null
-        }
-        catch {
-        }
-    }
-}
-
 try {
+    # Download and execute the official installer
     $installScriptContent = Invoke-RestMethod -Uri 'https://claude.ai/install.ps1'
     if (-not $installScriptContent) {
         throw "Installer script returned no content"
@@ -39,26 +30,25 @@ try {
     & $installScript | Out-Null
     Write-Host "$logPrefix [OK] Native installer completed" -ForegroundColor Green
 
-    # Verify installation
-    $claudeCommand = Get-Command claude -ErrorAction SilentlyContinue
-    if ($claudeCommand) {
-        try {
-            $version = & claude --version
+    # Verify installation succeeded
+    $claudeCommand = Get-Command claude.exe -ErrorAction SilentlyContinue
+    if (-not $claudeCommand) {
+        throw "Installation completed but 'claude.exe' command not found on PATH"
+    }
+
+    Write-Host "$logPrefix Installed location: $($claudeCommand.Source)" -ForegroundColor Gray
+
+    try {
+        $version = & $claudeCommand.Source --version
+        if ($version) {
             Write-Host "$logPrefix Installed version: $version" -ForegroundColor Green
         }
-        catch {
-            Write-Warning "$logPrefix Unable to determine installed version: $_"
-        }
     }
-    else {
-        Write-Warning "$logPrefix 'claude' command not found on PATH after installation"
+    catch {
+        Write-Warning "$logPrefix Unable to determine installed version: $_"
     }
 }
 catch {
     Write-Error "$logPrefix Installation failed: $_"
-    throw
+    exit 1
 }
-finally {
-    & $pauseAction
-}
-
