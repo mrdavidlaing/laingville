@@ -1,89 +1,78 @@
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-param()
+# PowerShell profile for mrdavidlaing
+# This file is symlinked to the appropriate PowerShell profile location
 
-# PowerShell Profile for mrdavidlaing
-# This profile is automatically loaded when PowerShell starts
-
-# Ensure Claude Code can locate Git Bash for native CLI integration
-if (-not $env:CLAUDE_CODE_GIT_BASH_PATH -or -not (Test-Path $env:CLAUDE_CODE_GIT_BASH_PATH)) {
-    $candidateRoots = @(
-        $Env:ProgramFiles,
-        ${Env:ProgramFiles(x86)}
-    ) | Where-Object { $_ }
-
-    $gitBashCandidates = @()
-    foreach ($root in $candidateRoots) {
-        $gitBashCandidates += @(
-            Join-Path $root 'Git\bin\bash.exe'
-            Join-Path $root 'Git\usr\bin\bash.exe'
-        )
-    }
-
-    foreach ($candidate in $gitBashCandidates) {
-        if (Test-Path $candidate) {
-            $env:CLAUDE_CODE_GIT_BASH_PATH = $candidate
-            break
-        }
-    }
-
-    if (-not $env:CLAUDE_CODE_GIT_BASH_PATH) {
-        $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
-        if ($gitCommand) {
-            $gitRoot = Split-Path $gitCommand.Path -Parent
-            $gitRootBase = Split-Path $gitRoot -Parent
-            $derivedCandidate = Join-Path $gitRootBase 'bin\bash.exe'
-            if (Test-Path $derivedCandidate) {
-                $env:CLAUDE_CODE_GIT_BASH_PATH = $derivedCandidate
-            }
-        }
-    }
-
-    if ($env:CLAUDE_CODE_GIT_BASH_PATH) {
-        Write-Verbose "CLAUDE_CODE_GIT_BASH_PATH set to $($env:CLAUDE_CODE_GIT_BASH_PATH)"
-    }
-    else {
-        Write-Verbose 'CLAUDE_CODE_GIT_BASH_PATH not set; Git Bash was not found automatically.'
-    }
+# Add user's local bin to PATH for PowerShell sessions
+$localBin = Join-Path $env:USERPROFILE ".local\bin"
+if (Test-Path $localBin) {
+    $env:PATH = "$localBin;$env:PATH"
 }
 
-# Initialize Starship prompt
+# Set default editor for PowerShell
+$env:EDITOR = "nvim"
+
+# Load 1Password environment secrets if available
+$secretsFile = Join-Path $env:USERPROFILE ".config\env.secrets.local"
+if (Test-Path $secretsFile) {
+    . $secretsFile
+}
+
+# Enhanced directory listings (prefer eza when available)
+if (Get-Command eza -ErrorAction SilentlyContinue) {
+    function ls { eza --icons --group-directories-first }
+    function ll { eza -la --icons --group-directories-first }
+    function la { eza -a --icons }
+    function lzg { eza -la --icons --git }
+    function lt { eza --tree --icons --level=2 }
+    function lt3 { eza --tree --icons --level=3 }
+    function lm { eza -la --icons --sort=modified }
+    function lsize { eza -la --icons --sort=size }
+}
+else {
+    Write-Warning "eza not found; enhanced ls functions disabled. Install it with 'scoop install eza'."
+}
+
+# Aliases for development workflows
+Set-Alias vim nvim
+Set-Alias vi nvim
+Set-Alias grep "grep --color=auto"
+# Override built-in cd alias
+Remove-Item alias:cd -Force -ErrorAction SilentlyContinue
+Set-Alias cd z
+
+# Ensure Windows tree.com is available in PowerShell
+if (-not (Get-Command tree -ErrorAction SilentlyContinue) -and (Test-Path "C:\Windows\System32\tree.com")) {
+    function tree { & "C:\Windows\System32\tree.com" $args }
+}
+
+# Function for lazygit with 1Password SSH agent integration
+function lg {
+    $opSock = & ssh.exe -G github.com | Select-String "^identityagent " | ForEach-Object { $_.Line.Split(" ")[1] }
+    if ($opSock) {
+        $env:SSH_AUTH_SOCK = $opSock
+    }
+    & lazygit $args
+}
+
+# Initialize interactive tools if available
+# Starship prompt
 if (Get-Command starship -ErrorAction SilentlyContinue) {
-    Invoke-Expression (&starship init powershell)
-}
-
-# Set PowerShell to UTF-8
-[Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
-
-# Enhanced PSReadLine configuration
-if ($host.Name -eq 'ConsoleHost') {
-    Import-Module PSReadLine
-    
-    # Set history search behavior
-    Set-PSReadLineOption -HistorySearchCursorMovesToEnd
-    Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
-    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
-    
-    # Tab completion
-    Set-PSReadLineKeyHandler -Key Tab -Function Complete
-    
-    # Enhanced prediction
-    if ($PSVersionTable.PSVersion.Major -ge 7) {
-        Set-PSReadLineOption -PredictionSource History
-        Set-PSReadLineOption -PredictionViewStyle ListView
+    $starshipInit = & starship init powershell 2>$null
+    if ($starshipInit) {
+        Invoke-Expression ($starshipInit -join "`n")
     }
 }
 
-# Useful aliases
-Set-Alias -Name ll -Value Get-ChildItem
-Set-Alias -Name la -Value Get-ChildItemAll
-Set-Alias -Name grep -Value Select-String
-
-# Custom function for ls -la equivalent
-function Get-ChildItemAll {
-    Get-ChildItem -Force @args
+# Zoxide for better cd
+if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+    $zoxideInit = & zoxide init powershell 2>$null
+    if ($zoxideInit) {
+        Invoke-Expression ($zoxideInit -join "`n")
+    }
 }
 
-# Custom function for quick directory navigation
-function .. { Set-Location .. }
-function ... { Set-Location ../.. }
-function .... { Set-Location ../../.. }
+
+
+# Ensure proper terminal capabilities for color support
+if ($env:TERM -match "256color|truecolor|24bit") {
+    $env:COLORTERM = "truecolor"
+}
