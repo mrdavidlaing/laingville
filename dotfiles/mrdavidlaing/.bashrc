@@ -4,22 +4,24 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-# Enhanced eza aliases with icons and useful defaults
-alias ls='eza --icons --group-directories-first'
-alias ll='eza -la --icons --group-directories-first'
-alias la='eza -a --icons'
-
-# Git integration (eza with git info)
-alias lzg='eza -la --icons --git'
+# Enhanced directory listings (prefer eza when available)
+if command -v eza >/dev/null 2>&1; then
+  alias ls='eza --icons --group-directories-first'
+  alias ll='eza -la --icons --group-directories-first'
+  alias la='eza -a --icons'
+  alias lzg='eza -la --icons --git'
+  alias lt='eza --tree --icons --level=2'
+  alias lt3='eza --tree --icons --level=3'
+  alias lm='eza -la --icons --sort=modified'
+  alias lsize='eza -la --icons --sort=size'
+else
+  echo "Warning: eza not found; enhanced ls aliases disabled. Install it with 'scoop install eza'." >&2
+fi
 
 lg() {
   local op_sock=$(ssh -G github.com | awk '/^identityagent / { print $2 }')
   SSH_AUTH_SOCK="${op_sock:-$SSH_AUTH_SOCK}" command lazygit "$@"
 }
-
-# Tree views for project exploration
-alias lt='eza --tree --icons --level=2'
-alias lt3='eza --tree --icons --level=3'
 
 # Ensure Windows tree.com is available in Git Bash
 if ! command -v tree >/dev/null 2>&1 && [ -x /c/Windows/System32/tree.com ]; then
@@ -27,8 +29,6 @@ if ! command -v tree >/dev/null 2>&1 && [ -x /c/Windows/System32/tree.com ]; the
 fi
 
 # Sort variations for development workflows
-alias lm='eza -la --icons --sort=modified'  # Most recent first
-alias lsize='eza -la --icons --sort=size'   # Largest first
 alias grep='grep --color=auto'
 alias vim='nvim'
 alias vi='nvim'

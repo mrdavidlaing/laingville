@@ -145,6 +145,7 @@ windows:
     - versions/wezterm-nightly
     - lazygit
     - direnv
+    - eza
     - zoxide
   psmodule:
     - Pester
