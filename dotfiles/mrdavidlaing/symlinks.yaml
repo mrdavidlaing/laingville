@@ -104,6 +104,9 @@ windows:
   # Starship
   - source: .config/starship.toml
     target: $USERPROFILE/.config/starship.toml
+  # VS Code
+  - source: .config/Code/User/settings.json
+    target: $APPDATA/Code/User/settings.json
   # Claude Code
   - source: .claude/CLAUDE.md
     target: $USERPROFILE/.claude/CLAUDE.md

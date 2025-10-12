@@ -138,6 +138,7 @@ windows:
   winget:
     - Mozilla.Firefox
     - Microsoft.PowerToys
+    - Microsoft.VisualStudioCode
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
     - Microsoft.PowerShell
