@@ -473,18 +473,18 @@ function Invoke-CustomWindowsScripts {
 
         $candidatePaths = @()
         if (Test-Path $sharedScriptsDir) {
-        $candidatePaths += Join-Path $sharedScriptsDir $scriptFile
-    }
-    if (Test-Path $userScriptsDir) {
-        $candidatePaths += Join-Path $userScriptsDir $scriptFile
-    }
+            $candidatePaths += Join-Path $sharedScriptsDir $scriptFile
+        }
+        if (Test-Path $userScriptsDir) {
+            $candidatePaths += Join-Path $userScriptsDir $scriptFile
+        }
 
-    $scriptPath = $candidatePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $scriptPath -and (Test-Path $sharedScriptsDir)) {
-        $scriptPath = Get-ChildItem -Path $sharedScriptsDir -Filter $scriptFile -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1 | Select-Object -ExpandProperty FullName
-    }
+        $scriptPath = $candidatePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if (-not $scriptPath -and (Test-Path $sharedScriptsDir)) {
+            $scriptPath = Get-ChildItem -Path $sharedScriptsDir -Filter $scriptFile -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1 | Select-Object -ExpandProperty FullName
+        }
 
-    if (-not $scriptPath) {
+        if (-not $scriptPath) {
 
             if ($DryRun) {
                 Write-Host "* Would: run custom script (missing): $scriptName" -ForegroundColor Yellow
@@ -652,44 +652,6 @@ function Install-UserPackage {
     return $true
 }
 
-<#
-.SYNOPSIS
-    Provides instructions for running setup inside WSL if available
-.PARAMETER DryRun
-    Whether to show dry-run instructions or regular setup instructions
-.DESCRIPTION
-    Checks if WSL is available and provides the appropriate command to run the Linux setup
-.EXAMPLE
-    Invoke-WSLSetup $false
-#>
-function Invoke-WSLSetup {
-    param(
-        [bool]$DryRun = $false
-    )
-
-    # Simple check - if wsl.exe exists, show setup instructions
-    if (-not (Get-Command "wsl.exe" -ErrorAction SilentlyContinue)) {
-        Write-LogInfo "WSL not available, skipping Linux setup"
-        return $true
-    }
-
-    # Convert Windows path to WSL path for the setup script
-    $scriptRoot = Split-Path $PSScriptRoot -Parent
-    $wslPath = $scriptRoot -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/' | ForEach-Object { $_.ToLower() }
-    $setupScript = "$wslPath/bin/setup-user"
-
-    if ($DryRun) {
-        Write-Host "WSL SETUP:" -ForegroundColor White
-        Write-LogInfo "To see what would be done in WSL, run:"
-        Write-Host "  wsl.exe -d archlinux bash `"$setupScript`" --dry-run" -ForegroundColor Cyan
-        return $true
-    }
-
-    Write-LogInfo "To complete setup in WSL, run:"
-    Write-Host "  wsl.exe -d archlinux bash `"$setupScript`"" -ForegroundColor Cyan
-    return $true
-}
-
 # Test if Developer Mode is enabled by attempting to create a test symlink
 function Test-DeveloperModeEnabled {
     $testDir = Join-Path $env:TEMP "symlink_test_$(Get-Random)"
@@ -810,20 +772,14 @@ function Invoke-UserSetup {
         Write-LogWarning "Package installation encountered issues"
     }
 
-    # Setup WSL environment
-    Write-Step "WSL Setup"
-    $wslResult = Invoke-WSLSetup $DryRun
-    if (-not $wslResult) {
-        Write-LogWarning "WSL setup encountered issues"
-    }
-
-    # Success
+    # Success - WSL setup instructions will be shown by setup.ps1
     if ($DryRun) {
-        Write-LogSuccess "Dry run completed successfully"
+        Write-LogSuccess "Windows dry run completed successfully"
     }
     else {
-        Write-LogSuccess "User setup completed successfully"
+        Write-LogSuccess "Windows setup completed successfully"
     }
 
     return $true
 }
+

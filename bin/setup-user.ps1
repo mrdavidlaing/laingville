@@ -26,7 +26,8 @@
 
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
 param(
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$TranscriptPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,68 +48,70 @@ if (-not (Test-Administrator)) {
     Write-Host "Restarting with elevated privileges..." -ForegroundColor Yellow
     Write-Host ""
 
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    # Create temp file for transcript capture
+    $transcriptFile = Join-Path $env:TEMP "laingville-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
+
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -TranscriptPath `"$transcriptFile`""
     if ($DryRun) {
         $arguments += " -DryRun"
     }
 
     # Start elevated process and wait for it to complete
-    Start-Process pwsh -Verb RunAs -ArgumentList $arguments -Wait
+    $process = Start-Process pwsh -Verb RunAs -ArgumentList $arguments -PassThru -Wait
 
-    # After elevated process completes, show WSL instructions in original console
+    # After elevated process completes, display captured output
     Write-Host ""
-    Write-Host "Windows setup completed in elevated window." -ForegroundColor Green
+    Write-Host "===============================================" -ForegroundColor Cyan
+    Write-Host "Output from elevated process:" -ForegroundColor Cyan
+    Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
 
-    # Check if WSL is available and show instructions
-    if (Get-Command "wsl.exe" -ErrorAction SilentlyContinue) {
-        $wslPath = $ProjectRoot -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/' | ForEach-Object { $_.ToLower() }
-        $setupScript = "$wslPath/bin/setup-user"
-
-        Write-Host "WSL SETUP:" -ForegroundColor Cyan
-        Write-Host "----------" -ForegroundColor Cyan
-        if ($DryRun) {
-            Write-Host "To see what would be done in WSL, run:" -ForegroundColor White
-            Write-Host "  wsl.exe -d archlinux bash `"$setupScript`" --dry-run" -ForegroundColor Yellow
-        }
-        else {
-            Write-Host "To complete setup in WSL, run:" -ForegroundColor White
-            Write-Host "  wsl.exe -d archlinux bash `"$setupScript`"" -ForegroundColor Yellow
-        }
-        Write-Host ""
-    }
-
-    exit 0
-}
-
-# Print header
-Write-Host "`nStarting setup-user (Administrator)" -ForegroundColor Blue -BackgroundColor Black
-Write-Host "------------------------------------" -ForegroundColor Blue
-
-if ($DryRun) {
-    Write-LogInfo "DRY RUN MODE - No changes will be made"
-}
-
-try {
-    # Execute main user setup
-    $result = Invoke-UserSetup -DryRun:$DryRun
-
-    if ($result) {
-        if ($DryRun) {
-            Write-Host "`nDry run completed successfully!" -ForegroundColor Green
-        }
-        else {
-            Write-Host "`nUser setup completed successfully!" -ForegroundColor Green
-        }
-        exit 0
+    if (Test-Path $transcriptFile) {
+        Get-Content $transcriptFile
+        Remove-Item $transcriptFile -Force -ErrorAction SilentlyContinue
     }
     else {
-        Write-Host "`nUser setup failed!" -ForegroundColor Red
+        Write-Host "Warning: Transcript file not found at $transcriptFile" -ForegroundColor Yellow
+    }
+
+    Write-Host ""
+    Write-Host "===============================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    # WSL instructions are already printed by Invoke-UserSetup in the transcript above
+    exit $process.ExitCode
+}
+
+# Main execution logic - defined once, used with or without Tee-Object
+$mainExecution = {
+    # Print header
+    Write-Host "`nStarting setup-user (Administrator)" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "------------------------------------" -ForegroundColor Blue
+
+    if ($DryRun) {
+        Write-LogInfo "DRY RUN MODE - No changes will be made"
+    }
+
+    try {
+        # Execute main user setup
+        $result = Invoke-UserSetup -DryRun:$DryRun
+
+        # Invoke-UserSetup already prints completion messages, just exit with appropriate code
+        if ($result) { exit 0 } else { exit 1 }
+    }
+    catch {
+        Write-LogError "Unhandled exception: $_"
+        Write-LogError $_.ScriptStackTrace
         exit 1
     }
 }
-catch {
-    Write-LogError "Unhandled exception: $_"
-    Write-LogError $_.ScriptStackTrace
-    exit 1
+
+# Execute with or without transcript capture
+if ($TranscriptPath) {
+    & $mainExecution *>&1 | Tee-Object -FilePath $TranscriptPath
+    exit $LASTEXITCODE
 }
+else {
+    & $mainExecution
+}
+

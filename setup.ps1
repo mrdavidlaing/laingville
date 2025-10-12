@@ -375,13 +375,28 @@ function Invoke-Setup {
         & $scriptPath @params
 
         $exitCode = $LASTEXITCODE
-        if ($exitCode -eq 0) {
-            Write-Host "`nSetup completed successfully!" -ForegroundColor Green
+
+        # If this was user setup and WSL is available, show WSL setup instructions
+        if ($Target -eq "user" -and (Get-Command "wsl.exe" -ErrorAction SilentlyContinue)) {
+            # Convert Windows path to WSL path for the setup script
+            $wslPath = $scriptDir -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/' | ForEach-Object { $_.ToLower() }
+            $setupScript = "$wslPath/bin/setup-user"
+
+            Write-Host ""
+            Write-Host "WSL Setup" -ForegroundColor Cyan
+            Write-Host "---------" -ForegroundColor Cyan
+            if ($DryRun) {
+                Write-Host "[INFO] To see what would be done in WSL, run:" -ForegroundColor White
+                Write-Host "  wsl.exe -d archlinux bash `"$setupScript`" --dry-run" -ForegroundColor Yellow
+            }
+            else {
+                Write-Host "[INFO] To complete setup in WSL, run:" -ForegroundColor White
+                Write-Host "  wsl.exe -d archlinux bash `"$setupScript`"" -ForegroundColor Yellow
+            }
+            Write-Host ""
         }
-        else {
-            Write-Host "`nSetup failed with exit code: $exitCode" -ForegroundColor Red
-            exit $exitCode
-        }
+
+        exit $exitCode
     }
     catch {
         Write-Error "Failed to execute setup script: $_"
@@ -442,3 +457,4 @@ function Main {
 
 # Run the main function
 Main
+
