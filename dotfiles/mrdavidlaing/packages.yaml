@@ -71,10 +71,11 @@ arch:
     - hyprpaper
     - ttf-jetbrains-mono-nerd
     - vivaldi
-    - zen-bin
     - 1password-cli
   pacman_cleanup:
     - alacritty  # Removed 2025-09-30, switched to wezterm
+  yay_cleanup:
+    - zen-bin  # Removed 2025-10, no longer using Zen browser
   custom:
     - install_claude_code
 
@@ -136,7 +137,6 @@ wsl:
 windows:
   winget:
     - Mozilla.Firefox
-    - Zen-Team.Zen-Browser
     - Microsoft.PowerToys
     - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
@@ -152,6 +152,7 @@ windows:
     - PSScriptAnalyzer
   winget_cleanup:
     - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
+    - Zen-Team.Zen-Browser  # Removed 2025-10, no longer using Zen browser
 
 # macOS - Unix tools and GUI apps
 macos:
@@ -197,7 +198,6 @@ macos:
     - nikitabobko/tap/aerospace
     - rectangle
     - wezterm@nightly
-    - zen
     - 1password-cli
     - font-jetbrains-mono-nerd-font
     - docker-desktop
@@ -210,6 +210,7 @@ macos:
     - configure_ice
   cask_cleanup:
     - alacritty  # Removed 2025-09-30, switched to wezterm
+    - zen  # Removed 2025-10, no longer using Zen browser
 
 # Nix - package management
 nix:
