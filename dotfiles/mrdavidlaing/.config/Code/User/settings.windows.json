@@ -1,0 +1,33 @@
+{
+    "remote.SSH.remotePlatform": {
+        "coder-vscode.coder.platform-staging.mechanical.run--david--mrdavidlaing-imogen-eu1": "linux",
+        "coder-vscode.coder.platform-staging.mechanical.run--david--mrdavidlaing-infra-workspace.main": "linux",
+        "coder-vscode.coder.platform-staging.mechanical.run--david--mrdavidlaing-imogen-eu1.main": "linux",
+        "coder-vscode.coder.platform.mechanical.run--david--violet-hyena-43": "linux",
+        "coder-vscode.coder.platform.mechanical.run--david--violet-hyena-43.main": "linux"
+    },
+    "remote.SSH.connectTimeout": 1800,
+    "workbench.startupEditor": "none",
+    "git.confirmSync": false,
+    "git.autofetch": true,
+    "explorer.confirmDragAndDrop": false,
+    "amp.url": "https://ampcode.com/",
+    "workbench.colorTheme": "Solarized Dark",
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "remoteTmux.sshHost": "violet-hyena-43.coder",
+    "files.associations": {
+        "*.gs": "javascript"
+    },
+    "diffEditor.ignoreTrimWhitespace": false,
+    "extensions.ignoreRecommendations": true,
+    "workbench.sideBar.location": "right",
+    "terminal.integrated.enableMultiLinePasteWarning": "never",
+    "editor.fontFamily": "'Cascadia Code', Consolas, 'Courier New', monospace",
+    "editor.fontLigatures": true,
+    "terminal.integrated.fontFamily": "'CascadiaCode NF'",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontWeight": "100",
+    "debug.console.fontFamily": "'Cascadia Code'"
+}

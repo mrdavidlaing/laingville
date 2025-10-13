@@ -105,7 +105,7 @@ windows:
   - source: .config/starship.toml
     target: $USERPROFILE/.config/starship.toml
   # VS Code
-  - source: .config/Code/User/settings.json
+  - source: .config/Code/User/settings.windows.json
     target: $APPDATA/Code/User/settings.json
   # Claude Code
   - source: .claude/CLAUDE.md
@@ -141,6 +141,9 @@ macos:
   - .config/lazygit
   # Editor
   - .config/nvim
+  # VS Code
+  - source: .config/Code/User/settings.macos.json
+    target: ~/.config/Code/User/settings.json
   # Helper scripts
   - source: .local/bin/git-identity
     target: ~/.local/bin/git-identity

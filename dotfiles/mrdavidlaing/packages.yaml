@@ -139,7 +139,6 @@ windows:
     - Mozilla.Firefox
     - Microsoft.PowerToys
     - Microsoft.VisualStudioCode
-    - DEVCOM.JetBrainsMonoNerdFont
     - Starship.Starship
     - Microsoft.PowerShell
   scoop:
@@ -148,6 +147,8 @@ windows:
     - direnv
     - eza
     - zoxide
+    - nerd-fonts/CascadiaCode-NF
+    - nerd-fonts/JetBrainsMono-NF
   psmodule:
     - Pester
     - PSScriptAnalyzer
@@ -156,6 +157,7 @@ windows:
   winget_cleanup:
     - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
     - Zen-Team.Zen-Browser  # Removed 2025-10, no longer using Zen browser
+    - DEVCOM.JetBrainsMonoNerdFont  # Moved to scoop nerd-fonts bucket
 
 # macOS - Unix tools and GUI apps
 macos:
@@ -202,7 +204,8 @@ macos:
     - rectangle
     - wezterm@nightly
     - 1password-cli
-    - font-jetbrains-mono-nerd-font
+    - font-jetbrains-mono  # Original with ligatures for editor
+    - font-jetbrains-mono-nerd-font  # Nerd Font with icons for terminal
     - docker-desktop
     - claude
     - cursor-cli  # Cursor AI code editor CLI
