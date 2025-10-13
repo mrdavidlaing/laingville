@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Generate Claude Code settings from template
+if [[ -x "$SCRIPT_DIR/.claude/generate-settings.sh" ]]; then
+  "$SCRIPT_DIR/.claude/generate-settings.sh"
+fi
+
 # Skip check on Git Bash where this script running means we're already in bash
 if [[ "${OSTYPE}" == "msys"* ]] || [[ "${OSTYPE}" == "cygwin"* ]]; then
   exit 0

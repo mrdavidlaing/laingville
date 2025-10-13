@@ -453,6 +453,14 @@ function Main {
 
     # Step 4: Provide setup instructions
     Invoke-Setup
+
+    # TODO: Claude Code settings generation
+    Write-Host ""
+    Write-Host "TODO: Claude Code Settings" -ForegroundColor Yellow
+    Write-Host "-------------------------" -ForegroundColor Yellow
+    Write-Host "To generate Claude Code settings from templates, run:" -ForegroundColor White
+    Write-Host "  bash dotfiles/mrdavidlaing/.claude/generate-settings.sh" -ForegroundColor Cyan
+    Write-Host ""
 }
 
 # Run the main function

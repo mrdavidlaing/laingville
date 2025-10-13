@@ -42,24 +42,45 @@ This works when:
 
 ## Setup
 
-The `setup-user` script automatically:
+The `generate-settings.sh` script automatically:
 1. Detects platform (Windows/Mac/Linux)
-2. Generates `settings.json` from appropriate template
+2. Generates settings from appropriate template to temp file
 3. Replaces `{{USERNAME}}` with current user
-4. Creates symlink: `~/.claude/settings.json` → `dotfiles/mrdavidlaing/.claude/settings.json`
+4. If `~/.claude/settings.json` doesn't exist: creates it
+5. If `~/.claude/settings.json` exists: shows diff instead of overwriting
+
+The script is called automatically by `setup-user` via `setup-user-hook.sh`.
 
 ## Manual Setup
 
-If you need to manually create settings:
+### First Time Setup
+Run the generation script:
 
 ```bash
-# Mac/Linux
-cp settings.template.json settings.json
+# From any platform (Mac/Linux/Git Bash on Windows)
+./dotfiles/mrdavidlaing/.claude/generate-settings.sh
+```
 
-# Windows (with bash in PATH)
-cp settings.template.json settings.json
+This will:
+- Create `~/.claude/settings.json` from template
+- Use the cross-platform template by default
+- Use Windows-specific template if bash is not in PATH
 
-# Windows (without bash in PATH)
-cp settings.windows.json settings.json
-# Edit and replace {{USERNAME}} with your Windows username
+### Updating Settings
+
+If you update the templates, run the script again to see differences:
+
+```bash
+./dotfiles/mrdavidlaing/.claude/generate-settings.sh
+```
+
+It will:
+- Show a diff if your settings differ from the template
+- Preserve your existing settings (won't overwrite)
+- Provide instructions to force update if desired
+
+To force regenerate from template:
+```bash
+rm ~/.claude/settings.json
+./dotfiles/mrdavidlaing/.claude/generate-settings.sh
 ```

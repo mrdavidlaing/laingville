@@ -104,7 +104,6 @@ if [ "$(ls -A "$DOTFILES_DIR" 2>/dev/null)" ]; then
         log_success "Dotfiles setup complete!"
     fi
 
-    generate_claude_settings "$DRY_RUN"
     run_user_setup_hook "$DRY_RUN"
 else
     if [ "$DRY_RUN" = true ]; then

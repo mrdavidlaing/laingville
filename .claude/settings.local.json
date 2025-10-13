@@ -16,7 +16,8 @@
       "Bash(git push:*)",
       "Bash(git cherry-pick:*)",
       "Bash(ssh.exe:*)",
-      "Bash(pwsh.exe:*)"
+      "Bash(pwsh.exe:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   },
