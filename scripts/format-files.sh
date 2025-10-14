@@ -67,23 +67,29 @@ ensure_single_newline_crlf() {
   # Use PowerShell to handle all line ending and whitespace logic
   # Use simple string operations that work in all PowerShell versions
   $pwsh_cmd -NoProfile -Command "
-    \$content = [System.IO.File]::ReadAllText('$ps_file_path')
-    # Remove all trailing whitespace and newlines first
-    \$content = \$content.TrimEnd()
-    # Convert all line endings to CRLF
-    # First normalize CRLF to LF
-    \$content = \$content.Replace(\"\`r\`n\", \"\`n\")
-    # Then convert all LF to CRLF
-    \$content = \$content.Replace(\"\`n\", \"\`r\`n\")
-    # Remove trailing whitespace from each line using multiline regex
-    \$content = \$content -replace '[ \t]+(\`r\`n)', '\$1'
-    # Add exactly one CRLF at the end
-    \$content = \$content + \"\`r\`n\"
-    # Write as bytes to avoid any platform-specific line ending conversion
-    \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
-    \$bytes = \$utf8NoBom.GetBytes(\$content)
-    [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
-  " 2>&1 | grep -v '^$' || true
+    try {
+      \$content = [System.IO.File]::ReadAllText('$ps_file_path')
+      # Remove all trailing whitespace and newlines first
+      \$content = \$content.TrimEnd()
+      # Convert all line endings to CRLF
+      # First normalize CRLF to LF
+      \$content = \$content.Replace(\"\`r\`n\", \"\`n\")
+      # Then convert all LF to CRLF
+      \$content = \$content.Replace(\"\`n\", \"\`r\`n\")
+      # Remove trailing whitespace from each line using multiline regex
+      \$content = \$content -replace '[ \t]+\`r\`n', \"\`r\`n\"
+      # Add exactly one CRLF at the end
+      \$content = \$content + \"\`r\`n\"
+      # Write as bytes to avoid any platform-specific line ending conversion
+      \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+      \$bytes = \$utf8NoBom.GetBytes(\$content)
+      [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
+      exit 0
+    } catch {
+      Write-Error \"ensure_single_newline_crlf failed: \$_\"
+      exit 1
+    }
+  "
 }
 
 # === File Formatting Functions ===
