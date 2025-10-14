@@ -520,4 +520,3 @@ function Invoke-UserSetup {
 
     return $true
 }
-

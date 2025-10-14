@@ -41,6 +41,43 @@ show_usage() {
   echo "  $0 --check *.sh                # Check multiple files"
 }
 
+# === Line Ending Utility Functions ===
+
+# Pre-process: Convert any line endings to LF temporarily
+# This normalizes files with mixed line endings so formatters can process them
+normalize_to_lf() {
+  local file="$1"
+  # Combined sed operations for better performance
+  sed -i -e 's/[ \t]*$//' -e 's/\r$//' "$file"
+}
+
+# Post-process: Ensure exactly one LF at end (for bash/shell files)
+ensure_single_newline_lf() {
+  local file="$1"
+  # Use printf to ensure exactly one trailing LF
+  printf '%s\n' "$(cat "$file")" > "$file"
+}
+
+# Post-process: Ensure exactly one CRLF at end (for PowerShell files)
+ensure_single_newline_crlf() {
+  local file="$1"
+  local ps_file_path="$2" # Windows path if needed for WSL
+  local pwsh_cmd="$3"
+
+  # Remove trailing whitespace but preserve CRLF (combined operations)
+  sed -i -e 's/[ \t]\+\r$/\r/' -e 's/[ \t]\+$//' "$file"
+
+  # Use PowerShell to ensure exactly one CRLF at end
+  # Match any trailing newlines (LF or CRLF) and replace with single CRLF
+  $pwsh_cmd -NoProfile -Command "
+    \$content = Get-Content '$ps_file_path' -Raw
+    \$content = \$content -replace '[\r\n]+$', \"\`r\`n\"
+    [System.IO.File]::WriteAllText('$ps_file_path', \$content)
+  " 2> /dev/null
+}
+
+# === File Formatting Functions ===
+
 # Format a single bash file using shfmt
 format_bash_file() {
   local file_path="$1"
@@ -207,6 +244,9 @@ format_powershell_file() {
       ps_file_path=$(wslpath -w "$file_path")
     fi
 
+    # Pre-process: normalize to LF temporarily to avoid mixed line ending errors
+    normalize_to_lf "$file_path"
+
     # Use PowerShell's built-in formatting capabilities
     if $pwsh_cmd -NoProfile -Command "
       try {
@@ -218,13 +258,8 @@ format_powershell_file() {
         exit 1
       }
     " 2> /dev/null; then
-      # Remove trailing whitespace from lines and normalize line endings
-      sed -i 's/[ \t]*$//' "$file_path"
-      # Convert Windows line endings to Unix
-      sed -i 's/\r$//' "$file_path"
-      # Ensure file ends with exactly one newline
-      # Use printf to ensure exactly one trailing newline
-      printf '%s\n' "$(cat "$file_path")" > "$file_path"
+      # Post-process: Out-File adds CRLF, ensure file ends with exactly one CRLF
+      ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"
       return 0
     else
       echo "Error: Failed to format PowerShell file: $file_path" >&2
@@ -293,7 +328,14 @@ batch_format_powershell_files() {
       exit \$errors
     "
   else
-    # Format mode - format all files
+    # Format mode - first normalize line endings, then format
+    if [[ "$check_mode" != "true" ]]; then
+      # Pre-process files to normalize line endings before PowerShell formatting
+      for file in "${files[@]}"; do
+        normalize_to_lf "$file"
+      done
+    fi
+
     ps_script="
       \$files = @($file_list)
       \$errors = 0
@@ -314,11 +356,15 @@ batch_format_powershell_files() {
   # Execute PowerShell script
   if $pwsh_cmd -NoProfile -Command "$ps_script" 2> /dev/null; then
     if [[ "$check_mode" != "true" ]]; then
-      # Post-process files: normalize line endings
+      # Post-process files: Out-File adds CRLF, ensure proper ending
       for file in "${files[@]}"; do
-        sed -i 's/[ \t]*$//' "$file"
-        sed -i 's/\r$//' "$file"
-        printf '%s\n' "$(cat "$file")" > "$file"
+        # Convert path for WSL if needed
+        local ps_file_path="$file"
+        if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
+          ps_file_path=$(wslpath -w "$file")
+        fi
+
+        ensure_single_newline_crlf "$file" "$ps_file_path" "$pwsh_cmd"
       done
     fi
     return 0

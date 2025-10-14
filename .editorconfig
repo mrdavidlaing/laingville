@@ -19,3 +19,9 @@ switch_case_indent = true
 space_redirects = true
 keep_padding = false
 function_next_line = false
+
+# PowerShell scripts
+[*.ps1]
+end_of_line = crlf
+indent_style = space
+indent_size = 4

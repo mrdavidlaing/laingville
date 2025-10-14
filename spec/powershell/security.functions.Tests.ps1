@@ -247,4 +247,3 @@ Describe "security.functions.ps1" {
         }
     }
 }
-

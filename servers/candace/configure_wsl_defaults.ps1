@@ -30,4 +30,3 @@ function Set-WSLDefault {
 
 # Run the configuration
 Set-WSLDefault
-

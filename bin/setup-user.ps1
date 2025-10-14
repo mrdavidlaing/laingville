@@ -114,4 +114,3 @@ if ($TranscriptPath) {
 else {
     & $mainExecution
 }
-

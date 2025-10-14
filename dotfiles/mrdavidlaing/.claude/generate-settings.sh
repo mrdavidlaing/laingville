@@ -34,13 +34,16 @@ fi
 log_info "Generating Claude Code settings from template..."
 
 # Detect platform
-PLATFORM="${PLATFORM:-$(detect_platform)}"
+if [[ -z "${PLATFORM:-}" ]]; then
+  # shellcheck disable=SC2311
+  PLATFORM="$(detect_platform)"
+fi
 
 # Choose template based on platform and bash availability
 SOURCE_TEMPLATE="$TEMPLATE_FILE"
 if [[ "$PLATFORM" = "windows" ]]; then
   # Check if bash is in system PATH
-  if ! command -v bash >/dev/null 2>&1; then
+  if ! command -v bash > /dev/null 2>&1; then
     if [[ -f "$WINDOWS_TEMPLATE" ]]; then
       SOURCE_TEMPLATE="$WINDOWS_TEMPLATE"
       log_info "Using Windows-specific template (bash not in PATH)"
@@ -57,7 +60,7 @@ USERNAME="${USER:-${USERNAME:-$(whoami)}}"
 TEMP_FILE=$(mktemp)
 trap 'rm -f "$TEMP_FILE"' EXIT
 
-if command -v sed >/dev/null 2>&1; then
+if command -v sed > /dev/null 2>&1; then
   sed "s/{{USERNAME}}/$USERNAME/g" "$SOURCE_TEMPLATE" > "$TEMP_FILE"
 else
   # Fallback: just copy without substitution
@@ -73,7 +76,7 @@ fi
 # Check if target file already exists
 if [[ -f "$TARGET_FILE" ]]; then
   # Compare with what would be generated
-  if diff -q "$TEMP_FILE" "$TARGET_FILE" >/dev/null 2>&1; then
+  if diff -q "$TEMP_FILE" "$TARGET_FILE" > /dev/null 2>&1; then
     log_success "Settings file is already up to date"
     exit 0
   else
@@ -82,7 +85,7 @@ if [[ -f "$TARGET_FILE" ]]; then
     echo "Differences (template → current):"
     echo "-----------------------------------"
     # Show diff (try color first, fall back to plain)
-    if command -v diff >/dev/null 2>&1; then
+    if command -v diff > /dev/null 2>&1; then
       diff -u "$TEMP_FILE" "$TARGET_FILE" || true
     fi
     echo ""
