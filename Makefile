@@ -38,16 +38,30 @@ test: test-bash test-powershell
 	@echo "✅ All tests completed!"
 
 # Run bash tests using shellspec
+# Note: Some format specs trigger a shellspec reporter bug that causes exit code 1
+# even though all tests pass (0 failures). We check for "0 failures" to work around this.
 test-bash:
 	@echo "🧪 Running bash tests..."
 	@if command -v shellspec >/dev/null 2>&1; then \
-		output=$$(shellspec 2>&1); \
-		echo "$$output"; \
-		if echo "$$output" | grep -q "0 failures"; then \
-			exit 0; \
-		else \
-			exit 1; \
+		failed=0; \
+		for spec in spec/format_basic_spec.sh spec/format_line_endings_spec.sh spec/format_whitespace_spec.sh; do \
+			if [ -f "$$spec" ]; then \
+				output=$$(shellspec "$$spec" 2>&1); \
+				echo "$$output"; \
+				if ! echo "$$output" | grep -q "0 failures"; then \
+					failed=1; \
+				fi; \
+			fi; \
+		done; \
+		other_specs=$$(find spec -name '*_spec.sh' -not -name 'format_*_spec.sh'); \
+		if [ -n "$$other_specs" ]; then \
+			output=$$(shellspec $$other_specs 2>&1); \
+			echo "$$output"; \
+			if ! echo "$$output" | grep -q "0 failures"; then \
+				failed=1; \
+			fi; \
 		fi; \
+		exit $$failed; \
 	else \
 		echo "⚠️  shellspec not found. Skipping bash tests"; \
 		exit 1; \
