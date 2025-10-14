@@ -65,18 +65,22 @@ ensure_single_newline_crlf() {
   local pwsh_cmd="$3"
 
   # Use PowerShell to handle all line ending and whitespace logic
-  # This ensures consistent CRLF behavior across all platforms
+  # Split lines, trim trailing whitespace, and rejoin with CRLF
   $pwsh_cmd -NoProfile -Command "
     \$content = [System.IO.File]::ReadAllText('$ps_file_path')
-    # Remove trailing whitespace from each line (but preserve line endings temporarily)
-    \$content = \$content -replace '[ \t]+(\r?\n)', '\$1'
-    # Convert all line endings to CRLF (normalize LF to CRLF)
-    \$content = \$content -replace '\r?\n', \"\`r\`n\"
-    # Ensure exactly one CRLF at end of file (remove any extra trailing newlines)
-    \$content = \$content -replace '(\r\n)+\$', \"\`r\`n\"
+    # Split on any line ending (LF or CRLF)
+    \$lines = \$content -split '\r?\n'
+    # Remove trailing whitespace from each line
+    \$lines = \$lines | ForEach-Object { \$_.TrimEnd() }
+    # Remove empty lines at the end (but keep empty lines in the middle)
+    while (\$lines.Count -gt 0 -and \$lines[-1] -eq '') {
+      \$lines = \$lines[0..(\$lines.Count - 2)]
+    }
+    # Join lines with CRLF and add final CRLF
+    \$result = (\$lines -join \"\`r\`n\") + \"\`r\`n\"
     # Write as bytes to avoid any platform-specific line ending conversion
     \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
-    \$bytes = \$utf8NoBom.GetBytes(\$content)
+    \$bytes = \$utf8NoBom.GetBytes(\$result)
     [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
   " 2> /dev/null
 }
