@@ -73,10 +73,11 @@ ensure_single_newline_crlf() {
     # Convert all line endings to CRLF (normalize LF to CRLF)
     \$content = \$content -replace '\r?\n', \"\`r\`n\"
     # Ensure exactly one CRLF at end of file (remove any extra trailing newlines)
-    \$content = \$content -replace '(\r\n)+$', \"\`r\`n\"
-    # Write with explicit UTF8 encoding without BOM
+    \$content = \$content -replace '(\r\n)+\$', \"\`r\`n\"
+    # Write as bytes to avoid any platform-specific line ending conversion
     \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
-    [System.IO.File]::WriteAllText('$ps_file_path', \$content, \$utf8NoBom)
+    \$bytes = \$utf8NoBom.GetBytes(\$content)
+    [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
   " 2> /dev/null
 }
 
@@ -256,9 +257,10 @@ format_powershell_file() {
       try {
         \$content = Get-Content '$ps_file_path' -Raw
         \$formatted = Invoke-Formatter -ScriptDefinition \$content
-        # Write back to file as UTF8 without BOM
+        # Write back to file as UTF8 without BOM (use bytes to avoid line ending conversion)
         \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
-        [System.IO.File]::WriteAllText('$ps_file_path', \$formatted, \$utf8NoBom)
+        \$bytes = \$utf8NoBom.GetBytes(\$formatted)
+        [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
       } catch {
         Write-Error \"Failed to format PowerShell file: \$_\"
         exit 1
@@ -349,9 +351,10 @@ batch_format_powershell_files() {
         try {
           \$content = Get-Content \$file -Raw
           \$formatted = Invoke-Formatter -ScriptDefinition \$content
-          # Write back to file as UTF8 without BOM
+          # Write back to file as UTF8 without BOM (use bytes to avoid line ending conversion)
           \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
-          [System.IO.File]::WriteAllText(\$file, \$formatted, \$utf8NoBom)
+          \$bytes = \$utf8NoBom.GetBytes(\$formatted)
+          [System.IO.File]::WriteAllBytes(\$file, \$bytes)
         } catch {
           Write-Error \"Failed to format \$file\"
           \$errors++
