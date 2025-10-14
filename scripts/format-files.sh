@@ -66,32 +66,18 @@ ensure_single_newline_crlf() {
 
   [[ "$VERBOSE_MODE" == "true" ]] && echo "  Converting line endings to CRLF for: $file" >&2
 
-  # Use PowerShell to handle all line ending and whitespace logic
-  # Use simple string operations that work in all PowerShell versions
-  if ! $pwsh_cmd -NoProfile -Command "
-    try {
-      \$content = [System.IO.File]::ReadAllText('$ps_file_path')
-      # Remove all trailing whitespace and newlines first
-      \$content = \$content.TrimEnd()
-      # Convert all line endings to CRLF
-      # First normalize CRLF to LF
-      \$content = \$content.Replace(\"\`r\`n\", \"\`n\")
-      # Then convert all LF to CRLF
-      \$content = \$content.Replace(\"\`n\", \"\`r\`n\")
-      # Remove trailing whitespace from each line using multiline regex
-      \$content = \$content -replace '[ \t]+\`r\`n', \"\`r\`n\"
-      # Add exactly one CRLF at the end
-      \$content = \$content + \"\`r\`n\"
-      # Write as bytes to avoid any platform-specific line ending conversion
-      \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
-      \$bytes = \$utf8NoBom.GetBytes(\$content)
-      [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
-      exit 0
-    } catch {
-      Write-Host \"ERROR in ensure_single_newline_crlf: \$_\" -ForegroundColor Red
-      exit 1
-    }
-  "; then
+  # Get the path to the PowerShell script
+  local script_dir="$(dirname "$(dirname "$0")")"
+  local ps_script="$script_dir/lib/ensure-crlf.ps1"
+  
+  # Convert script path for WSL if needed
+  local ps_script_path="$ps_script"
+  if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
+    ps_script_path=$(wslpath -w "$ps_script")
+  fi
+
+  # Call the PowerShell script file (avoids all escaping issues)
+  if ! $pwsh_cmd -NoProfile -File "$ps_script_path" -FilePath "$ps_file_path"; then
     echo "Error: Failed to convert line endings to CRLF for: $file" >&2
     return 1
   fi
