@@ -21,13 +21,19 @@ try {
     # Remove trailing whitespace from each line
     $content = $content -replace '[ \t]+\r\n', "`r`n"
 
-    # Add exactly one CRLF at the end using explicit byte values
-    # Append CR (0x0D) and LF (0x0A) as bytes to ensure platform independence
+    # Write content as bytes first
     $contentBytes = $utf8NoBom.GetBytes($content)
-    $crlfBytes = [byte[]]@(0x0D, 0x0A)
-    $finalBytes = $contentBytes + $crlfBytes
+    [System.IO.File]::WriteAllBytes($FilePath, $contentBytes)
 
-    [System.IO.File]::WriteAllBytes($FilePath, $finalBytes)
+    # Append CRLF bytes directly using FileStream (more reliable than byte array concatenation)
+    $fs = [System.IO.File]::Open($FilePath, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write)
+    try {
+        $fs.WriteByte(0x0D)  # CR
+        $fs.WriteByte(0x0A)  # LF
+    }
+    finally {
+        $fs.Close()
+    }
 
     exit 0
 }
