@@ -70,19 +70,20 @@ ensure_single_newline_crlf() {
     \$content = [System.IO.File]::ReadAllText('$ps_file_path')
     # Remove all trailing whitespace and newlines first
     \$content = \$content.TrimEnd()
-    # Convert all LF to CRLF (normalize line endings)
-    \$content = \$content -replace '\n', \"\`r\`n\"
-    # Remove any double CR that might have been created from existing CRLF
-    \$content = \$content -replace '\r\r\n', \"\`r\`n\"
-    # Remove trailing whitespace from each line
-    \$content = \$content -replace '[ \t]+\r\n', \"\`r\`n\"
+    # Convert all line endings to CRLF
+    # First normalize CRLF to LF
+    \$content = \$content.Replace(\"\`r\`n\", \"\`n\")
+    # Then convert all LF to CRLF
+    \$content = \$content.Replace(\"\`n\", \"\`r\`n\")
+    # Remove trailing whitespace from each line using multiline regex
+    \$content = \$content -replace '[ \t]+(\`r\`n)', '\$1'
     # Add exactly one CRLF at the end
     \$content = \$content + \"\`r\`n\"
     # Write as bytes to avoid any platform-specific line ending conversion
     \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
     \$bytes = \$utf8NoBom.GetBytes(\$content)
     [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
-  "
+  " 2>&1 | grep -v '^$' || true
 }
 
 # === File Formatting Functions ===
