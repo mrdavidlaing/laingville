@@ -64,15 +64,19 @@ ensure_single_newline_crlf() {
   local ps_file_path="$2" # Windows path if needed for WSL
   local pwsh_cmd="$3"
 
-  # Remove trailing whitespace but preserve CRLF (combined operations)
-  sed -i -e 's/[ \t]\+\r$/\r/' -e 's/[ \t]\+$//' "$file"
-
-  # Use PowerShell to ensure exactly one CRLF at end
-  # Match any trailing newlines (LF or CRLF) and replace with single CRLF
+  # Use PowerShell to handle all line ending and whitespace logic
+  # This ensures consistent CRLF behavior across all platforms
   $pwsh_cmd -NoProfile -Command "
-    \$content = Get-Content '$ps_file_path' -Raw
-    \$content = \$content -replace '[\r\n]+$', \"\`r\`n\"
-    [System.IO.File]::WriteAllText('$ps_file_path', \$content)
+    \$content = [System.IO.File]::ReadAllText('$ps_file_path')
+    # Remove trailing whitespace from each line (but preserve line endings temporarily)
+    \$content = \$content -replace '[ \t]+(\r?\n)', '\$1'
+    # Convert all line endings to CRLF (normalize LF to CRLF)
+    \$content = \$content -replace '\r?\n', \"\`r\`n\"
+    # Ensure exactly one CRLF at end of file (remove any extra trailing newlines)
+    \$content = \$content -replace '(\r\n)+$', \"\`r\`n\"
+    # Write with explicit UTF8 encoding without BOM
+    \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+    [System.IO.File]::WriteAllText('$ps_file_path', \$content, \$utf8NoBom)
   " 2> /dev/null
 }
 
@@ -252,13 +256,15 @@ format_powershell_file() {
       try {
         \$content = Get-Content '$ps_file_path' -Raw
         \$formatted = Invoke-Formatter -ScriptDefinition \$content
-        \$formatted | Out-File '$ps_file_path' -Encoding UTF8
+        # Write back to file as UTF8 without BOM
+        \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+        [System.IO.File]::WriteAllText('$ps_file_path', \$formatted, \$utf8NoBom)
       } catch {
         Write-Error \"Failed to format PowerShell file: \$_\"
         exit 1
       }
     " 2> /dev/null; then
-      # Post-process: Out-File adds CRLF, ensure file ends with exactly one CRLF
+      # Post-process: Convert all line endings to CRLF and ensure exactly one at end
       ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"
       return 0
     else
@@ -343,7 +349,9 @@ batch_format_powershell_files() {
         try {
           \$content = Get-Content \$file -Raw
           \$formatted = Invoke-Formatter -ScriptDefinition \$content
-          \$formatted | Out-File \$file -Encoding UTF8
+          # Write back to file as UTF8 without BOM
+          \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+          [System.IO.File]::WriteAllText(\$file, \$formatted, \$utf8NoBom)
         } catch {
           Write-Error \"Failed to format \$file\"
           \$errors++
