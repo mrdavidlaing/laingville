@@ -66,9 +66,20 @@ ensure_single_newline_crlf() {
 
   [[ "$VERBOSE_MODE" == "true" ]] && echo "  Converting line endings to CRLF for: $file" >&2
 
-  # Get the path to the PowerShell script
-  local script_dir="$(dirname "$(dirname "$0")")"
+  # Get the path to the PowerShell script - use absolute path resolution
+  local script_dir
+  if [[ -n "${BASH_SOURCE[0]}" ]]; then
+    script_dir="$(cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd)"
+  else
+    script_dir="$(cd "$(dirname "$(dirname "$0")")" && pwd)"
+  fi
   local ps_script="$script_dir/lib/ensure-crlf.ps1"
+  
+  # Verify script exists
+  if [[ ! -f "$ps_script" ]]; then
+    echo "Error: PowerShell script not found: $ps_script" >&2
+    return 1
+  fi
   
   # Convert script path for WSL if needed
   local ps_script_path="$ps_script"
@@ -77,7 +88,7 @@ ensure_single_newline_crlf() {
   fi
 
   # Call the PowerShell script file (avoids all escaping issues)
-  if ! $pwsh_cmd -NoProfile -File "$ps_script_path" -FilePath "$ps_file_path"; then
+  if ! $pwsh_cmd -NoProfile -File "$ps_script_path" -FilePath "$ps_file_path" 2>&1; then
     echo "Error: Failed to convert line endings to CRLF for: $file" >&2
     return 1
   fi
