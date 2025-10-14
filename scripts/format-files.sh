@@ -4,7 +4,8 @@
 # Can handle single files or batches of files
 # Usage: ./scripts/format-files.sh [--check] [--batch] <file_path> [file_path2 ...]
 
-set -e
+# Temporarily disable set -e to debug PowerShell CRLF issues
+# set -e
 
 # Global variables
 CHECK_MODE=false
@@ -88,10 +89,21 @@ ensure_single_newline_crlf() {
   fi
 
   # Call the PowerShell script file (avoids all escaping issues)
-  if ! $pwsh_cmd -NoProfile -File "$ps_script_path" -FilePath "$ps_file_path" 2>&1; then
+  # Capture output and exit code for debugging
+  local ps_output
+  local ps_exitcode
+  ps_output=$($pwsh_cmd -NoProfile -File "$ps_script_path" -FilePath "$ps_file_path" 2>&1)
+  ps_exitcode=$?
+  
+  if [[ $ps_exitcode -ne 0 ]]; then
     echo "Error: Failed to convert line endings to CRLF for: $file" >&2
+    echo "PowerShell exit code: $ps_exitcode" >&2
+    [[ -n "$ps_output" ]] && echo "PowerShell output: $ps_output" >&2
     return 1
   fi
+  
+  # Show output if verbose
+  [[ "$VERBOSE_MODE" == "true" && -n "$ps_output" ]] && echo "  PowerShell: $ps_output" >&2
 
   return 0
 }
