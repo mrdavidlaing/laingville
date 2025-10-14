@@ -5,24 +5,24 @@
 
 Include lib/polyfill.functions.bash
 
+# Test helper function to create temp files for testing
+create_temp_test_file() {
+local content="$1"
+local extension="${2:-sh}"
+local temp_file
+temp_file=$(mktemp_with_suffix ".$extension")
+echo "$content" > "$temp_file"
+echo "$temp_file"
+}
+
+# Test helper to clean up temp files
+cleanup_temp_file() {
+local temp_file="$1"
+[[ -f "$temp_file" ]] && rm -f "$temp_file"
+}
+
 Describe "format-files.sh - Comprehensive Formatting Test Suite"
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
-
-  # Test helper function to create temp files for testing
-    create_temp_test_file() {
-    local content="$1"
-    local extension="${2:-sh}"
-    local temp_file
-    temp_file=$(mktemp_with_suffix ".$extension")
-    echo "$content" > "$temp_file"
-    echo "$temp_file"
-    }
-
-  # Test helper to clean up temp files
-    cleanup_temp_file() {
-    local temp_file="$1"
-    [[ -f "$temp_file" ]] && rm -f "$temp_file"
-    }
 
     Describe "Basic Functionality"
       It "shows help when called with --help"

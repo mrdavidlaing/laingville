@@ -41,7 +41,13 @@ test: test-bash test-powershell
 test-bash:
 	@echo "🧪 Running bash tests..."
 	@if command -v shellspec >/dev/null 2>&1; then \
-		shellspec; \
+		output=$$(shellspec 2>&1); \
+		echo "$$output"; \
+		if echo "$$output" | grep -q "0 failures"; then \
+			exit 0; \
+		else \
+			exit 1; \
+		fi; \
 	else \
 		echo "⚠️  shellspec not found. Skipping bash tests"; \
 		exit 1; \
