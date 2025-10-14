@@ -12,14 +12,20 @@ try {
     # Remove all trailing whitespace and newlines
     $content = $content.TrimEnd()
 
+    # Use explicit character codes instead of backtick escape sequences
+    # which may not work correctly on non-Windows PowerShell
+    $CR = [char]0x0D
+    $LF = [char]0x0A
+    $CRLF = "$CR$LF"
+
     # Convert all line endings to CRLF
     # First normalize CRLF to LF
-    $content = $content.Replace("`r`n", "`n")
+    $content = $content.Replace($CRLF, "$LF")
     # Then convert all LF to CRLF
-    $content = $content.Replace("`n", "`r`n")
+    $content = $content.Replace("$LF", $CRLF)
 
     # Remove trailing whitespace from each line
-    $content = $content -replace '[ \t]+\r\n', "`r`n"
+    $content = $content -replace "[ \t]+$CR$LF", $CRLF
 
     # Write content as bytes first
     $contentBytes = $utf8NoBom.GetBytes($content)
