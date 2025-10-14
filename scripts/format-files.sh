@@ -65,6 +65,10 @@ ensure_single_newline_crlf() {
   local ps_file_path="$2" # Windows path if needed for WSL
   local pwsh_cmd="$3"
 
+  echo "DEBUG [ensure_single_newline_crlf]: Called for file: $file" >&2
+  echo "DEBUG [ensure_single_newline_crlf]: ps_file_path=$ps_file_path" >&2
+  echo "DEBUG [ensure_single_newline_crlf]: pwsh_cmd=$pwsh_cmd" >&2
+  
   [[ "$VERBOSE_MODE" == "true" ]] && echo "  Converting line endings to CRLF for: $file" >&2
 
   # Get the path to the PowerShell script - use absolute path resolution
@@ -294,7 +298,12 @@ format_powershell_file() {
       }
     " 2> /dev/null; then
       # Post-process: Convert all line endings to CRLF and ensure exactly one at end
-      ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"
+      echo "DEBUG: About to call ensure_single_newline_crlf for: $file_path" >&2
+      if ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"; then
+        echo "DEBUG: ensure_single_newline_crlf SUCCESS for: $file_path" >&2
+      else
+        echo "DEBUG: ensure_single_newline_crlf FAILED for: $file_path (exit code: $?)" >&2
+      fi
       return 0
     else
       echo "Error: Failed to format PowerShell file: $file_path" >&2
