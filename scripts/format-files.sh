@@ -64,9 +64,11 @@ ensure_single_newline_crlf() {
   local ps_file_path="$2" # Windows path if needed for WSL
   local pwsh_cmd="$3"
 
+  [[ "$VERBOSE_MODE" == "true" ]] && echo "  Converting line endings to CRLF for: $file" >&2
+
   # Use PowerShell to handle all line ending and whitespace logic
   # Use simple string operations that work in all PowerShell versions
-  $pwsh_cmd -NoProfile -Command "
+  if ! $pwsh_cmd -NoProfile -Command "
     try {
       \$content = [System.IO.File]::ReadAllText('$ps_file_path')
       # Remove all trailing whitespace and newlines first
@@ -86,10 +88,15 @@ ensure_single_newline_crlf() {
       [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
       exit 0
     } catch {
-      Write-Error \"ensure_single_newline_crlf failed: \$_\"
+      Write-Host \"ERROR in ensure_single_newline_crlf: \$_\" -ForegroundColor Red
       exit 1
     }
-  "
+  "; then
+    echo "Error: Failed to convert line endings to CRLF for: $file" >&2
+    return 1
+  fi
+
+  return 0
 }
 
 # === File Formatting Functions ===
