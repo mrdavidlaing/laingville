@@ -58,22 +58,48 @@ ensure_single_newline_lf() {
   printf '%s\n' "$(cat "$file")" > "$file"
 }
 
-# Post-process: Ensure exactly one CRLF at end (for PowerShell files)
+# Post-process: Ensure CRLF line endings and exactly one trailing CRLF (for PowerShell files)
 ensure_single_newline_crlf() {
   local file="$1"
   local ps_file_path="$2" # Windows path if needed for WSL
   local pwsh_cmd="$3"
 
-  # Remove trailing whitespace but preserve CRLF (combined operations)
-  sed -i -e 's/[ \t]\+\r$/\r/' -e 's/[ \t]\+$//' "$file"
-
-  # Use PowerShell to ensure exactly one CRLF at end
-  # Match any trailing newlines (LF or CRLF) and replace with single CRLF
+  # Use PowerShell to:
+  # 1) remove trailing spaces/tabs before newline on every line
+  # 2) convert any newline forms (\n or \r\n) to CRLF
+  # 3) ensure exactly one trailing CRLF at EOF
+  # 4) write using UTF-8 without BOM to avoid platform-dependent defaults
   $pwsh_cmd -NoProfile -Command "
-    \$content = Get-Content '$ps_file_path' -Raw
-    \$content = \$content -replace '[\r\n]+$', \"\`r\`n\"
-    [System.IO.File]::WriteAllText('$ps_file_path', \$content)
+    \$path = '$ps_file_path'
+    # Read entire file as text (UTF8) and normalize line endings + whitespace
+    \$text = [System.IO.File]::ReadAllText(\$path, [System.Text.Encoding]::UTF8)
+    \$crlf = [string]([char]13) + [string]([char]10)
+    # Split on any newline sequence (\r\n or \n). Keep content lines only.
+    \$lines = \$text -split '\\r\\n|\\n'
+    # Trim trailing spaces/tabs from each line
+    for (\$i = 0; \$i -lt \$lines.Length; \$i++) {
+      \$lines[\$i] = \$lines[\$i].TrimEnd((" \t").ToCharArray())
+    }
+    # Remove trailing empty lines
+    \$end = \$lines.Length - 1
+    while (\$end -ge 0 -and \$lines[\$end] -eq '') { \$end-- }
+    if (\$end -ge 0) { \$lines = \$lines[0..\$end] } else { \$lines = @() }
+    # Join with CRLF and ensure exactly one trailing CRLF
+    \$output = (\$lines -join \$crlf) + \$crlf
+    # Write exact bytes as UTF-8 (no BOM)
+    \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+    [System.IO.File]::WriteAllText(\$path, \$output, \$utf8NoBom)
   " 2> /dev/null
+}
+
+# Bash fallback: enforce CRLF endings and single trailing CRLF without PowerShell
+ensure_single_newline_crlf_bash() {
+  local file="$1"
+  local tmp_file="${file}.crlf-tmp$$"
+  # Normalize line endings to LF and trim trailing spaces first
+  sed -i -e 's/\r$//' "$file"
+  # Use awk to trim trailing spaces/tabs per line, drop trailing blank lines, and write CRLF endings
+  awk '{ sub(/[ \t]+$/, ""); lines[NR]=$0; if ($0!="") last=NR } END { if (last>0) { for (i=1;i<=last;i++) printf "%s\r\n", lines[i]; } else { printf "\r\n"; } }' "$file" > "$tmp_file" && mv "$tmp_file" "$file"
 }
 
 # === File Formatting Functions ===
@@ -184,29 +210,22 @@ format_powershell_file() {
       echo "ℹ️  Skipping PowerShell formatting: pwsh not available on this platform" >&2
       echo "    Install PowerShell 7+ to enable .ps1 file formatting" >&2
     fi
+    # Enforce CRLF policy via bash fallback when pwsh is unavailable
+    ensure_single_newline_crlf_bash "$file_path"
     return 0
   fi
 
-  # Check if PowerShell formatting is available and functional
-  # Try a simple formatting test to ensure everything works
+  # Detect if Invoke-Formatter is available (PSScriptAnalyzer)
+  local formatter_available="true"
   if ! $pwsh_cmd -NoProfile -Command "
     try {
-      \$testCode = 'Write-Host test'
-      \$formatted = Invoke-Formatter -ScriptDefinition \$testCode -ErrorAction Stop
-      if (\$formatted) {
-        exit 0
-      } else {
-        exit 1
-      }
+      \$null = Get-Command Invoke-Formatter -ErrorAction Stop
+      exit 0
     } catch {
       exit 1
     }
   " > /dev/null 2>&1; then
-    if [[ "$BATCH_MODE" != "true" && "$QUIET_MODE" != "true" ]]; then
-      echo "ℹ️  Skipping PowerShell formatting: PowerShell formatting not functional" >&2
-      echo "    Install/update PSScriptAnalyzer module to enable .ps1 file formatting" >&2
-    fi
-    return 0
+    formatter_available="false"
   fi
 
   if [[ "$check_mode" == "true" ]]; then
@@ -247,24 +266,28 @@ format_powershell_file() {
     # Pre-process: normalize to LF temporarily to avoid mixed line ending errors
     normalize_to_lf "$file_path"
 
-    # Use PowerShell's built-in formatting capabilities
-    if $pwsh_cmd -NoProfile -Command "
-      try {
-        \$content = Get-Content '$ps_file_path' -Raw
-        \$formatted = Invoke-Formatter -ScriptDefinition \$content
-        \$formatted | Out-File '$ps_file_path' -Encoding UTF8
-      } catch {
-        Write-Error \"Failed to format PowerShell file: \$_\"
-        exit 1
-      }
-    " 2> /dev/null; then
-      # Post-process: Out-File adds CRLF, ensure file ends with exactly one CRLF
-      ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"
-      return 0
-    else
-      echo "Error: Failed to format PowerShell file: $file_path" >&2
-      return 1
+    if [[ "$formatter_available" == "true" ]]; then
+      # Use Invoke-Formatter if available
+      if $pwsh_cmd -NoProfile -Command "
+        try {
+          \$content = Get-Content '$ps_file_path' -Raw
+          \$formatted = Invoke-Formatter -ScriptDefinition \$content
+          \$formatted | Out-File '$ps_file_path' -Encoding UTF8
+        } catch {
+          Write-Error \"Failed to format PowerShell file: \$_\"
+          exit 1
+        }
+      " 2> /dev/null; then
+        :
+      else
+        echo "Error: Failed to format PowerShell file: $file_path" >&2
+        return 1
+      fi
     fi
+
+    # Always enforce CRLF policy regardless of formatter availability
+    ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"
+    return 0
   fi
 }
 
@@ -286,17 +309,12 @@ batch_format_powershell_files() {
     return 0
   fi
 
-  # Check if PowerShell formatting is functional (do once for all files)
+  # Detect if Invoke-Formatter is available (do once for all files)
+  local formatter_available="true"
   if ! $pwsh_cmd -NoProfile -Command "
-    try {
-      \$testCode = 'Write-Host test'
-      \$formatted = Invoke-Formatter -ScriptDefinition \$testCode -ErrorAction Stop
-      exit 0
-    } catch {
-      exit 1
-    }
+    try { \$null = Get-Command Invoke-Formatter -ErrorAction Stop; exit 0 } catch { exit 1 }
   " > /dev/null 2>&1; then
-    return 0
+    formatter_available="false"
   fi
 
   # Build PowerShell script to process all files
@@ -328,42 +346,44 @@ batch_format_powershell_files() {
       exit \$errors
     "
   else
-    # Format mode - first normalize line endings, then format
-    if [[ "$check_mode" != "true" ]]; then
-      # Pre-process files to normalize line endings before PowerShell formatting
-      for file in "${files[@]}"; do
-        normalize_to_lf "$file"
-      done
-    fi
+    # Format mode - first normalize line endings, then optionally format
+    for file in "${files[@]}"; do
+      normalize_to_lf "$file"
+    done
 
-    ps_script="
-      \$files = @($file_list)
-      \$errors = 0
-      foreach (\$file in \$files) {
-        try {
-          \$content = Get-Content \$file -Raw
-          \$formatted = Invoke-Formatter -ScriptDefinition \$content
-          \$formatted | Out-File \$file -Encoding UTF8
-        } catch {
-          Write-Error \"Failed to format \$file\"
-          \$errors++
+    if [[ "$formatter_available" == "true" ]]; then
+      ps_script="
+        \$files = @($file_list)
+        \$errors = 0
+        foreach (\$file in \$files) {
+          try {
+            \$content = Get-Content \$file -Raw
+            \$formatted = Invoke-Formatter -ScriptDefinition \$content
+            \$formatted | Out-File \$file -Encoding UTF8
+          } catch {
+            Write-Error \"Failed to format \$file\"
+            \$errors++
+          }
         }
-      }
-      exit \$errors
-    "
+        exit \$errors
+      "
+    else
+      ps_script="
+        \$files = @($file_list)
+        exit 0
+      "
+    fi
   fi
 
   # Execute PowerShell script
   if $pwsh_cmd -NoProfile -Command "$ps_script" 2> /dev/null; then
     if [[ "$check_mode" != "true" ]]; then
-      # Post-process files: Out-File adds CRLF, ensure proper ending
+      # Post-process files: always enforce CRLF
       for file in "${files[@]}"; do
-        # Convert path for WSL if needed
         local ps_file_path="$file"
         if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
           ps_file_path=$(wslpath -w "$file")
         fi
-
         ensure_single_newline_crlf "$file" "$ps_file_path" "$pwsh_cmd"
       done
     fi

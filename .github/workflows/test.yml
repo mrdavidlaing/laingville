@@ -165,6 +165,12 @@ jobs:
           -not -path "./dotfiles/*/.*" \
           -not -name "*_spec.sh" \
           -exec shfmt -d {} \;
+
+    - name: Verify PowerShell CRLF policy
+      run: |
+        echo "🔎 Verifying CRLF policy for PowerShell files on ${{ matrix.platform }}..."
+        chmod +x ./scripts/verify-powershell-crlf.sh
+        ./scripts/verify-powershell-crlf.sh
         
     - name: Lint scripts
       run: |
