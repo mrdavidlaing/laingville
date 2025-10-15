@@ -47,8 +47,9 @@ show_usage() {
 # This normalizes files with mixed line endings so formatters can process them
 normalize_to_lf() {
   local file="$1"
-  # Combined sed operations for better performance
-  sed -i -e 's/[ \t]*$//' -e 's/\r$//' "$file"
+  # Portable in-place normalization using awk (BSD/GNU compatible)
+  local tmp_file="${file}.lf-tmp$$"
+  awk '{ gsub(/\r/, ""); sub(/[ \t]*$/, ""); print }' "$file" > "$tmp_file" && mv "$tmp_file" "$file"
 }
 
 # Post-process: Ensure exactly one LF at end (for bash/shell files)
@@ -96,14 +97,8 @@ ensure_single_newline_crlf() {
 ensure_single_newline_crlf_bash() {
   local file="$1"
   local tmp_file="${file}.crlf-tmp$$"
-  # Normalize line endings to LF and aggressively trim trailing spaces/tabs
-  sed -i \
-    -e 's/[ \t]\+\r$/\r/' \
-    -e 's/[ \t]\+$//' \
-    -e 's/\r$//' \
-    "$file"
   # Use awk to trim trailing spaces/tabs per line, drop trailing blank lines, and write CRLF endings
-  awk '{ sub(/[ \t]+$/, ""); lines[NR]=$0; if ($0!="") last=NR } END { if (last>0) { for (i=1;i<=last;i++) printf "%s\r\n", lines[i]; } else { printf "\r\n"; } }' "$file" > "$tmp_file" && mv "$tmp_file" "$file"
+  awk '{ gsub(/\r/, ""); sub(/[ \t]+$/, ""); lines[NR]=$0; if ($0!="") last=NR } END { if (last>0) { for (i=1;i<=last;i++) printf "%s\r\n", lines[i]; } else { printf "\r\n"; } }' "$file" > "$tmp_file" && mv "$tmp_file" "$file"
 }
 
 # === File Formatting Functions ===
