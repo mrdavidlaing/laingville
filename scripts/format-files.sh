@@ -78,7 +78,7 @@ ensure_single_newline_crlf() {
     \$lines = \$text -split '\\r\\n|\\n'
     # Trim trailing spaces/tabs from each line
     for (\$i = 0; \$i -lt \$lines.Length; \$i++) {
-      \$lines[\$i] = \$lines[\$i].TrimEnd((" \t").ToCharArray())
+      \$lines[\$i] = \$lines[\$i].TrimEnd((" " + [char]9).ToCharArray())
     }
     # Remove trailing empty lines
     \$end = \$lines.Length - 1

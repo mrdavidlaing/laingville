@@ -6,7 +6,7 @@
 set -eu
 
 # Collect tracked PowerShell files
-PS_FILES=$(git ls-files '*.ps1' '*.psm1' '*.psd1' 2>/dev/null || true)
+PS_FILES=$(git ls-files '*.ps1' '*.psm1' '*.psd1' 2> /dev/null || true)
 
 if [ -z "${PS_FILES}" ]; then
   exit 0
@@ -36,5 +36,3 @@ for FILE in ${PS_FILES}; do
 done
 
 exit "$FAILED"
-
-
