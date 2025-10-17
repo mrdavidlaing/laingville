@@ -514,7 +514,7 @@ generate_claude_settings() {
 
   # Check if template exists
   if [[ ! -f "${template_file}" ]]; then
-    return 0  # No template, nothing to do
+    return 0 # No template, nothing to do
   fi
 
   if [[ "${dry_run}" = true ]]; then
@@ -534,7 +534,7 @@ generate_claude_settings() {
   local source_template="${template_file}"
   if [[ "${platform}" = "windows" ]]; then
     # Check if bash is in system PATH
-    if ! command -v bash >/dev/null 2>&1; then
+    if ! command -v bash > /dev/null 2>&1; then
       if [[ -f "${windows_template}" ]]; then
         source_template="${windows_template}"
         log_info "Using Windows-specific template (bash not in PATH)"
@@ -548,7 +548,7 @@ generate_claude_settings() {
   local username="${USER:-${USERNAME:-$(whoami)}}"
 
   # Generate settings file
-  if command -v sed >/dev/null 2>&1; then
+  if command -v sed > /dev/null 2>&1; then
     sed "s/{{USERNAME}}/${username}/g" "${source_template}" > "${output_file}"
     log_success "Generated ${output_file}"
   else
