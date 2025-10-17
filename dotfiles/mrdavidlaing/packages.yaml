@@ -101,6 +101,7 @@ wsl:
     - rsync
     - unzip
     - docker
+    - wget
   yay:
     # AUR-only packages
     - glibc-locales
