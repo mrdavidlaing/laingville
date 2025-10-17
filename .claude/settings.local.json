@@ -18,7 +18,16 @@
       "Bash(ssh.exe:*)",
       "Bash(pwsh.exe:*)",
       "Bash(git commit:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(./scripts/format-files.sh:*)",
+      "Bash(command -v:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git fetch:*)",
+      "Bash(git worktree:*)",
+      "Read(//c/Users/DavidLaing/workspace/laingville-pr6/**)",
+      "Bash(pwsh:*)",
+      "Bash(bash:*)"
     ],
     "deny": []
   },
