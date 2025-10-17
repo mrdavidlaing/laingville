@@ -23,5 +23,11 @@
     "diffEditor.ignoreTrimWhitespace": false,
     "extensions.ignoreRecommendations": true,
     "workbench.sideBar.location": "right",
-    "terminal.integrated.enableMultiLinePasteWarning": "never"
+    "terminal.integrated.enableMultiLinePasteWarning": "never",
+    "editor.fontFamily": "'Cascadia Code', Consolas, 'Courier New', monospace",
+    "editor.fontLigatures": true,
+    "terminal.integrated.fontFamily": "'Cascadia Code'",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontWeight": "100",
+    "debug.console.fontFamily": "Cascadia Code"
 }
