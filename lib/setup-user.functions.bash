@@ -504,60 +504,6 @@ Defaults:${CURRENT_USER} timestamp_timeout=${timeout_minutes}"
   rm -f "${temp_file}"
 }
 
-# Generate Claude Code settings.json from template
-generate_claude_settings() {
-  local dry_run="$1"
-  local claude_dir="${DOTFILES_DIR}/.claude"
-  local template_file="${claude_dir}/settings.template.json"
-  local windows_template="${claude_dir}/settings.windows.json"
-  local output_file="${claude_dir}/settings.json"
-
-  # Check if template exists
-  if [[ ! -f "${template_file}" ]]; then
-    return 0 # No template, nothing to do
-  fi
-
-  if [[ "${dry_run}" = true ]]; then
-    log_dry_run "Generate Claude settings from template"
-    return 0
-  fi
-
-  log_info "Generating Claude Code settings..."
-
-  # Detect platform
-  local platform="${PLATFORM:-}"
-  if [[ -z "${platform}" ]]; then
-    platform="$(detect_platform)"
-  fi
-
-  # Choose template based on platform and bash availability
-  local source_template="${template_file}"
-  if [[ "${platform}" = "windows" ]]; then
-    # Check if bash is in system PATH
-    if ! command -v bash > /dev/null 2>&1; then
-      if [[ -f "${windows_template}" ]]; then
-        source_template="${windows_template}"
-        log_info "Using Windows-specific template (bash not in PATH)"
-      else
-        log_warning "bash not in PATH and no Windows template found"
-      fi
-    fi
-  fi
-
-  # Get current username for template substitution
-  local username="${USER:-${USERNAME:-$(whoami)}}"
-
-  # Generate settings file
-  if command -v sed > /dev/null 2>&1; then
-    sed "s/{{USERNAME}}/${username}/g" "${source_template}" > "${output_file}"
-    log_success "Generated ${output_file}"
-  else
-    # Fallback: just copy without substitution
-    cp "${source_template}" "${output_file}"
-    log_warning "sed not available, copied template without username substitution"
-  fi
-}
-
 # Run per-user setup hook script if present
 run_user_setup_hook() {
   local dry_run="$1"
