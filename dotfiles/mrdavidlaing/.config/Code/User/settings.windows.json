@@ -30,5 +30,7 @@
     "terminal.integrated.fontSize": 14,
     "terminal.integrated.fontWeight": "100",
     "debug.console.fontFamily": "'Cascadia Code'",
-    "terminal.integrated.fontLigatures.enabled": true
+    "terminal.integrated.fontLigatures.enabled": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "claude-code.useTerminal": true
 }
