@@ -22,6 +22,8 @@ arch:
     target: ~/.local/bin/git-identity
   - source: .local/bin/fetch-api-key
     target: ~/.local/bin/fetch-api-key
+  - source: .local/bin/lazygit-editor
+    target: ~/.local/bin/lazygit-editor
   # Claude Code
   - source: .claude/CLAUDE.md
     target: ~/.claude/CLAUDE.md
@@ -65,6 +67,8 @@ wsl:
     target: ~/.local/bin/git-identity
   - source: .local/bin/fetch-api-key
     target: ~/.local/bin/fetch-api-key
+  - source: .local/bin/lazygit-editor
+    target: ~/.local/bin/lazygit-editor
   # Claude Code
   - source: .claude/CLAUDE.md
     target: ~/.claude/CLAUDE.md
@@ -146,6 +150,8 @@ macos:
     target: ~/.local/bin/git-identity
   - source: .local/bin/fetch-api-key
     target: ~/.local/bin/fetch-api-key
+  - source: .local/bin/lazygit-editor
+    target: ~/.local/bin/lazygit-editor
   # Claude Code
   - source: .claude/CLAUDE.md
     target: ~/.claude/CLAUDE.md
@@ -180,6 +186,8 @@ nix:
     target: ~/.local/bin/git-identity
   - source: .local/bin/fetch-api-key
     target: ~/.local/bin/fetch-api-key
+  - source: .local/bin/lazygit-editor
+    target: ~/.local/bin/lazygit-editor
   # Claude Code
   - source: .claude/scripts/claude-code-bash-direnv-wrapper.bash
     target: ~/.local/bin/claude-code-bash-direnv-wrapper

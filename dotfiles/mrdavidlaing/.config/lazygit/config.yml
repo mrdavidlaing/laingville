@@ -51,12 +51,15 @@ git:
 
 # Operating system integration
 os:
-  # Use nvim as default editor
-  edit: 'nvim {{filename}}'
-  editAtLine: 'nvim +{{line}} {{filename}}'
-  editAtLineAndWait: 'nvim +{{line}} {{filename}}'
+  # Use wrapper script that detects VS Code terminal vs regular terminal
+  edit: 'lazygit-editor {{filename}}'
+  editAtLine: 'lazygit-editor +{{line}} {{filename}}'
+  editAtLineAndWait: 'lazygit-editor +{{line}} {{filename}}'
   open: 'open {{filename}}'
   openLink: 'open {{link}}'
+
+# Remove "press enter to return to lazygit" popup
+promptToReturnFromSubprocess: false
 
 # Custom commands
 customCommands:

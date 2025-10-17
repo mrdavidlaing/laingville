@@ -1,0 +1,15 @@
+#!/bin/bash
+# Lazygit editor wrapper that uses VS Code in VS Code terminal, nvim otherwise
+
+if [ "$TERM_PROGRAM" = "vscode" ]; then
+  # Extract line number if provided (format: +123)
+  if [[ "$1" =~ ^\+([0-9]+)$ ]]; then
+    line="${BASH_REMATCH[1]}"
+    shift
+    code --wait --goto "$1:$line"
+  else
+    code --wait "$@"
+  fi
+else
+  nvim "$@"
+fi
