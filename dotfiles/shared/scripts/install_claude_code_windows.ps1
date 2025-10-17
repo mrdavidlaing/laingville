@@ -4,20 +4,21 @@ param(
 )
 
 $logPrefix = '[Claude Code]'
+$InformationPreference = 'Continue'
 
 # Check if claude.exe is already available in PATH
 $claudeCommand = Get-Command claude.exe -ErrorAction SilentlyContinue
 if ($claudeCommand) {
-    Write-Host "$logPrefix Claude Code CLI is already installed at: $($claudeCommand.Source)" -ForegroundColor Green
+    Write-Information "$logPrefix Claude Code CLI is already installed at: $($claudeCommand.Source)" -Tags 'Success'
     return
 }
 
 if ($DryRun) {
-    Write-Host "$logPrefix [DRY RUN] Would install native Claude Code via https://claude.ai/install.ps1" -ForegroundColor Cyan
+    Write-Information "$logPrefix [DRY RUN] Would install native Claude Code via https://claude.ai/install.ps1" -Tags 'DryRun'
     return
 }
 
-Write-Host "$logPrefix Installing native Windows binary..."
+Write-Information "$logPrefix Installing native Windows binary..." -Tags 'Info'
 
 try {
     # Download and execute the official installer
@@ -28,7 +29,7 @@ try {
 
     $installScript = [ScriptBlock]::Create($installScriptContent)
     & $installScript | Out-Null
-    Write-Host "$logPrefix [OK] Native installer completed" -ForegroundColor Green
+    Write-Information "$logPrefix [OK] Native installer completed" -Tags 'Success'
 
     # Verify installation succeeded
     $claudeCommand = Get-Command claude.exe -ErrorAction SilentlyContinue
@@ -36,12 +37,12 @@ try {
         throw "Installation completed but 'claude.exe' command not found on PATH"
     }
 
-    Write-Host "$logPrefix Installed location: $($claudeCommand.Source)" -ForegroundColor Gray
+    Write-Information "$logPrefix Installed location: $($claudeCommand.Source)" -Tags 'Info'
 
     try {
         $version = & $claudeCommand.Source --version
         if ($version) {
-            Write-Host "$logPrefix Installed version: $version" -ForegroundColor Green
+            Write-Information "$logPrefix Installed version: $version" -Tags 'Success'
         }
     }
     catch {

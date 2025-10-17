@@ -1,6 +1,10 @@
 # PowerShell profile for mrdavidlaing
 # This file is symlinked to the appropriate PowerShell profile location
 
+# Suppress PSScriptAnalyzer warnings for tool initialization that requires Invoke-Expression
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '', Justification = 'Required for starship and zoxide shell integration')]
+param()
+
 # Add user's local bin to PATH for PowerShell sessions
 $localBin = Join-Path $env:USERPROFILE ".local\bin"
 if (Test-Path $localBin) {

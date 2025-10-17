@@ -182,7 +182,7 @@ function Invoke-SymlinksFromConfig {
 .EXAMPLE
     Install-UserPackage "C:\repo\dotfiles\user" $false
 #>
-function Invoke-CustomWindowsScripts {
+function Invoke-CustomWindowsScript {
     param(
         [string]$DotfilesDir,
         [string[]]$Scripts,
@@ -396,7 +396,7 @@ function Install-UserPackage {
 
     if ($packages.custom.Count -gt 0) {
         Write-Step "Running Custom Scripts"
-        $customResult = Invoke-CustomWindowsScripts -DotfilesDir $DotfilesDir -Scripts $packages.custom -DryRun:$DryRun
+        $customResult = Invoke-CustomWindowsScript -DotfilesDir $DotfilesDir -Scripts $packages.custom -DryRun:$DryRun
         if (-not $customResult) {
             return $false
         }

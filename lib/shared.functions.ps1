@@ -20,7 +20,7 @@ function Invoke-Winget {
     & winget @Arguments
 }
 
-function Ensure-NuGetProvider {
+function Initialize-NuGetProvider {
     param()
 
     $minimumVersion = [Version]"2.8.5.201"
@@ -188,7 +188,7 @@ function Install-PowerShellModule {
         return $true
     }
 
-    if (-not (Ensure-NuGetProvider)) {
+    if (-not (Initialize-NuGetProvider)) {
         return $false
     }
 
