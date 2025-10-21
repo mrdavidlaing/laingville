@@ -148,6 +148,7 @@ windows:
     - direnv
     - eza
     - zoxide
+    - bat
     - nerd-fonts/CascadiaCode-NF
     - nerd-fonts/JetBrainsMono-NF
   psmodule:
