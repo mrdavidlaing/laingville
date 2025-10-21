@@ -1,7 +1,7 @@
 #!/bin/bash
 
 Describe "YAML heredoc test"
-It "should preserve YAML structure in heredocs"
+  It "should preserve YAML structure in heredocs"
 # Create test YAML file
 cat > "${temp_file}" << 'EOF'
 arch:
@@ -13,9 +13,9 @@ windows:
     - Git.Git
 EOF
 
-chmod +x "${script_file}"
+    chmod +x "${script_file}"
 
-When call test_command
-The status should be success
-End
+    When call test_command
+    The status should be success
+  End
 End

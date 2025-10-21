@@ -6,10 +6,10 @@ export COLORTERM=truecolor
 
 # If we're in an SSH session, make sure we have the right TERM
 if [[ -n "$SSH_TTY" ]]; then
-  # For SSH sessions, ensure we communicate 256-color capability
-  if [[ "$TERM" == "xterm" || "$TERM" == "xterm-color" ]]; then
-    export TERM=xterm-256color
-  fi
+    # For SSH sessions, ensure we communicate 256-color capability
+    if [[ "$TERM" == "xterm" || "$TERM" == "xterm-color" ]]; then
+        export TERM=xterm-256color
+    fi
 fi
 
 # Display current terminal settings
@@ -21,9 +21,9 @@ echo ""
 
 # Start tmux with control mode if requested, or regular tmux
 if [[ "$1" == "-CC" ]]; then
-  echo "Starting tmux with control mode (-CC)..."
-  tmux -CC
+    echo "Starting tmux with control mode (-CC)..."
+    tmux -CC
 else
-  echo "Starting regular tmux session..."
-  tmux
+    echo "Starting regular tmux session..."
+    tmux
 fi
