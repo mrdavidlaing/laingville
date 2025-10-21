@@ -10,7 +10,7 @@
     Parses YAML content and extracts plugins from the claudecode.plugins section
     Returns array of plugin strings in format: plugin@marketplace
 #>
-function Extract-ClaudeCodePluginsFromYaml {
+function Get-ClaudeCodePluginsFromYaml {
     param([string]$YamlContent)
 
     if (-not $YamlContent) {
@@ -121,7 +121,7 @@ function Add-ClaudeCodeMarketplace {
     }
 
     if ($DryRun) {
-        Write-Host "[DRY RUN] Would add marketplace: $Marketplace" -ForegroundColor Cyan
+        Write-LogInfo "[DRY RUN] Would add marketplace: $Marketplace"
         return $true
     }
 
@@ -182,7 +182,7 @@ function Install-ClaudeCodePlugin {
     }
 
     if ($DryRun) {
-        Write-Host "[DRY RUN] Would install plugin: $Plugin" -ForegroundColor Cyan
+        Write-LogInfo "[DRY RUN] Would install plugin: $Plugin"
         return $true
     }
 
@@ -221,7 +221,7 @@ function Invoke-ClaudeCodePluginSetup {
 
     # Extract plugins from YAML
     $yamlContent = Get-Content $packagesFile -Raw
-    $plugins = Extract-ClaudeCodePluginsFromYaml $yamlContent
+    $plugins = Get-ClaudeCodePluginsFromYaml $yamlContent
 
     if ($plugins.Count -eq 0) {
         Write-LogInfo "No Claude Code plugins configured"

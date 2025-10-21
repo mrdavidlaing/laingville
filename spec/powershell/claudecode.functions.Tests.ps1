@@ -11,7 +11,7 @@ BeforeAll {
 }
 
 Describe "Claude Code Plugin Management" {
-    Context "Extract-ClaudeCodePluginsFromYaml" {
+    Context "Get-ClaudeCodePluginsFromYaml" {
         It "extracts plugins from valid packages.yaml" {
             $yamlContent = @"
 claudecode:
@@ -20,7 +20,7 @@ claudecode:
     - another-plugin@user/repo
 "@
 
-            $plugins = Extract-ClaudeCodePluginsFromYaml $yamlContent
+            $plugins = Get-ClaudeCodePluginsFromYaml $yamlContent
             $plugins | Should -HaveCount 2
             $plugins[0] | Should -Be "superpowers@obra/superpowers-marketplace"
             $plugins[1] | Should -Be "another-plugin@user/repo"
@@ -33,7 +33,7 @@ arch:
     - vim
 "@
 
-            $plugins = Extract-ClaudeCodePluginsFromYaml $yamlContent
+            $plugins = Get-ClaudeCodePluginsFromYaml $yamlContent
             $plugins | Should -HaveCount 0
         }
 
@@ -44,12 +44,12 @@ claudecode:
     - something
 "@
 
-            $plugins = Extract-ClaudeCodePluginsFromYaml $yamlContent
+            $plugins = Get-ClaudeCodePluginsFromYaml $yamlContent
             $plugins | Should -HaveCount 0
         }
 
         It "handles empty input" {
-            $plugins = Extract-ClaudeCodePluginsFromYaml ""
+            $plugins = Get-ClaudeCodePluginsFromYaml ""
             $plugins | Should -HaveCount 0
         }
 
@@ -63,7 +63,7 @@ windows:
     - not-a-plugin
 "@
 
-            $plugins = Extract-ClaudeCodePluginsFromYaml $yamlContent
+            $plugins = Get-ClaudeCodePluginsFromYaml $yamlContent
             $plugins | Should -HaveCount 1
             $plugins[0] | Should -Be "plugin1@owner/repo"
         }
