@@ -13,7 +13,7 @@
 function Invoke-ClaudeCli {
     param([string[]]$Arguments)
 
-    $output = & claude.exe @Arguments 2>&1
+    $null = & claude.exe @Arguments 2>&1
     return $LASTEXITCODE
 }
 
