@@ -16,6 +16,7 @@ source "$LIB_DIR/packages.functions.bash"
 source "$LIB_DIR/shared.functions.bash"
 source "$LIB_DIR/symlinks.functions.bash"
 source "$LIB_DIR/git.functions.bash"
+source "$LIB_DIR/claudecode.functions.bash"
 source "$LIB_DIR/macos.functions.bash"
 source "$LIB_DIR/wsl.functions.bash"
 source "$LIB_DIR/setup-user.functions.bash"
@@ -131,6 +132,14 @@ if [ "$PLATFORM" = "wsl" ]; then
 fi
 
 handle_packages "$PLATFORM" "$DRY_RUN"
+
+# Claude Code plugin management
+if command -v claude >/dev/null 2>&1; then
+    log_subsection "Claude Code Plugins"
+    handle_claudecode_plugins "$DRY_RUN"
+else
+    log_info "Claude Code CLI not found, skipping plugin setup"
+fi
 
 # Platform-specific locale setup
 if [ "$PLATFORM" = "arch" ] || [ "$PLATFORM" = "wsl" ]; then
