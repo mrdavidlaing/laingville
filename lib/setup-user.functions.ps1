@@ -51,7 +51,16 @@ function New-FileSymlink {
     # Create symlink using cmd mklink (requires Developer Mode)
     if ($PSCmdlet.ShouldProcess($Target, "Create symlink to $Source")) {
         try {
-            $result = & cmd.exe /c "mklink `"$Target`" `"$Source`"" 2>&1
+            # Check if source is a directory and use /D flag for directory symlinks
+            $isDirectory = Test-Path -Path $Source -PathType Container
+            $mklinkCmd = if ($isDirectory) {
+                "mklink /D `"$Target`" `"$Source`""
+            }
+            else {
+                "mklink `"$Target`" `"$Source`""
+            }
+
+            $result = & cmd.exe /c $mklinkCmd 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-LogSuccess "Linked: $Target -> $Source"
                 return $true

@@ -143,5 +143,50 @@ Describe "setup-user.functions.ps1" {
                 $result | Should -Be $false
             }
         }
+
+        Context "when creating directory symlinks" {
+            BeforeEach {
+                # Create test source directory with files
+                $script:testSourceDir = Join-Path $script:tempDir "source_dir"
+                $script:testTargetDir = Join-Path $script:tempDir "target_dir"
+                New-Item -ItemType Directory -Path $script:testSourceDir -Force
+                "File 1" | Set-Content (Join-Path $script:testSourceDir "file1.txt")
+                "File 2" | Set-Content (Join-Path $script:testSourceDir "file2.txt")
+
+                # Clean up any existing target
+                if (Test-Path $script:testTargetDir) {
+                    Remove-Item $script:testTargetDir -Force -Recurse
+                }
+            }
+
+            AfterEach {
+                # Clean up test directories
+                if (Test-Path $script:testSourceDir) {
+                    Remove-Item $script:testSourceDir -Force -Recurse
+                }
+                if (Test-Path $script:testTargetDir) {
+                    Remove-Item $script:testTargetDir -Force -Recurse
+                }
+            }
+
+            It "creates directory symlink that allows directory traversal" {
+                # Integration test - actually create the symlink
+                $result = New-FileSymlink $script:testTargetDir $script:testSourceDir
+
+                # The symlink should be created successfully
+                $result | Should -Be $true
+                Test-Path $script:testTargetDir | Should -Be $true
+
+                # Verify we can list files through the symlink
+                $files = Get-ChildItem $script:testTargetDir -File
+                $files.Count | Should -Be 2
+                $files.Name | Should -Contain "file1.txt"
+                $files.Name | Should -Contain "file2.txt"
+
+                # Verify we can read files through the symlink
+                $content = Get-Content (Join-Path $script:testTargetDir "file1.txt")
+                $content | Should -Be "File 1"
+            }
+        }
     }
 }
