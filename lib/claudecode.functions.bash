@@ -12,6 +12,7 @@ extract_claudecode_plugins_from_yaml() {
   while IFS= read -r line; do
     # Remove leading whitespace for easier parsing
     local trimmed_line
+    # shellcheck disable=SC2001 # sed is more portable for bash 3.2 than ${var//pattern/replace}
     trimmed_line=$(echo "$line" | sed 's/^[[:space:]]*//')
 
     # Check for claudecode section
@@ -42,6 +43,7 @@ extract_claudecode_plugins_from_yaml() {
     # Extract plugin entries (lines starting with -)
     if [ "$in_plugins" = true ] && echo "$trimmed_line" | grep -q "^- "; then
       local plugin
+      # shellcheck disable=SC2001 # sed is more portable for bash 3.2 than ${var//pattern/replace}
       plugin=$(echo "$trimmed_line" | sed 's/^- //')
       echo "$plugin"
     fi
@@ -66,6 +68,7 @@ extract_marketplace_from_plugin() {
 
   # Extract everything after @
   local marketplace
+  # shellcheck disable=SC2001 # sed is more portable for bash 3.2 than ${var//pattern/replace}
   marketplace=$(echo "$plugin" | sed 's/^[^@]*@//')
 
   if [ -z "$marketplace" ]; then
@@ -133,6 +136,7 @@ install_or_update_plugin() {
 
   # Security validation - extract parts and validate
   local plugin_name marketplace
+  # shellcheck disable=SC2001 # sed is more portable for bash 3.2 than ${var//pattern/replace}
   plugin_name=$(echo "$plugin" | sed 's/@.*//')
   marketplace=$(extract_marketplace_from_plugin "$plugin")
 
@@ -178,6 +182,7 @@ handle_claudecode_plugins() {
 
   # Extract plugins from YAML
   local plugins
+  # shellcheck disable=SC2002 # Explicit piping is clearer than input redirection for this use case
   plugins=$(cat "$packages_file" | extract_claudecode_plugins_from_yaml)
 
   if [ -z "$plugins" ]; then

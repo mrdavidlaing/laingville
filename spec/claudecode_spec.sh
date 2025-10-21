@@ -50,6 +50,7 @@ Describe 'Claude Code Plugin Management'
             End
 
             Describe 'ensure_marketplace_added()'
+              # shellcheck disable=SC2329 # Function is invoked by ShellSpec BeforeEach
               setup_mock_claude() {
                 # Create mock claude command as an executable script
               mkdir -p "$SHELLSPEC_TMPBASE/bin"
