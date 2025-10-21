@@ -4,27 +4,27 @@
 Describe 'Complex test cases'
 
 # Comment before It
-  It 'should handle comments and empty lines'
+It 'should handle comments and empty lines'
 
 # Inline comment
-    echo "test"
+echo "test"
 
 # Multi-line echo
-    echo "This is a very long line that might \
+echo "This is a very long line that might \
     span multiple lines"
 
-  End
+End
 
 # Comment between blocks
-  Context 'edge cases'
+Context 'edge cases'
 # Another comment
-    It 'should handle various ShellSpec keywords'
-      Example 'this is an example'
-        echo "example"
-      End
+It 'should handle various ShellSpec keywords'
+Example 'this is an example'
+echo "example"
+End
 
-      Specify 'this specifies behavior'
-        echo "specify"
-      End
-    End
-  End
+Specify 'this specifies behavior'
+echo "specify"
+End
+End
+End
