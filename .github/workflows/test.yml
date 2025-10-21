@@ -157,23 +157,23 @@ jobs:
         fi
         
 
-    - name: Check formatting
+    - name: Check formatting and lint
       run: |
-        echo "🎨 Checking bash script formatting on ${{ matrix.platform }}..."
-        find . -type f \( -name "*.sh" -o -name "*.bash" \) \
+        echo "🎨 Checking formatting on ${{ matrix.platform }}..."
+        files_to_check=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.ps1" \) \
           -not -path "./.git/*" \
           -not -path "./dotfiles/*/.*" \
-          -not -name "*_spec.sh" \
-          -exec shfmt -d {} \;
-        
-    - name: Lint scripts
-      run: |
-        echo "🔍 Linting bash scripts on ${{ matrix.platform }}..."
-        find . -type f \( -name "*.sh" -o -name "*.bash" \) \
-          -not -path "./.git/*" \
-          -not -path "./dotfiles/*/.*" \
-          -exec shellcheck {} \;
-        shellcheck setup.sh
+          -not -path "./spec/fixtures/*" \
+          2>/dev/null)
+        claude_scripts=$(find ./dotfiles/mrdavidlaing/.claude/scripts -type f -name "*.bash" 2>/dev/null || true)
+        claude_wrappers=$(find ./dotfiles/mrdavidlaing/.claude/wrappers -type f 2>/dev/null || true)
+        all_files="$files_to_check $claude_scripts $claude_wrappers"
+        if [ -n "$all_files" ]; then
+          ./scripts/format-files.sh --check --batch $all_files
+        fi
+
+        echo "🔍 Linting scripts on ${{ matrix.platform }}..."
+        make lint
         
     - name: Run shellspec tests with coverage (Linux)
       if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
@@ -333,11 +333,11 @@ jobs:
         Import-Module Pester -Force
         Import-Module PSScriptAnalyzer -Force
 
-    - name: Run PowerShell linting
-      shell: pwsh
+    - name: Run linting
+      shell: bash
       run: |
-        Write-Host "🔍 Running PowerShell linting on ${{ matrix.os }}..." -ForegroundColor Cyan
-        .\scripts\lint-powershell.ps1
+        echo "🔍 Running linting on ${{ matrix.os }}..."
+        make lint
 
     - name: Run Pester tests with coverage
       shell: pwsh

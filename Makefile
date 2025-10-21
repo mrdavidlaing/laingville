@@ -1,7 +1,7 @@
 # Makefile for Laingville repository
 # Provides canonical commands for formatting, linting, and testing bash scripts
 
-.PHONY: all format lint lint-powershell test test-bash test-powershell check help
+.PHONY: all format lint test test-bash test-powershell check help
 
 # Default target: run format, lint, then test
 all: format lint test
@@ -24,14 +24,16 @@ format:
 		echo "ℹ️  No files found to format"; \
 	fi
 
-# Lint all bash scripts using shellcheck
+# Lint all bash scripts using shellcheck, and PowerShell scripts if pwsh is available
 lint:
 	@echo "🔍 Linting bash scripts..."
 	@./scripts/lint-bash.sh
-
-# Lint all PowerShell scripts using PSScriptAnalyzer
-lint-powershell:
-	@pwsh -ExecutionPolicy Bypass -File scripts/lint-powershell.ps1
+	@if command -v pwsh >/dev/null 2>&1; then \
+		echo "🔍 Linting PowerShell scripts..."; \
+		pwsh -ExecutionPolicy Bypass -File scripts/lint-powershell.ps1; \
+	else \
+		echo "ℹ️  PowerShell not available. Skipping PowerShell linting"; \
+	fi
 
 # Run all tests (bash + PowerShell)
 test: test-bash test-powershell
@@ -105,8 +107,7 @@ help:
 	@echo ""
 	@echo "  make              - Run format, lint, and test (default)"
 	@echo "  make format       - Format all bash scripts with shfmt"
-	@echo "  make lint         - Lint all bash scripts with shellcheck"
-	@echo "  make lint-powershell - Lint all PowerShell scripts with PSScriptAnalyzer"
+	@echo "  make lint         - Lint bash + PowerShell scripts (if pwsh available)"
 	@echo "  make test         - Run all tests (bash + PowerShell)"
 	@echo "  make test-bash    - Run bash tests with shellspec"
 	@echo "  make test-powershell - Run PowerShell tests with Pester"
