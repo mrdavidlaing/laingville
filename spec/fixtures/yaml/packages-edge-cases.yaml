@@ -1,0 +1,31 @@
+# Edge case testing for YAML parser
+# Tests critical failure modes
+
+arch:
+  pacman:
+    - git
+    - vim
+    - package-with-colons:v1.2.3:release  # Colons in package name
+    - tmux
+  yay:
+    - starship
+    - "package#with#hashes"  # Hash symbols must be quoted
+    - yay
+
+windows:
+  winget:
+    - Git.Git
+    - Microsoft.PowerShell
+    - "Package.With#Hash"  # Quoted hash
+  scoop:
+    - git
+    - "git # this looks like a comment"  # Comment inside quotes (should preserve)
+  psmodule:
+    - PowerShellGet
+    - "Module:With:Colons"  # Colons in quotes
+
+macos:
+  homebrew:
+    - git
+    - "package-with-#-hash"  # Hash must be quoted in YAML
+    - ripgrep

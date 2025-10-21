@@ -1,0 +1,16 @@
+# YAML with tabs mixed with spaces
+# This tests indent calculation with mixed whitespace
+
+arch:
+	pacman:
+    - git
+	  - vim
+    - tmux
+	yay:
+	  - starship
+	  - yay
+
+windows:
+  winget:
+	  - Git.Git
+    - Microsoft.PowerShell

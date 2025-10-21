@@ -134,10 +134,23 @@ extract_packages_from_yaml() {
             item = items[i]
             # Strip leading/trailing whitespace
             gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
-            # Strip quotes
-            gsub(/^["'\'']|["'\'']$/, "", item)
-            # Strip comments
-            sub(/[[:space:]]*#.*$/, "", item)
+
+            # Handle quoted strings properly (preserve content inside quotes, including #)
+            # Check if item starts and ends with quotes
+            if (item ~ /^".*"$/ || item ~ /^'\''.*'\''$/) {
+              # Quoted string: strip quotes, preserve everything inside (including #)
+              if (item ~ /^".*"$/) {
+                sub(/^"/, "", item)
+                sub(/"$/, "", item)
+              } else if (item ~ /^'\''.*'\''$/) {
+                sub(/^'\''/, "", item)
+                sub(/'\''$/, "", item)
+              }
+            } else {
+              # Not quoted: strip comments first, then any stray quotes
+              sub(/[[:space:]]*#.*$/, "", item)
+              gsub(/^["'\'']|["'\'']$/, "", item)
+            }
 
             if (item != "") {
               print item
@@ -175,12 +188,28 @@ extract_packages_from_yaml() {
         line = $0
         # Strip list marker and leading whitespace
         sub(/^[[:space:]]*-[[:space:]]*/, "", line)
-        # Strip comments
-        sub(/[[:space:]]*#.*$/, "", line)
+
+        # Handle quoted strings properly (preserve content inside quotes, including #)
+        # Check if line starts and ends with quotes (allowing trailing comments after quotes)
+        if (line ~ /^"[^"]*"/ || line ~ /^'\''[^'\'']*'\''/) {
+          # Quoted string: extract content between quotes, preserve everything inside (including #)
+          if (line ~ /^"[^"]*"/) {
+            # Extract content between double quotes
+            sub(/^"/, "", line)
+            sub(/".*$/, "", line)
+          } else if (line ~ /^'\''[^'\'']*'\''/) {
+            # Extract content between single quotes
+            sub(/^'\''/, "", line)
+            sub(/'\''.*$/, "", line)
+          }
+        } else {
+          # Not quoted: strip comments first, then any stray quotes
+          sub(/[[:space:]]*#.*$/, "", line)
+          gsub(/^["'\'']|["'\'']$/, "", line)
+        }
+
         # Strip trailing whitespace
         sub(/[[:space:]]*$/, "", line)
-        # Strip quotes (both single and double)
-        gsub(/^["'\'']|["'\'']$/, "", line)
 
         if (line != "") {
           print line
@@ -266,8 +295,22 @@ extract_cleanup_packages_from_yaml() {
           for (i = 1; i <= n && count < max_packages; i++) {
             item = items[i]
             gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
-            gsub(/^["'\'']|["'\'']$/, "", item)
-            sub(/[[:space:]]*#.*$/, "", item)
+
+            # Handle quoted strings properly (preserve content inside quotes, including #)
+            if (item ~ /^".*"$/ || item ~ /^'\''.*'\''$/) {
+              # Quoted string: strip quotes, preserve everything inside
+              if (item ~ /^".*"$/) {
+                sub(/^"/, "", item)
+                sub(/"$/, "", item)
+              } else if (item ~ /^'\''.*'\''$/) {
+                sub(/^'\''/, "", item)
+                sub(/'\''$/, "", item)
+              }
+            } else {
+              # Not quoted: strip comments first, then any stray quotes
+              sub(/[[:space:]]*#.*$/, "", item)
+              gsub(/^["'\'']|["'\'']$/, "", item)
+            }
 
             if (item != "") {
               print item
@@ -299,9 +342,24 @@ extract_cleanup_packages_from_yaml() {
 
         line = $0
         sub(/^[[:space:]]*-[[:space:]]*/, "", line)
-        sub(/[[:space:]]*#.*$/, "", line)
+
+        # Handle quoted strings properly (preserve content inside quotes, including #)
+        if (line ~ /^"[^"]*"/ || line ~ /^'\''[^'\'']*'\''/) {
+          # Quoted string: extract content between quotes
+          if (line ~ /^"[^"]*"/) {
+            sub(/^"/, "", line)
+            sub(/".*$/, "", line)
+          } else if (line ~ /^'\''[^'\'']*'\''/) {
+            sub(/^'\''/, "", line)
+            sub(/'\''.*$/, "", line)
+          }
+        } else {
+          # Not quoted: strip comments first, then any stray quotes
+          sub(/[[:space:]]*#.*$/, "", line)
+          gsub(/^["'\'']|["'\'']$/, "", line)
+        }
+
         sub(/[[:space:]]*$/, "", line)
-        gsub(/^["'\'']|["'\'']$/, "", line)
 
         if (line != "") {
           print line
