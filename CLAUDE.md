@@ -75,6 +75,29 @@ For Scoop packages, you can specify packages from specific buckets using the for
 
 Server package configurations follow the same format but are located in `servers/[hostname]/packages.yaml`.
 
+### Claude Code Plugin Management
+
+Each user and server can define Claude Code plugins and marketplaces to install in their respective `packages.yaml` files under the `claudecode` section.
+
+**Plugin format:** `plugin-name@owner/marketplace-repo`
+
+Example configuration:
+```yaml
+claudecode:
+  plugins:
+    - superpowers@obra/superpowers-marketplace
+    - another-plugin@user/marketplace-repo
+```
+
+**How it works:**
+- Plugins are specified with their marketplace source included
+- Marketplaces are automatically added before plugin installation
+- Same marketplace is only added once even if multiple plugins use it
+- Plugins are installed/updated on every run of `setup-user`
+- Requires `claude` CLI to be installed
+
+**Platform support:** Works on all platforms where Claude Code CLI is available (Mac, Windows, Linux, WSL).
+
 ## Development Notes
 
 - The project uses shell scripting for automation
