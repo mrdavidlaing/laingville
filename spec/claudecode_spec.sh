@@ -120,4 +120,78 @@ MOCK_EOF
                 The stdout should include "Would install plugin: superpowers@obra/superpowers-marketplace"
               End
             End
+
+            Describe 'handle_claudecode_plugins()'
+              setup_integration() {
+                # Create temporary packages.yaml
+              mkdir -p "$SHELLSPEC_TMPBASE"
+                cat > "$SHELLSPEC_TMPBASE/packages.yaml" << 'EOF'
+claudecode:
+  plugins:
+    - plugin1@owner1/marketplace1
+    - plugin2@owner1/marketplace1
+    - plugin3@owner2/marketplace2
+EOF
+
+              export DOTFILES_DIR="$SHELLSPEC_TMPBASE"
+
+                # Mock claude command - expand SHELLSPEC_TMPBASE at creation time
+              mkdir -p "$SHELLSPEC_TMPBASE/bin"
+                cat > "$SHELLSPEC_TMPBASE/bin/claude" <<MOCK_EOF
+#!/usr/bin/env bash
+echo "\$@" >> "$SHELLSPEC_TMPBASE/claude_commands.log"
+exit 0
+MOCK_EOF
+              chmod +x "$SHELLSPEC_TMPBASE/bin/claude"
+              export PATH="$SHELLSPEC_TMPBASE/bin:$PATH"
+              : > "$SHELLSPEC_TMPBASE/claude_commands.log"
+              }
+
+              BeforeEach setup_integration
+
+              check_marketplace_count() {
+              grep -c "marketplace add" "$SHELLSPEC_TMPBASE/claude_commands.log" || echo 0
+              }
+
+              check_plugin1_installed() {
+              grep -c "plugin install plugin1@owner1/marketplace1" "$SHELLSPEC_TMPBASE/claude_commands.log" || echo 0
+              }
+
+              check_plugin2_installed() {
+              grep -c "plugin install plugin2@owner1/marketplace1" "$SHELLSPEC_TMPBASE/claude_commands.log" || echo 0
+              }
+
+              check_plugin3_installed() {
+              grep -c "plugin install plugin3@owner2/marketplace2" "$SHELLSPEC_TMPBASE/claude_commands.log" || echo 0
+              }
+
+              It 'processes all plugins and deduplicates marketplaces'
+                When call handle_claudecode_plugins false
+                The status should be success
+                # Should add each marketplace only once
+                The result of function check_marketplace_count should equal 2
+                # Should install all plugins
+                The result of function check_plugin1_installed should equal 1
+                The result of function check_plugin2_installed should equal 1
+                The result of function check_plugin3_installed should equal 1
+              End
+
+              It 'handles missing packages.yaml gracefully'
+                rm "$SHELLSPEC_TMPBASE/packages.yaml"
+                When call handle_claudecode_plugins false
+                The status should be success
+                The stdout should include "No packages.yaml found"
+              End
+
+              It 'handles empty claudecode section gracefully'
+                cat > "$SHELLSPEC_TMPBASE/packages.yaml" << 'EOF'
+arch:
+  pacman:
+    - vim
+EOF
+                When call handle_claudecode_plugins false
+                The status should be success
+                The stdout should include "No Claude Code plugins configured"
+              End
+            End
           End

@@ -162,3 +162,59 @@ install_or_update_plugin() {
     return 1
   fi
 }
+
+# Main handler for Claude Code plugin management
+# Args: $1 = dry_run (true/false)
+# Returns: 0 on success, 1 on failure
+handle_claudecode_plugins() {
+  local dry_run="${1:-false}"
+
+  # Check if packages.yaml exists
+  local packages_file="$DOTFILES_DIR/packages.yaml"
+  if [ ! -f "$packages_file" ]; then
+    log_info "No packages.yaml found, skipping Claude Code plugin setup"
+    return 0
+  fi
+
+  # Extract plugins from YAML
+  local plugins
+  plugins=$(cat "$packages_file" | extract_claudecode_plugins_from_yaml)
+
+  if [ -z "$plugins" ]; then
+    log_info "No Claude Code plugins configured"
+    return 0
+  fi
+
+  # Track seen marketplaces (bash 3.2 compatible - space-separated string)
+  local seen_marketplaces=" "
+
+  # Process each plugin
+  while IFS= read -r plugin; do
+    if [ -z "$plugin" ]; then
+      continue
+    fi
+
+    # Extract marketplace
+    local marketplace
+    marketplace=$(extract_marketplace_from_plugin "$plugin")
+
+    if [ -z "$marketplace" ]; then
+      log_warning "Invalid plugin format: $plugin (skipping)"
+      continue
+    fi
+
+    # Add marketplace if not seen before
+    if ! echo "$seen_marketplaces" | grep -q " $marketplace "; then
+      ensure_marketplace_added "$marketplace" "$dry_run"
+      seen_marketplaces="${seen_marketplaces}${marketplace} "
+    fi
+
+    # Install/update plugin
+    install_or_update_plugin "$plugin" "$dry_run" || {
+      log_warning "Continuing with remaining plugins..."
+    }
+  done <<< "$plugins"
+
+  log_success "Claude Code plugin setup complete"
+  return 0
+}
