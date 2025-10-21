@@ -30,4 +30,22 @@ Describe 'Claude Code Plugin Management'
                 The output should equal ""
               End
             End
+
+            Describe 'extract_marketplace_from_plugin()'
+              It 'extracts marketplace from plugin@marketplace format'
+                When call extract_marketplace_from_plugin "superpowers@obra/superpowers-marketplace"
+                The output should equal "obra/superpowers-marketplace"
+              End
+
+              It 'returns empty for invalid format without @'
+                When call extract_marketplace_from_plugin "invalid-plugin"
+                The output should equal ""
+                The status should be failure
+              End
+
+              It 'handles plugin names with hyphens'
+                When call extract_marketplace_from_plugin "my-plugin@owner/my-marketplace"
+                The output should equal "owner/my-marketplace"
+              End
+            End
           End

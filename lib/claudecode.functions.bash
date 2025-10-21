@@ -47,3 +47,31 @@ extract_claudecode_plugins_from_yaml() {
     fi
   done
 }
+
+# Extract marketplace from plugin@marketplace format
+# Args: $1 = plugin string (e.g., "superpowers@obra/superpowers-marketplace")
+# Outputs: marketplace (e.g., "obra/superpowers-marketplace")
+# Returns: 0 on success, 1 if format invalid
+extract_marketplace_from_plugin() {
+  local plugin="$1"
+
+  if [ -z "$plugin" ]; then
+    return 1
+  fi
+
+  # Check if plugin contains @
+  if ! echo "$plugin" | grep -q "@"; then
+    return 1
+  fi
+
+  # Extract everything after @
+  local marketplace
+  marketplace=$(echo "$plugin" | sed 's/^[^@]*@//')
+
+  if [ -z "$marketplace" ]; then
+    return 1
+  fi
+
+  echo "$marketplace"
+  return 0
+}
