@@ -12,6 +12,7 @@ format:
 	@echo "🎨 Formatting scripts..."
 	@files_to_format=$$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.ps1" \) \
 		-not -path "./.git/*" \
+		-not -path "./.worktrees/*" \
 		-not -path "./dotfiles/*/.*" \
 		-not -path "./spec/fixtures/*" \
 		2>/dev/null); \
@@ -72,6 +73,7 @@ check:
 	@echo "📋 Checking format..."
 	@files_to_check=$$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.ps1" \) \
 		-not -path "./.git/*" \
+		-not -path "./.worktrees/*" \
 		-not -path "./dotfiles/*/.*" \
 		-not -path "./spec/fixtures/*" \
 		2>/dev/null); \

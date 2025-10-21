@@ -24,6 +24,7 @@ check_shellcheck() {
 find_standard_scripts() {
   find . -type f \( -name "*.sh" -o -name "*.bash" \) \
     -not -path "./.git/*" \
+    -not -path "./.worktrees/*" \
     -not -path "./dotfiles/*/.*" \
     2> /dev/null || true
 }
