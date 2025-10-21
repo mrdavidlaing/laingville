@@ -32,5 +32,6 @@
     "debug.console.fontFamily": "'Cascadia Code'",
     "terminal.integrated.fontLigatures.enabled": true,
     "github.copilot.nextEditSuggestions.enabled": true,
-    "claude-code.useTerminal": true
+    "claude-code.useTerminal": true,
+    "editor.accessibilitySupport": "off",
 }
