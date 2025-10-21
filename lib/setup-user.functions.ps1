@@ -510,6 +510,19 @@ function Invoke-UserSetup {
         Write-LogWarning "Package installation encountered issues"
     }
 
+    # Claude Code plugin management
+    if (Get-Command claude.exe -ErrorAction SilentlyContinue) {
+        Write-Step "Claude Code Plugins"
+        $env:DOTFILES_DIR = $dotfilesDir
+        $pluginResult = Invoke-ClaudeCodePluginSetup -DryRun $DryRun
+        if (-not $pluginResult) {
+            Write-LogWarning "Claude Code plugin setup encountered issues"
+        }
+    }
+    else {
+        Write-LogInfo "Claude Code CLI not found, skipping plugin setup"
+    }
+
     # Success - WSL setup instructions will be shown by setup.ps1
     if ($DryRun) {
         Write-LogSuccess "Windows dry run completed successfully"
