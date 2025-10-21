@@ -75,3 +75,39 @@ extract_marketplace_from_plugin() {
   echo "$marketplace"
   return 0
 }
+
+# Ensure marketplace is added to Claude Code
+# Args: $1 = marketplace (e.g., "obra/superpowers-marketplace")
+#       $2 = dry_run (true/false)
+# Returns: 0 on success, 1 on failure
+ensure_marketplace_added() {
+  local marketplace="$1"
+  local dry_run="${2:-false}"
+
+  if [ -z "$marketplace" ]; then
+    log_error "Marketplace name is required"
+    return 1
+  fi
+
+  # Security validation - marketplace should be owner/repo format
+  # Allow alphanumeric, hyphens, underscores, and forward slash
+  if ! echo "$marketplace" | grep -qE "^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$"; then
+    log_error "Invalid marketplace name: $marketplace"
+    return 1
+  fi
+
+  if [ "$dry_run" = true ]; then
+    log_dry_run "Would add marketplace: $marketplace"
+    return 0
+  fi
+
+  log_info "Adding marketplace: $marketplace"
+
+  if claude plugin marketplace add "$marketplace" > /dev/null 2>&1; then
+    log_success "Marketplace added: $marketplace"
+    return 0
+  else
+    log_warning "Failed to add marketplace: $marketplace (may already exist)"
+    return 0 # Not a fatal error - marketplace might already exist
+  fi
+}

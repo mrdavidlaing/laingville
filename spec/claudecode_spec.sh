@@ -48,4 +48,40 @@ Describe 'Claude Code Plugin Management'
                 The output should equal "owner/my-marketplace"
               End
             End
+
+            Describe 'ensure_marketplace_added()'
+              setup_mock_claude() {
+                # Create mock claude command as an executable script
+              mkdir -p "$SHELLSPEC_TMPBASE/bin"
+                cat > "$SHELLSPEC_TMPBASE/bin/claude" << MOCK_EOF
+#!/usr/bin/env bash
+echo "\$@" >> "$SHELLSPEC_TMPBASE/claude_commands.log"
+exit 0
+MOCK_EOF
+              chmod +x "$SHELLSPEC_TMPBASE/bin/claude"
+              export PATH="$SHELLSPEC_TMPBASE/bin:$PATH"
+              : > "$SHELLSPEC_TMPBASE/claude_commands.log"
+              }
+
+              BeforeEach setup_mock_claude
+
+              It 'calls claude plugin marketplace add with valid marketplace'
+                When call ensure_marketplace_added "obra/superpowers-marketplace" false
+                The status should be success
+                The stdout should include "Adding marketplace: obra/superpowers-marketplace"
+                The stdout should include "Marketplace added: obra/superpowers-marketplace"
+              End
+
+              It 'rejects unsafe marketplace names'
+                When call ensure_marketplace_added "obra/super; rm -rf" false
+                The status should be failure
+                The stderr should include "Invalid marketplace name"
+              End
+
+              It 'shows dry-run message without calling claude'
+                When call ensure_marketplace_added "obra/superpowers-marketplace" true
+                The status should be success
+                The stdout should include "Would add marketplace: obra/superpowers-marketplace"
+              End
+            End
           End
