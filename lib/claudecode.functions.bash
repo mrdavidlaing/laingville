@@ -111,3 +111,54 @@ ensure_marketplace_added() {
     return 0 # Not a fatal error - marketplace might already exist
   fi
 }
+
+# Install or update a Claude Code plugin
+# Args: $1 = plugin (e.g., "superpowers@obra/superpowers-marketplace")
+#       $2 = dry_run (true/false)
+# Returns: 0 on success, 1 on failure
+install_or_update_plugin() {
+  local plugin="$1"
+  local dry_run="${2:-false}"
+
+  if [ -z "$plugin" ]; then
+    log_error "Plugin name is required"
+    return 1
+  fi
+
+  # Validate plugin format (must contain @)
+  if ! echo "$plugin" | grep -q "@"; then
+    log_error "Invalid plugin format: $plugin (expected plugin@marketplace)"
+    return 1
+  fi
+
+  # Security validation - extract parts and validate
+  local plugin_name marketplace
+  plugin_name=$(echo "$plugin" | sed 's/@.*//')
+  marketplace=$(extract_marketplace_from_plugin "$plugin")
+
+  if [ -z "$plugin_name" ] || [ -z "$marketplace" ]; then
+    log_error "Invalid plugin format: $plugin"
+    return 1
+  fi
+
+  # Validate characters (alphanumeric, hyphens, underscores, @, /)
+  if ! echo "$plugin" | grep -qE "^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$"; then
+    log_error "Invalid plugin name: $plugin"
+    return 1
+  fi
+
+  if [ "$dry_run" = true ]; then
+    log_dry_run "Would install plugin: $plugin"
+    return 0
+  fi
+
+  log_info "Installing plugin: $plugin"
+
+  if claude plugin install "$plugin" > /dev/null 2>&1; then
+    log_success "Plugin installed: $plugin"
+    return 0
+  else
+    log_error "Failed to install plugin: $plugin"
+    return 1
+  fi
+}

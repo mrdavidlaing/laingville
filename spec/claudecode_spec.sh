@@ -84,4 +84,40 @@ MOCK_EOF
                 The stdout should include "Would add marketplace: obra/superpowers-marketplace"
               End
             End
+
+            Describe 'install_or_update_plugin()'
+              setup_mock_claude() {
+                # Create mock claude command as an executable script
+              mkdir -p "$SHELLSPEC_TMPBASE/bin"
+                cat > "$SHELLSPEC_TMPBASE/bin/claude" << MOCK_EOF
+#!/usr/bin/env bash
+echo "\$@" >> "$SHELLSPEC_TMPBASE/claude_commands.log"
+exit 0
+MOCK_EOF
+              chmod +x "$SHELLSPEC_TMPBASE/bin/claude"
+              export PATH="$SHELLSPEC_TMPBASE/bin:$PATH"
+              : > "$SHELLSPEC_TMPBASE/claude_commands.log"
+              }
+
+              BeforeEach setup_mock_claude
+
+              It 'calls claude plugin install with valid plugin'
+                When call install_or_update_plugin "superpowers@obra/superpowers-marketplace" false
+                The status should be success
+                The stdout should include "Installing plugin: superpowers@obra/superpowers-marketplace"
+                The stdout should include "Plugin installed: superpowers@obra/superpowers-marketplace"
+              End
+
+              It 'rejects invalid plugin format'
+                When call install_or_update_plugin "invalid-no-marketplace" false
+                The status should be failure
+                The stderr should include "Invalid plugin format"
+              End
+
+              It 'shows dry-run message without calling claude'
+                When call install_or_update_plugin "superpowers@obra/superpowers-marketplace" true
+                The status should be success
+                The stdout should include "Would install plugin: superpowers@obra/superpowers-marketplace"
+              End
+            End
           End
