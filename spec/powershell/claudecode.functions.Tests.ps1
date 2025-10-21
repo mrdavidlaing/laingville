@@ -93,38 +93,38 @@ windows:
 
     Context "Add-ClaudeCodeMarketplace" {
         BeforeEach {
-            # Mock claude.exe command
-            Mock -CommandName claude.exe -MockWith { return "" }
+            # Mock Invoke-ClaudeCli wrapper function
+            Mock -CommandName Invoke-ClaudeCli -MockWith { return 0 }
         }
 
         It "calls claude.exe plugin marketplace add with valid marketplace" {
             $result = Add-ClaudeCodeMarketplace -Marketplace "obra/superpowers-marketplace" -DryRun $false
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 1 -ParameterFilter {
-                $args -join " " -eq "plugin marketplace add obra/superpowers-marketplace"
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 1 -ParameterFilter {
+                $Arguments -join " " -eq "plugin marketplace add obra/superpowers-marketplace"
             }
         }
 
         It "rejects unsafe marketplace names" {
             $result = Add-ClaudeCodeMarketplace -Marketplace "obra/super; rm -rf" -DryRun $false
             $result | Should -Be $false
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "shows dry-run message without calling claude.exe" {
             $result = Add-ClaudeCodeMarketplace -Marketplace "obra/superpowers-marketplace" -DryRun $true
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "returns false when marketplace is empty" {
             $result = Add-ClaudeCodeMarketplace -Marketplace "" -DryRun $false
             $result | Should -Be $false
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "handles claude.exe failures gracefully" {
-            Mock -CommandName claude.exe -MockWith { throw "Command failed" }
+            Mock -CommandName Invoke-ClaudeCli -MockWith { throw "Command failed" }
             $result = Add-ClaudeCodeMarketplace -Marketplace "obra/superpowers-marketplace" -DryRun $false
             $result | Should -Be $true  # Returns true because failure is non-fatal
         }
@@ -132,44 +132,44 @@ windows:
 
     Context "Install-ClaudeCodePlugin" {
         BeforeEach {
-            # Mock claude.exe command
-            Mock -CommandName claude.exe -MockWith { return "" }
+            # Mock Invoke-ClaudeCli wrapper function
+            Mock -CommandName Invoke-ClaudeCli -MockWith { return 0 }
         }
 
         It "calls claude.exe plugin install with valid plugin" {
             $result = Install-ClaudeCodePlugin -Plugin "superpowers@obra/superpowers-marketplace" -DryRun $false
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 1 -ParameterFilter {
-                $args -join " " -eq "plugin install superpowers@obra/superpowers-marketplace"
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 1 -ParameterFilter {
+                $Arguments -join " " -eq "plugin install superpowers@obra/superpowers-marketplace"
             }
         }
 
         It "rejects invalid plugin format without @" {
             $result = Install-ClaudeCodePlugin -Plugin "invalid-no-marketplace" -DryRun $false
             $result | Should -Be $false
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "shows dry-run message without calling claude.exe" {
             $result = Install-ClaudeCodePlugin -Plugin "superpowers@obra/superpowers-marketplace" -DryRun $true
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "returns false when plugin is empty" {
             $result = Install-ClaudeCodePlugin -Plugin "" -DryRun $false
             $result | Should -Be $false
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "rejects unsafe plugin names" {
             $result = Install-ClaudeCodePlugin -Plugin "bad@owner/repo; rm -rf" -DryRun $false
             $result | Should -Be $false
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "handles claude.exe failures" {
-            Mock -CommandName claude.exe -MockWith { throw "Command failed" }
+            Mock -CommandName Invoke-ClaudeCli -MockWith { return 1 }
             $result = Install-ClaudeCodePlugin -Plugin "superpowers@obra/superpowers-marketplace" -DryRun $false
             $result | Should -Be $false  # Returns false on plugin install failure
         }
@@ -177,8 +177,8 @@ windows:
 
     Context "Invoke-ClaudeCodePluginSetup" {
         BeforeEach {
-            # Mock claude.exe command
-            Mock -CommandName claude.exe -MockWith { return "" }
+            # Mock Invoke-ClaudeCli wrapper function
+            Mock -CommandName Invoke-ClaudeCli -MockWith { return 0 }
 
             # Create temporary packages.yaml
             $tempDir = Join-Path $TestDrive "dotfiles"
@@ -201,13 +201,13 @@ claudecode:
             $result | Should -Be $true
 
             # Should add each marketplace only once
-            Should -Invoke -CommandName claude.exe -Times 2 -ParameterFilter {
-                $args[0] -eq "plugin" -and $args[1] -eq "marketplace" -and $args[2] -eq "add"
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 2 -ParameterFilter {
+                $Arguments[0] -eq "plugin" -and $Arguments[1] -eq "marketplace" -and $Arguments[2] -eq "add"
             }
 
             # Should install all plugins
-            Should -Invoke -CommandName claude.exe -Times 3 -ParameterFilter {
-                $args[0] -eq "plugin" -and $args[1] -eq "install"
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 3 -ParameterFilter {
+                $Arguments[0] -eq "plugin" -and $Arguments[1] -eq "install"
             }
         }
 
@@ -215,7 +215,7 @@ claudecode:
             Remove-Item (Join-Path $env:DOTFILES_DIR "packages.yaml") -ErrorAction SilentlyContinue
             $result = Invoke-ClaudeCodePluginSetup -DryRun $false
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "handles empty claudecode section gracefully" {
@@ -228,7 +228,7 @@ arch:
 
             $result = Invoke-ClaudeCodePluginSetup -DryRun $false
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
 
         It "continues with remaining plugins on failure" {
@@ -245,8 +245,8 @@ claudecode:
             $result | Should -Be $true
 
             # Should still process valid plugins
-            Should -Invoke -CommandName claude.exe -Times 2 -ParameterFilter {
-                $args[0] -eq "plugin" -and $args[1] -eq "install"
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 2 -ParameterFilter {
+                $Arguments[0] -eq "plugin" -and $Arguments[1] -eq "install"
             }
         }
 
@@ -260,7 +260,7 @@ claudecode:
 
             $result = Invoke-ClaudeCodePluginSetup -DryRun $true
             $result | Should -Be $true
-            Should -Invoke -CommandName claude.exe -Times 0
+            Should -Invoke -CommandName Invoke-ClaudeCli -Times 0
         }
     }
 }

@@ -3,6 +3,22 @@
 
 <#
 .SYNOPSIS
+    Wrapper function for calling claude.exe CLI
+.PARAMETER Arguments
+    Arguments to pass to claude.exe
+.DESCRIPTION
+    Provides a mockable wrapper around claude.exe for testing
+    Returns the exit code of the command
+#>
+function Invoke-ClaudeCli {
+    param([string[]]$Arguments)
+
+    $output = & claude.exe @Arguments 2>&1
+    return $LASTEXITCODE
+}
+
+<#
+.SYNOPSIS
     Extracts Claude Code plugins from packages.yaml content
 .PARAMETER YamlContent
     The raw YAML content to parse
@@ -128,9 +144,13 @@ function Add-ClaudeCodeMarketplace {
     Write-LogInfo "Adding marketplace: $Marketplace"
 
     try {
-        $null = & claude.exe plugin marketplace add $Marketplace 2>&1
-        Write-LogSuccess "Marketplace added: $Marketplace"
-        return $true
+        $exitCode = Invoke-ClaudeCli -Arguments @("plugin", "marketplace", "add", $Marketplace)
+        if ($exitCode -eq 0) {
+            Write-LogSuccess "Marketplace added: $Marketplace"
+        } else {
+            Write-LogWarning "Failed to add marketplace: $Marketplace (may already exist)"
+        }
+        return $true  # Not a fatal error - marketplace might already exist
     }
     catch {
         Write-LogWarning "Failed to add marketplace: $Marketplace (may already exist)"
@@ -189,9 +209,14 @@ function Install-ClaudeCodePlugin {
     Write-LogInfo "Installing plugin: $Plugin"
 
     try {
-        $null = & claude.exe plugin install $Plugin 2>&1
-        Write-LogSuccess "Plugin installed: $Plugin"
-        return $true
+        $exitCode = Invoke-ClaudeCli -Arguments @("plugin", "install", $Plugin)
+        if ($exitCode -eq 0) {
+            Write-LogSuccess "Plugin installed: $Plugin"
+            return $true
+        } else {
+            Write-LogError "Failed to install plugin: $Plugin"
+            return $false
+        }
     }
     catch {
         Write-LogError "Failed to install plugin: $Plugin"

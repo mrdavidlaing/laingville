@@ -64,13 +64,18 @@ ensure_single_newline_crlf() {
   local ps_file_path="$2" # Windows path if needed for WSL
   local pwsh_cmd="$3"
 
-  # Remove trailing whitespace but preserve CRLF (combined operations)
+  # Remove trailing whitespace (works for both LF and CRLF)
   sed -i -e 's/[ \t]\+\r$/\r/' -e 's/[ \t]\+$//' "$file"
 
-  # Use PowerShell to ensure exactly one CRLF at end
-  # Match any trailing newlines (LF or CRLF) and replace with single CRLF
+  # Use PowerShell to normalize ALL line endings to CRLF and ensure exactly one CRLF at end
+  # 1. Replace all LF (that aren't part of CRLF) with CRLF
+  # 2. Remove all trailing newlines and add exactly one CRLF
   $pwsh_cmd -NoProfile -Command "
     \$content = Get-Content '$ps_file_path' -Raw
+    # Normalize all line endings: replace LF with CRLF (avoiding double conversion)
+    \$content = \$content -replace '\r\n', '\n' # First normalize CRLF to LF
+    \$content = \$content -replace '\n', \"\`r\`n\" # Then convert all LF to CRLF
+    # Ensure exactly one CRLF at end
     \$content = \$content -replace '[\r\n]+$', \"\`r\`n\"
     [System.IO.File]::WriteAllText('$ps_file_path', \$content)
   " 2> /dev/null
