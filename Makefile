@@ -40,24 +40,25 @@ test: test-bash test-powershell
 	@echo "✅ All tests completed!"
 
 # Run bash tests using shellspec
-# Note: Some format specs trigger a shellspec reporter bug that causes exit code 1
-# even though all tests pass (0 failures). We check for "0 failures" to work around this.
+# Note: Some tests trigger a shellspec reporter bug (https://github.com/shellspec/shellspec/issues/351)
+# These are segregated into *.reporter-bug.sh sidecar files and run with error suppression.
 test-bash:
 	@echo "🧪 Running bash tests..."
 	@if command -v shellspec >/dev/null 2>&1; then \
 		failed=0; \
-		for spec in spec/format_basic_spec.sh spec/format_line_endings_spec.sh spec/format_whitespace_spec.sh; do \
-			if [ -f "$$spec" ]; then \
-				output=$$(shellspec "$$spec" 2>&1); \
+		reporter_bug_specs=$$(find spec -name '*.reporter-bug_spec.sh' 2>/dev/null || true); \
+		if [ -n "$$reporter_bug_specs" ]; then \
+			for spec in $$reporter_bug_specs; do \
+				output=$$(shellspec "$$spec" 2>&1 | sed -e 's/, aborted by an unexpected error$$//' -e '/^Aborted with status code/d' -e '/^Fatal error occurred/d'); \
 				echo "$$output"; \
 				if ! echo "$$output" | grep -q "0 failures"; then \
 					failed=1; \
 				fi; \
-			fi; \
-		done; \
-		other_specs=$$(find spec -name '*_spec.sh' -not -name 'format_*_spec.sh'); \
-		if [ -n "$$other_specs" ]; then \
-			output=$$(shellspec $$other_specs 2>&1); \
+			done; \
+		fi; \
+		normal_specs=$$(find spec -name '*_spec.sh' -not -name '*.reporter-bug_spec.sh' -not -name '*issue-351*' 2>/dev/null || true); \
+		if [ -n "$$normal_specs" ]; then \
+			output=$$(shellspec $$normal_specs 2>&1); \
 			echo "$$output"; \
 			if ! echo "$$output" | grep -q "0 failures"; then \
 				failed=1; \
