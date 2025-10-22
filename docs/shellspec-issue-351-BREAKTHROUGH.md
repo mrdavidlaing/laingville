@@ -5,7 +5,12 @@
 
 ## 🎯 Incredible Discovery
 
-After **30+ systematic test variations**, we reduced the reproduction from a complex multi-component scenario down to **ONE LINE OF CODE**, and discovered the bug affects **ANY Windows .exe binary called from WSL**, not just PowerShell.
+After **30+ systematic test variations**, we reduced the reproduction from a complex multi-component scenario down to **ONE LINE OF CODE**, and **confirmed the bug is WSL-specific** through cross-platform testing.
+
+**Key Findings:**
+- Bug affects **ANY Windows .exe binary called from WSL** (tested: pwsh.exe, cmd.exe, where.exe, hostname.exe)
+- Bug **does NOT occur on native Linux** (confirmed via GitHub Actions on ubuntu-latest)
+- Therefore: This is a **WSL → Windows process boundary issue**, not a general ShellSpec bug
 
 ## The Journey
 
@@ -215,21 +220,39 @@ The reporter's protocol parser doesn't properly handle:
 ✅ **Native Linux PowerShell** (`pwsh`) does NOT trigger the bug
 ✅ **Output redirection** to `/dev/null` is part of the trigger
 ✅ Bug manifests as **reporter crash** with exit code 1 despite 0 test failures
+✅ **CONFIRMED: Bug does NOT occur on native Linux (ubuntu-latest)** - tested in GitHub Actions
 
 ### What We Don't Know (Untested)
-❓ Does this happen on **native Linux** (non-WSL)?
 ❓ Does this happen on **WSL1** vs WSL2?
-❓ Does this happen on **macOS** or other platforms?
+❓ Does this happen on **macOS**? (GHA test failed due to unrelated linting errors)
+❓ Does this happen on **Arch Linux**? (GHA test failed due to unrelated linting errors)
 ❓ Does this happen with **other ShellSpec versions**?
 ❓ Is the issue specific to **redirecting to /dev/null** or any output redirection?
 ❓ What specific **control characters or stream data** from .exe binaries causes the corruption?
 
-The evidence strongly suggests this is a **WSL → Windows process boundary issue**, but confirming it would require testing on native Linux (should NOT trigger if WSL-specific) or other platforms.
+### Conclusion
+
+**The bug is WSL-specific!**
+
+Testing on GitHub Actions (native Linux environment) confirms the bug does NOT trigger when calling native binaries. This proves it's not a general ShellSpec issue, but specifically related to the WSL → Windows process boundary.
 
 ## Achievement Unlocked 🏆
 
+### Reduction
 From 824 lines of complex bash script with multiple dependencies...
 
 To 1 line: `pwsh.exe -NoProfile -Command ":" > /dev/null 2>&1 || true`
 
 **That's a 99.9% reduction in complexity!**
+
+### Proof
+- ✅ Confirmed bug triggers on **WSL2** (local testing)
+- ✅ Confirmed bug does **NOT** trigger on **native Linux** (GitHub Actions ubuntu-latest)
+- ✅ Tested with **multiple .exe binaries** (pwsh.exe, cmd.exe, where.exe, hostname.exe)
+
+### Impact
+This investigation provides **definitive evidence** for ShellSpec maintainers:
+1. **Not a general ShellSpec bug** - works fine on native Linux
+2. **WSL-specific** - related to Windows executable interop
+3. **Minimal reproduction** - single line to reproduce
+4. **Clear scope** - only affects ShellSpec users on WSL calling Windows binaries
