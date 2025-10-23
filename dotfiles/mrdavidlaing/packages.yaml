@@ -59,6 +59,7 @@ arch:
     - eza
     - kubectl
     - pnpm
+    - powershell-bin  # Native Linux PowerShell (avoids ShellSpec issue #351 with pwsh.exe on WSL)
     - uv
     - shellspec
     - shfmt
@@ -122,6 +123,7 @@ wsl:
     - eza
     - navi
     - pnpm
+    - powershell-bin  # Native Linux PowerShell (avoids ShellSpec issue #351 with pwsh.exe)
     - uv
     - kubectl
     - shellspec
