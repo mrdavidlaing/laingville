@@ -256,3 +256,25 @@ This investigation provides **definitive evidence** for ShellSpec maintainers:
 2. **WSL-specific** - related to Windows executable interop
 3. **Minimal reproduction** - single line to reproduce
 4. **Clear scope** - only affects ShellSpec users on WSL calling Windows binaries
+
+### Workaround
+
+✅ **Install native Linux PowerShell on WSL** instead of using Windows PowerShell
+
+The `format-files.sh` script already prefers native `pwsh` over `pwsh.exe`:
+- If `pwsh` is available → uses native Linux PowerShell (no bug!)
+- If only `pwsh.exe` → falls back to Windows PowerShell (triggers bug)
+
+**Installation:**
+```bash
+# Ubuntu/Debian on WSL
+sudo apt-get update
+wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+sudo dpkg -i packages-microsoft-prod.deb
+sudo apt-get update
+sudo apt-get install -y powershell
+```
+
+**Testing confirms:** Calling native `pwsh` does NOT trigger the reporter bug, even on WSL.
+
+See `docs/shellspec-issue-351-WORKAROUND.md` for detailed instructions.
