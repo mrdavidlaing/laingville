@@ -4,6 +4,12 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
+# Source profile for environment setup (PATH, etc.)
+# This ensures non-login interactive shells get the same environment as login shells
+if [[ -f ~/.profile ]]; then
+    source ~/.profile
+fi
+
 # Enhanced directory listings (prefer eza when available)
 if command -v eza >/dev/null 2>&1; then
   alias ls='eza --icons --group-directories-first'

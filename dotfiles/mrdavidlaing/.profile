@@ -7,6 +7,11 @@
 # Add user's local bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
 
+# Add Nix profile to PATH (for Nix-installed packages)
+if [ -d "$HOME/.nix-profile/bin" ]; then
+    export PATH="$HOME/.nix-profile/bin:$PATH"
+fi
+
 # Add Cargo (Rust) bin directory to PATH
 export PATH="$HOME/.cargo/bin:$PATH"
 
