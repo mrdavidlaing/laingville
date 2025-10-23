@@ -40,7 +40,7 @@ main() {
 
   # Substitute {{USERNAME}} with current user
   local username="${USER:-${USERNAME:-$(whoami)}}"
-  local temp_file
+  local temp_file=""
   temp_file=$(mktemp)
   trap 'rm -f "${temp_file}"' EXIT
 
@@ -51,7 +51,19 @@ main() {
 
   # Check if target exists and differs
   if [[ -f "${TARGET_FILE}" ]]; then
-    if diff -q "${temp_file}" "${TARGET_FILE}" > /dev/null 2>&1; then
+    # Use cmp for comparison if diff is not available
+    local files_match=false
+    if command -v diff > /dev/null 2>&1; then
+      if diff -q "${temp_file}" "${TARGET_FILE}" > /dev/null 2>&1; then
+        files_match=true
+      fi
+    elif command -v cmp > /dev/null 2>&1; then
+      if cmp -s "${temp_file}" "${TARGET_FILE}"; then
+        files_match=true
+      fi
+    fi
+
+    if [[ "${files_match}" = true ]]; then
       log_success "Settings file is already up to date"
       exit 0
     fi
@@ -60,7 +72,13 @@ main() {
     echo ""
     echo "Differences (template → current):"
     echo "-----------------------------------"
-    diff -u "${temp_file}" "${TARGET_FILE}" || true
+    if command -v diff > /dev/null 2>&1; then
+      diff -u "${temp_file}" "${TARGET_FILE}" || true
+    else
+      echo "(diff tool not available - cannot show detailed differences)"
+      echo "Template file: ${temp_file}"
+      echo "Current file:  ${TARGET_FILE}"
+    fi
     echo ""
     log_info "To update settings, run: rm ${TARGET_FILE} && $0"
     exit 0

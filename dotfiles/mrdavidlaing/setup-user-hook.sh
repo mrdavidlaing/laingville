@@ -14,6 +14,11 @@ if [[ "${OSTYPE}" == "msys"* ]] || [[ "${OSTYPE}" == "cygwin"* ]]; then
   exit 0
 fi
 
+# Skip check on NixOS/Nix systems where bash is in the Nix store
+if [[ "${SHELL}" == /nix/store/* ]]; then
+  exit 0
+fi
+
 # Get user's default shell cross-platform
 user_shell=""
 if command -v getent &> /dev/null; then
