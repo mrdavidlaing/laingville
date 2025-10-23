@@ -41,13 +41,6 @@ alias vi='nvim'
 alias cd='z'
 PS1='[\u@\h \W]\$ '
 
-# Interactive tool initialization
-# These tools provide enhanced interactive shell experience
-
-eval "$(starship init bash)"
-eval "$(zoxide init bash)"
-eval "$(direnv hook bash)"
-
 # WSL-specific interactive configuration
 if grep -qi microsoft /proc/version 2>/dev/null; then
     # 1Password SSH Agent integration for WSL (interactive aliases)
@@ -66,3 +59,10 @@ if [[ -f ~/.config/tmux/git-learning/git-hints.sh ]]; then
     # Make git learning functions available
     source ~/.bashrc_git_learning 2>/dev/null
 fi
+
+# Interactive tool initialization (must be at the end)
+# These tools provide enhanced interactive shell experience and need to be
+# initialized after all other shell configuration is complete
+eval "$(starship init bash)"
+eval "$(zoxide init bash)"
+eval "$(direnv hook bash)"
