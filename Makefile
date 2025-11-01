@@ -25,9 +25,14 @@ format:
 	fi
 
 # Lint all bash scripts using shellcheck, and PowerShell scripts if pwsh is available
+# Note: On Windows, skip bash linting to avoid xargs/WSL conflicts in CI
 lint:
-	@echo "🔍 Linting bash scripts..."
-	@./scripts/lint-bash.sh
+	@if [ "$$(uname -s 2>/dev/null | grep -i 'MINGW\|MSYS\|CYGWIN')" ]; then \
+		echo "ℹ️  Windows detected. Skipping bash linting (not reliable in Windows CI environments)"; \
+	else \
+		echo "🔍 Linting bash scripts..."; \
+		./scripts/lint-bash.sh; \
+	fi
 	@if command -v pwsh >/dev/null 2>&1; then \
 		echo "🔍 Linting PowerShell scripts..."; \
 		pwsh -ExecutionPolicy Bypass -File scripts/lint-powershell.ps1; \

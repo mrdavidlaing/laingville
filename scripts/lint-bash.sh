@@ -32,8 +32,9 @@ find_standard_scripts() {
 find_claude_scripts() {
   # Auto-detect current user's Claude directory
   local claude_dir
-  if [[ -d "./dotfiles/$USER/.claude" ]]; then
-    claude_dir="./dotfiles/$USER/.claude"
+  local username="${USER:-${USERNAME:-}}"
+  if [[ -n "$username" && -d "./dotfiles/$username/.claude" ]]; then
+    claude_dir="./dotfiles/$username/.claude"
   elif [[ -d "./dotfiles/mrdavidlaing/.claude" ]]; then
     claude_dir="./dotfiles/mrdavidlaing/.claude"
   else
