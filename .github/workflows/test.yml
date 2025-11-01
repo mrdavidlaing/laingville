@@ -122,10 +122,10 @@ jobs:
         # Update package database first
         echo "Updating Arch Linux package database..."
         pacman -Sy --noconfirm
-        
+
         # Install system packages that aren't cacheable (always run to ensure availability)
         echo "Installing system dependencies for Arch Linux..."
-        pacman -S --noconfirm jq tmux bc wezterm kcov diffutils || {
+        pacman -S --noconfirm make jq tmux bc wezterm kcov diffutils || {
           echo "kcov package not available, building from source..."
           pacman -S --noconfirm libcurl-gnutls elfutils binutils diffutils
           cd /tmp
