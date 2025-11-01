@@ -180,8 +180,8 @@ jobs:
       shell: bash
       run: |
         echo "🧪 Running bash tests with coverage on ${{ matrix.platform }}..."
-        # Exclude Issue #351 test specs from regular runs (tested separately)
-        regular_specs=$(find spec -name '*_spec.sh' -not -name '*issue-351*' -not -name '*.reporter-bug_spec.sh' 2>/dev/null || true)
+        # Exclude Issue #351 cross-platform test (tested separately)
+        regular_specs=$(find spec -name '*_spec.sh' -not -name '*issue-351*' 2>/dev/null || true)
 
         # Run tests with kcov coverage (skip coverage on Arch Linux if kcov unavailable)
         if command -v kcov >/dev/null 2>&1; then
@@ -199,8 +199,8 @@ jobs:
       shell: bash
       run: |
         echo "🧪 Running bash tests on ${{ matrix.platform }}..."
-        # Exclude Issue #351 test specs from regular runs (tested separately)
-        regular_specs=$(find spec -name '*_spec.sh' -not -name '*issue-351*' -not -name '*.reporter-bug_spec.sh' 2>/dev/null || true)
+        # Exclude Issue #351 cross-platform test (tested separately)
+        regular_specs=$(find spec -name '*_spec.sh' -not -name '*issue-351*' 2>/dev/null || true)
         shellspec --shell bash $regular_specs
       
     - name: Upload bash coverage (Linux)

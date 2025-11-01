@@ -40,31 +40,10 @@ test: test-bash test-powershell
 	@echo "✅ All tests completed!"
 
 # Run bash tests using shellspec
-# Note: Some tests trigger a shellspec reporter bug (https://github.com/shellspec/shellspec/issues/351)
-# These are segregated into *.reporter-bug.sh sidecar files and run with error suppression.
 test-bash:
 	@echo "🧪 Running bash tests..."
 	@if command -v shellspec >/dev/null 2>&1; then \
-		failed=0; \
-		reporter_bug_specs=$$(find spec -name '*.reporter-bug_spec.sh' 2>/dev/null || true); \
-		if [ -n "$$reporter_bug_specs" ]; then \
-			for spec in $$reporter_bug_specs; do \
-				output=$$(shellspec "$$spec" 2>&1 | sed -e 's/, aborted by an unexpected error$$//' -e '/^Aborted with status code/d' -e '/^Fatal error occurred/d'); \
-				echo "$$output"; \
-				if ! echo "$$output" | grep -q "0 failures"; then \
-					failed=1; \
-				fi; \
-			done; \
-		fi; \
-		normal_specs=$$(find spec -name '*_spec.sh' -not -name '*.reporter-bug_spec.sh' -not -name '*issue-351*' 2>/dev/null || true); \
-		if [ -n "$$normal_specs" ]; then \
-			output=$$(shellspec $$normal_specs 2>&1); \
-			echo "$$output"; \
-			if ! echo "$$output" | grep -q "0 failures"; then \
-				failed=1; \
-			fi; \
-		fi; \
-		exit $$failed; \
+		shellspec; \
 	else \
 		echo "⚠️  shellspec not found. Skipping bash tests"; \
 		exit 1; \

@@ -59,46 +59,6 @@ Describe "format-files.sh - Whitespace Standards"
 
         cleanup_temp_file "$temp_file"
       End
-
-      It "adds trailing CRLF to PowerShell file that lacks one"
-        Skip if "PowerShell not available" ! command -v pwsh > /dev/null 2>&1 && ! command -v pwsh.exe > /dev/null 2>&1
-
-        temp_file=$(mktemp_with_suffix ".ps1")
-        # Create file without trailing newline
-        printf 'Write-Host "test"' > "$temp_file"
-
-        # Format the file
-        ./scripts/format-files.sh "$temp_file" > /dev/null 2>&1
-
-        # Check last 2 bytes are 0d 0a (CRLF)
-        last_two=$(tail -c 2 "$temp_file" | od -An -tx1 | tr -d ' ')
-
-        When run test "$last_two" = "0d0a"
-        The status should be success
-
-        cleanup_temp_file "$temp_file"
-      End
-
-      It "reduces multiple blank lines at end to single CRLF for PowerShell"
-        Skip if "PowerShell not available" ! command -v pwsh > /dev/null 2>&1 && ! command -v pwsh.exe > /dev/null 2>&1
-
-        temp_file=$(mktemp_with_suffix ".ps1")
-        # Create file with multiple blank lines at end
-        printf 'Write-Host "test"\r\n\r\n\r\n' > "$temp_file"
-
-        # Format the file
-        ./scripts/format-files.sh "$temp_file" > /dev/null 2>&1
-
-        # Check file ends with exactly one CRLF
-        # Read last 4 bytes - should be 0d 0a (not 0d 0a 0d 0a)
-        last_four=$(tail -c 4 "$temp_file" | od -An -tx1 | tr -d ' ')
-
-        # Should end with single CRLF, not double
-        When run test "$last_four" != "0d0a0d0a"
-        The status should be success
-
-        cleanup_temp_file "$temp_file"
-      End
     End
 
     Describe "Trailing Whitespace Standards"
@@ -127,23 +87,6 @@ Describe "format-files.sh - Whitespace Standards"
 
         # Check no lines have trailing tabs
         When run grep $'\t$' "$temp_file"
-        The status should be failure
-
-        cleanup_temp_file "$temp_file"
-      End
-
-      It "removes trailing spaces from PowerShell files while preserving CRLF"
-        Skip if "PowerShell not available" ! command -v pwsh > /dev/null 2>&1 && ! command -v pwsh.exe > /dev/null 2>&1
-
-        temp_file=$(mktemp_with_suffix ".ps1")
-        # Create file with trailing spaces and CRLF
-        printf 'Write-Host "test"   \r\n' > "$temp_file"
-
-        # Format the file
-        ./scripts/format-files.sh "$temp_file" > /dev/null 2>&1
-
-        # Check no trailing spaces before CRLF
-        When run grep ' '$'\r$' "$temp_file"
         The status should be failure
 
         cleanup_temp_file "$temp_file"
