@@ -40,9 +40,9 @@ main() {
 
   # Substitute {{USERNAME}} with current user
   local username="${USER:-${USERNAME:-$(whoami)}}"
-  local temp_file=""
+  local temp_file
   temp_file=$(mktemp)
-  trap 'rm -f "${temp_file}"' EXIT
+  trap 'rm -f "${temp_file:-}"' EXIT
 
   sed "s/{{USERNAME}}/${username}/g" "${source_template}" > "${temp_file}"
 
