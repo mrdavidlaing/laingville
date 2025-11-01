@@ -1,0 +1,16 @@
+# DevContainer server packages
+# This file defines packages to be installed in the pensive devcontainer
+# via laingville's setup.sh server command
+
+packages:
+  pacman:
+    # Additional development tools for the devcontainer
+    # Base tools are already installed in the Dockerfile
+    # Add any devcontainer-specific packages here
+    - man-db          # Manual pages
+    - man-pages       # Linux man pages
+    - less            # Pager
+    - which           # Show command paths
+    - procps-ng       # ps, top, etc.
+    - htop            # Better top
+    - tree            # Directory tree viewer
