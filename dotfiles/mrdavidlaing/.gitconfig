@@ -12,6 +12,7 @@
 
 [core]
 	pager = bat --style=plain --color=always --paging=always
+	autocrlf = input
 
 [commit]
 	cleanup = strip
