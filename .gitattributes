@@ -9,6 +9,7 @@ dotfiles/**/.local/bin/* text eol=lf
 
 # Config files that might be used in WSL2 should use LF
 dotfiles/**/.bashrc text eol=lf
+dotfiles/**/.bash_profile text eol=lf
 dotfiles/**/.profile text eol=lf
 dotfiles/**/.zshrc text eol=lf
 dotfiles/**/packages.yaml text eol=lf
