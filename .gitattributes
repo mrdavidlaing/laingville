@@ -11,6 +11,7 @@ dotfiles/**/.local/bin/* text eol=lf
 dotfiles/**/.bashrc text eol=lf
 dotfiles/**/.profile text eol=lf
 dotfiles/**/.zshrc text eol=lf
+dotfiles/**/packages.yaml text eol=lf
 
 # Windows-specific files can use CRLF
 *.bat text eol=crlf
