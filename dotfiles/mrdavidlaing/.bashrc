@@ -38,8 +38,6 @@ fi
 alias grep='grep --color=auto'
 alias vim='nvim'
 alias vi='nvim'
-alias cd='z'
-PS1='[\u@\h \W]\$ '
 
 # WSL-specific interactive configuration
 if grep -qi microsoft /proc/version 2>/dev/null; then
@@ -60,9 +58,24 @@ if [[ -f ~/.config/tmux/git-learning/git-hints.sh ]]; then
     source ~/.bashrc_git_learning 2>/dev/null
 fi
 
-# Interactive tool initialization (must be at the end)
-# These tools provide enhanced interactive shell experience and need to be
-# initialized after all other shell configuration is complete
-eval "$(starship init bash)"
-eval "$(zoxide init bash)"
-eval "$(direnv hook bash)"
+# Interactive tool initialization
+# These tools provide enhanced interactive shell experience
+# These steps should happen at the end of the bashrc
+
+# Initialize starship
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init bash)"
+else
+  PS1='[\u@\h \W]\$ '
+fi
+
+# Initialize direnv
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook bash)"
+fi
+
+# Initialize zoxide
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init bash)"
+  alias cd='z'
+fi
