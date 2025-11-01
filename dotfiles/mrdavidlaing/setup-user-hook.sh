@@ -19,6 +19,11 @@ if [[ "${SHELL}" == /nix/store/* ]]; then
   exit 0
 fi
 
+# Skip check in Docker/container environments where shell checks are not reliable
+if [[ "${DEVCONTAINER:-}" == "true" ]] || [[ -f /.dockerenv ]]; then
+  exit 0
+fi
+
 # Get user's default shell cross-platform
 user_shell=""
 if command -v getent &> /dev/null; then
