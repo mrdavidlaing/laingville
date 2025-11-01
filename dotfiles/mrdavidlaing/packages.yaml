@@ -87,6 +87,7 @@ wsl:
     - make
     - bash
     - git
+    - git-lfs
     - openssh
     - tmux
     - neovim
