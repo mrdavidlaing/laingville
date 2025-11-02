@@ -446,12 +446,19 @@ remove_pacman_packages() {
   else
     log_info "Removing pacman packages: ${pkg_array[*]}"
 
-    # Batch removal with proper quoting
-    local quoted_packages
-    quoted_packages=$(quote_packages "${pkg_array[@]}")
+    # Remove packages one at a time to avoid batch failure
+    local failed_packages=()
+    for pkg in "${pkg_array[@]}"; do
+      # Check if package is installed
+      if pacman -Q "${pkg}" > /dev/null 2>&1; then
+        if ! sudo pacman -R --noconfirm "${pkg}"; then
+          failed_packages+=("${pkg}")
+        fi
+      fi
+    done
 
-    if ! eval "sudo pacman -R --noconfirm ${quoted_packages}"; then
-      log_warning "Failed to remove some pacman packages: ${pkg_array[*]}"
+    if [[ ${#failed_packages[@]} -gt 0 ]]; then
+      log_warning "Failed to remove some pacman packages: ${failed_packages[*]}"
     fi
   fi
 }

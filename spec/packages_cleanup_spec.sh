@@ -107,15 +107,16 @@ Describe 'Package cleanup functionality'
 
       Before 'setup'
 
-        It 'removes packages using pacman -R'
+        It 'removes packages one by one'
           When call remove_pacman_packages $'vim\nalacritty' false
 
-          The output should include 'MOCK pacman: -R --noconfirm vim alacritty'
+          The output should include 'MOCK pacman: -R --noconfirm vim'
+          The output should include 'MOCK pacman: -R --noconfirm alacritty'
           The status should be success
         End
       End
 
-      Context 'in dry-run mode'
+      Context 'with some packages not installed'
       # shellcheck disable=SC2329
         setup() {
         command() {
@@ -124,24 +125,96 @@ Describe 'Package cleanup functionality'
         fi
         builtin command "$@"
         }
+
+        sudo() {
+        "$@"
+        }
+
+        pacman() {
+        case "$*" in
+        "-Q vim")
+        echo "vim 9.0.1-1"
+        return 0
+        ;;
+        "-Q alacritty")
+        # Package not installed
+        return 1
+        ;;
+        "-Q nodejs")
+        echo "nodejs 25.1.0-2"
+        return 0
+        ;;
+        *)
+        echo "MOCK pacman: $*"
+        return 0
+        ;;
+        esac
+        }
         }
 
         Before 'setup'
 
-          It 'shows planned pacman removal'
-            When call remove_pacman_packages $'vim\nalacritty' true
+          It 'skips packages that are not installed'
+            When call remove_pacman_packages $'vim\nalacritty\nnodejs' false
 
-            The output should include 'remove via pacman: vim, alacritty'
+            The output should include 'MOCK pacman: -R --noconfirm vim'
+            The output should not include 'MOCK pacman: -R --noconfirm alacritty'
+            The output should include 'MOCK pacman: -R --noconfirm nodejs'
             The status should be success
           End
         End
 
-        Context 'when pacman is unavailable'
+        Context 'when package removal fails'
       # shellcheck disable=SC2329
           setup() {
           command() {
           if [[ "$1" = "-v" && "$2" = "pacman" ]]; then
+          return 0
+          fi
+          builtin command "$@"
+          }
+
+          sudo() {
+          "$@"
+          }
+
+          pacman() {
+          case "$*" in
+          "-Q"*)
+        # All packages are installed
+          return 0
+          ;;
+          "-R --noconfirm vim")
+        # Removal fails
+          echo "error: failed to remove vim"
           return 1
+          ;;
+          *)
+          echo "MOCK pacman: $*"
+          return 0
+          ;;
+          esac
+          }
+          }
+
+          Before 'setup'
+
+            It 'continues removing other packages and reports failures'
+              When call remove_pacman_packages $'vim\nalacritty' false
+
+              The output should include 'MOCK pacman: -R --noconfirm alacritty'
+              The output should include 'Failed to remove some pacman packages: vim'
+              The status should be success
+            End
+          End
+        End
+
+        Context 'in dry-run mode'
+      # shellcheck disable=SC2329
+          setup() {
+          command() {
+          if [[ "$1" = "-v" && "$2" = "pacman" ]]; then
+          return 0
           fi
           builtin command "$@"
           }
@@ -149,76 +222,72 @@ Describe 'Package cleanup functionality'
 
           Before 'setup'
 
-            It 'logs a warning and skips removal'
-              When call remove_pacman_packages $'vim\nalacritty' false
+            It 'shows planned pacman removal'
+              When call remove_pacman_packages $'vim\nalacritty' true
 
-              The output should include 'Warning: pacman not found, skipping pacman package removal'
+              The output should include 'remove via pacman: vim, alacritty'
               The status should be success
             End
           End
 
-          Context 'with invalid packages'
+          Context 'when pacman is unavailable'
       # shellcheck disable=SC2329
             setup() {
             command() {
             if [[ "$1" = "-v" && "$2" = "pacman" ]]; then
-            return 0
+            return 1
             fi
             builtin command "$@"
-            }
-
-            sudo() {
-            "$@"
-            }
-
-            pacman() {
-            echo "MOCK pacman: $*"
-            return 0
             }
             }
 
             Before 'setup'
 
-              It 'filters out invalid package names'
-                packages=$'vim\n../bad\nalacritty'
-                When call remove_pacman_packages "${packages}" false
+              It 'logs a warning and skips removal'
+                When call remove_pacman_packages $'vim\nalacritty' false
 
-                The output should include 'MOCK pacman: -R --noconfirm vim alacritty'
-                The stderr should include 'Skipping invalid package name: ../bad'
-                The stderr should include 'INVALID_PACKAGE'
+                The output should include 'Warning: pacman not found, skipping pacman package removal'
                 The status should be success
               End
             End
-          End
 
-          Describe 'remove_yay_packages()'
-            Context 'with valid packages'
+            Context 'with invalid packages'
       # shellcheck disable=SC2329
               setup() {
               command() {
-              if [[ "$1" = "-v" && "$2" = "yay" ]]; then
+              if [[ "$1" = "-v" && "$2" = "pacman" ]]; then
               return 0
               fi
               builtin command "$@"
               }
 
-              yay() {
-              echo "MOCK yay: $*"
+              sudo() {
+              "$@"
+              }
+
+              pacman() {
+              echo "MOCK pacman: $*"
               return 0
               }
               }
 
               Before 'setup'
 
-                It 'removes packages using yay -R'
-                  When call remove_yay_packages $'alacritty-git\nsome-aur-pkg' false
+                It 'filters out invalid package names'
+                  packages=$'vim\n../bad\nalacritty'
+                  When call remove_pacman_packages "${packages}" false
 
-                  The output should include 'MOCK yay: -R --noconfirm alacritty-git some-aur-pkg'
+                  The output should include 'MOCK pacman: -R --noconfirm vim'
+                  The output should include 'MOCK pacman: -R --noconfirm alacritty'
+                  The stderr should include 'Skipping invalid package name: ../bad'
+                  The stderr should include 'INVALID_PACKAGE'
                   The status should be success
                 End
               End
+            End
 
-              Context 'in dry-run mode'
+            Describe 'remove_yay_packages()'
+              Context 'with valid packages'
       # shellcheck disable=SC2329
                 setup() {
                 command() {
@@ -227,48 +296,47 @@ Describe 'Package cleanup functionality'
                 fi
                 builtin command "$@"
                 }
+
+                yay() {
+                echo "MOCK yay: $*"
+                return 0
+                }
                 }
 
                 Before 'setup'
 
-                  It 'shows planned yay removal'
-                    When call remove_yay_packages $'alacritty-git' true
+                  It 'removes packages using yay -R'
+                    When call remove_yay_packages $'alacritty-git\nsome-aur-pkg' false
 
-                    The output should include 'remove via yay: alacritty-git'
+                    The output should include 'MOCK yay: -R --noconfirm alacritty-git some-aur-pkg'
                     The status should be success
                   End
                 End
-              End
 
-              Describe 'remove_homebrew_packages()'
-                Context 'with valid packages'
+                Context 'in dry-run mode'
       # shellcheck disable=SC2329
                   setup() {
                   command() {
-                  if [[ "$1" = "-v" && "$2" = "brew" ]]; then
+                  if [[ "$1" = "-v" && "$2" = "yay" ]]; then
                   return 0
                   fi
                   builtin command "$@"
-                  }
-
-                  brew() {
-                  echo "MOCK brew: $*"
-                  return 0
                   }
                   }
 
                   Before 'setup'
 
-                    It 'removes packages using brew uninstall'
-                      When call remove_homebrew_packages $'vim\nalacritty' false
+                    It 'shows planned yay removal'
+                      When call remove_yay_packages $'alacritty-git' true
 
-                      The output should include 'MOCK brew: uninstall vim'
-                      The output should include 'MOCK brew: uninstall alacritty'
+                      The output should include 'remove via yay: alacritty-git'
                       The status should be success
                     End
                   End
+                End
 
-                  Context 'in dry-run mode'
+                Describe 'remove_homebrew_packages()'
+                  Context 'with valid packages'
       # shellcheck disable=SC2329
                     setup() {
                     command() {
@@ -277,21 +345,25 @@ Describe 'Package cleanup functionality'
                     fi
                     builtin command "$@"
                     }
+
+                    brew() {
+                    echo "MOCK brew: $*"
+                    return 0
+                    }
                     }
 
                     Before 'setup'
 
-                      It 'shows planned homebrew removal'
-                        When call remove_homebrew_packages $'vim\nalacritty' true
+                      It 'removes packages using brew uninstall'
+                        When call remove_homebrew_packages $'vim\nalacritty' false
 
-                        The output should include 'remove via homebrew: vim, alacritty'
+                        The output should include 'MOCK brew: uninstall vim'
+                        The output should include 'MOCK brew: uninstall alacritty'
                         The status should be success
                       End
                     End
-                  End
 
-                  Describe 'remove_cask_packages()'
-                    Context 'with valid packages'
+                    Context 'in dry-run mode'
       # shellcheck disable=SC2329
                       setup() {
                       command() {
@@ -300,25 +372,21 @@ Describe 'Package cleanup functionality'
                       fi
                       builtin command "$@"
                       }
-
-                      brew() {
-                      echo "MOCK brew: $*"
-                      return 0
-                      }
                       }
 
                       Before 'setup'
 
-                        It 'removes packages using brew uninstall --cask'
-                          When call remove_cask_packages $'alacritty\nraycast' false
+                        It 'shows planned homebrew removal'
+                          When call remove_homebrew_packages $'vim\nalacritty' true
 
-                          The output should include 'MOCK brew: uninstall --cask alacritty'
-                          The output should include 'MOCK brew: uninstall --cask raycast'
+                          The output should include 'remove via homebrew: vim, alacritty'
                           The status should be success
                         End
                       End
+                    End
 
-                      Context 'in dry-run mode'
+                    Describe 'remove_cask_packages()'
+                      Context 'with valid packages'
       # shellcheck disable=SC2329
                         setup() {
                         command() {
@@ -327,20 +395,45 @@ Describe 'Package cleanup functionality'
                         fi
                         builtin command "$@"
                         }
+
+                        brew() {
+                        echo "MOCK brew: $*"
+                        return 0
+                        }
                         }
 
                         Before 'setup'
 
-                          It 'shows planned cask removal'
-                            When call remove_cask_packages $'alacritty\nraycast' true
+                          It 'removes packages using brew uninstall --cask'
+                            When call remove_cask_packages $'alacritty\nraycast' false
 
-                            The output should include 'remove via cask: alacritty, raycast'
+                            The output should include 'MOCK brew: uninstall --cask alacritty'
+                            The output should include 'MOCK brew: uninstall --cask raycast'
                             The status should be success
                           End
                         End
-                      End
-                      Describe 'remove_opkg_packages()'
 
+                        Context 'in dry-run mode'
+      # shellcheck disable=SC2329
+                          setup() {
+                          command() {
+                          if [[ "$1" = "-v" && "$2" = "brew" ]]; then
+                          return 0
+                          fi
+                          builtin command "$@"
+                          }
+                          }
+
+                          Before 'setup'
+
+                            It 'shows planned cask removal'
+                              When call remove_cask_packages $'alacritty\nraycast' true
+
+                              The output should include 'remove via cask: alacritty, raycast'
+                              The status should be success
+                            End
+                          End
+                        End
 
                         Describe 'remove_opkg_packages()'
                           Context 'with valid packages'
@@ -489,7 +582,6 @@ Describe 'Package cleanup functionality'
                                         End
                                       End
                                     End
-
                                   End
 
                                   Describe 'Integration: cleanup for all platforms'
