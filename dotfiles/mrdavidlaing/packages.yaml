@@ -66,7 +66,7 @@ arch:
     - glow
     - navi
     - crush-bin
-    - opencode
+    - opencode-bin
     - k9s
     - speedtest-cli
     - hyprpaper
@@ -77,6 +77,7 @@ arch:
     - alacritty  # Removed 2025-09-30, switched to wezterm
   yay_cleanup:
     - zen-bin  # Removed 2025-10, no longer using Zen browser
+    - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
 
@@ -133,7 +134,7 @@ wsl:
     - crush-bin
     - k9s
     - speedtest-cli
-    - opencode
+    - opencode-bin
   custom:
     - install_claude_code
 
@@ -199,7 +200,7 @@ macos:
     - shellspec
     - shfmt
     - speedtest-cli
-    - opencode
+    - sst/tap/opencode
     - codex  # OpenAI Codex CLI - AI coding assistant
     - gemini-cli  # Google Gemini CLI - AI coding assistant
     - charmbracelet/tap/crush  # Glamorous AI coding agent TUI
