@@ -1,6 +1,11 @@
 # Package configuration for mrdavidlaing
 # Defines which packages to install for each platform
 
+# Claude Code plugins
+claudecode:
+  plugins:
+    - superpowers@obra/superpowers-marketplace
+
 # Arch Linux - full desktop environment
 arch:
   pacman:

@@ -41,6 +41,7 @@ $LibDir = Join-Path $ProjectRoot "lib"
 . "$LibDir\security.functions.ps1"
 . "$LibDir\shared.functions.ps1"
 . "$LibDir\setup-user.functions.ps1"
+. "$LibDir\claudecode.functions.ps1"
 
 # Check for administrator privileges and auto-elevate if needed
 if (-not (Test-Administrator)) {
