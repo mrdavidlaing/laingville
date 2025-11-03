@@ -15,7 +15,7 @@ arch:
     - pipewire-alsa
     - qt6-wayland
     - qt5-wayland
-    - nodejs
+    - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
     - npm
     - base-devel
     - make
@@ -92,7 +92,7 @@ wsl:
     - tmux
     - neovim
     - go
-    - nodejs
+    - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
     - npm
     - ripgrep
     - bat
@@ -251,7 +251,7 @@ nix:
     - tmux
     - kubectl
     - go
-    - nodejs
+    - nodejs_22  # Node.js 22.x LTS
     - openssh
     - shellcheck
     - shellspec

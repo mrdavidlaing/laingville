@@ -17,7 +17,7 @@ arch:
     - ripgrep
     - rsync
     - jq
-    - nodejs
+    - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
     - openssh
   yay:
     - shellcheck
