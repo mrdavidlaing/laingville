@@ -21,6 +21,7 @@ arch:
     - make
     - bash
     - git
+    - git-lfs
     - openssh
     - tmux
     - neovim
@@ -154,6 +155,7 @@ windows:
   scoop:
     - versions/wezterm-nightly
     - lazygit
+    - git-lfs
     - direnv
     - eza
     - zoxide
@@ -177,6 +179,7 @@ macos:
     - direnv
     - make
     - git
+    - git-lfs
     - tig
     - lazygit
     - gh
@@ -237,6 +240,7 @@ nix:
   nixpkgs-25.05:
     # Development tools
     - git
+    - git-lfs
     - gh  # github-cli
     - lazygit
     - neovim
