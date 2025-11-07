@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: happy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: handy
+    volumes:
+      - happy-postgres-data:/var/lib/postgresql/data
+    networks:
+      - happy-network
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: happy-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - happy-redis-data:/data
+    networks:
+      - happy-network
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  happy-server:
+    image: slopus/happy-server:latest
+    container_name: happy-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/handy
+      REDIS_URL: redis://redis:6379
+      S3_HOST: storage.googleapis.com
+      S3_PORT: 443
+      S3_USE_SSL: true
+      NODE_ENV: production
+      METRICS_ENABLED: true
+      METRICS_PORT: 9090
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/.logs
+    ports:
+      - "3005:3005"
+      - "9090:9090"
+    networks:
+      - happy-network
+    mem_limit: 1g
+
+volumes:
+  happy-postgres-data:
+  happy-redis-data:
+
+networks:
+  happy-network:
+    driver: bridge
