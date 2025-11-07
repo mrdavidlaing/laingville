@@ -13,6 +13,7 @@ arch:
     # Note: iptables-nft already installed - ipset works with both
     - docker            # Container runtime for happy-server
     - docker-compose    # Container orchestration for happy-server stack
+    - docker-buildx     # Modern Docker build system
   yay:
     # No AUR packages currently needed
   custom:
