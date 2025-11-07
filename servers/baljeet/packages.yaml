@@ -19,6 +19,7 @@ arch:
     - ensure_sshd_running
     - ensure_minecraft_security_running
     - ensure_docker_running
+    - ensure_happy_server_running
 
 windows:
   winget:
