@@ -17,32 +17,35 @@ From laingville repository:
 ./bin/remote-setup-server baljeet
 ```
 
-### 2. Create .env file on baljeet
+### 2. Clone happy-server source on baljeet
 
-SSH to baljeet and create production environment:
+SSH to baljeet and clone the happy-server repository:
 ```bash
 ssh baljeet
+cd /opt/laingville/servers/baljeet/happy-server
+git clone https://github.com/slopus/happy-server.git happy-server-src
+```
+
+### 3. Create .env file on baljeet
+
+Create production environment file:
+```bash
 cd /opt/laingville/servers/baljeet/happy-server
 cp .env.template .env
 nano .env  # Fill in secrets
 ```
 
-### 3. Start services
+### 4. Start services
 
 ```bash
 docker-compose up -d
 ```
 
-### 4. Initialize database
-
-```bash
-# Wait for health checks (~30 seconds)
-docker-compose ps
-
-# Run migrations (if using git clone method)
-# docker-compose exec happy-server yarn generate
-# docker-compose exec happy-server yarn migrate
-```
+This will:
+- Build the happy-server image from source (first time will take a few minutes)
+- Start PostgreSQL and Redis containers
+- Wait for health checks
+- Start happy-server with your configuration
 
 ## Daily Operations
 
@@ -70,7 +73,10 @@ curl http://localhost:9090/metrics     # Prometheus metrics
 
 ### Update happy-server
 ```bash
-docker-compose pull happy-server
+cd /opt/laingville/servers/baljeet/happy-server/happy-server-src
+git pull
+cd ..
+docker-compose build happy-server
 docker-compose up -d happy-server
 ```
 
