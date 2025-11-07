@@ -1,0 +1,14 @@
+# Environment secrets
+.env
+
+# Runtime logs
+logs/
+*.log
+
+# Backup files
+*.sql
+*.dump
+
+# Docker volumes (managed by Docker)
+postgres-data/
+redis-data/
