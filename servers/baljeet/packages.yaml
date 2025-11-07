@@ -11,11 +11,14 @@ arch:
     - fail2ban          # Automatic IP banning for security
     - ipset             # Efficient IP set management
     # Note: iptables-nft already installed - ipset works with both
+    - docker            # Container runtime for happy-server
+    - docker-compose    # Container orchestration for happy-server stack
   yay:
     # No AUR packages currently needed
   custom:
     - ensure_sshd_running
     - ensure_minecraft_security_running
+    - ensure_docker_running
 
 windows:
   winget:

@@ -24,7 +24,7 @@ DNS: 192.168.1.2 (dwaca - FreshTomato dnsmasq server)
 
 Each server has its own subdirectory containing:
 
-- `packages.yml` - Package definitions for automated installation
+- `packages.yaml` - Package definitions for automated installation
 - `scripts/` - Server-specific automation scripts
 - Additional configuration files as needed
 
