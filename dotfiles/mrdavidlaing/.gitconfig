@@ -14,6 +14,7 @@
 	pager = bat --style=plain --color=always --paging=always
 	autocrlf = input
 
+	autocrlf = input
 [commit]
 	cleanup = strip
 	template = ~/.gitmessage
