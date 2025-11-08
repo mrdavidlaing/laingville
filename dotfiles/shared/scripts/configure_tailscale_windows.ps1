@@ -64,11 +64,14 @@ try {
     # Continue to authentication
 }
 
+# Get hostname for Tailscale (append -tailnet suffix to distinguish from local network)
+$tsHostname = "$env:COMPUTERNAME-tailnet"
+
 # Authenticate with Tailscale
 if ($env:TS_AUTHKEY) {
-    Write-Host "Authenticating with auth key..."
+    Write-Host "Authenticating with auth key (hostname: $tsHostname)..."
     try {
-        tailscale up --authkey="$env:TS_AUTHKEY" --ssh --accept-routes
+        tailscale up --authkey="$env:TS_AUTHKEY" --hostname="$tsHostname" --ssh --accept-routes
         if ($LASTEXITCODE -eq 0) {
             Write-Host "[Tailscale] [OK] Authentication successful"
             Write-Host ""
@@ -85,9 +88,10 @@ if ($env:TS_AUTHKEY) {
     Write-Host "[OK] Service configured"
     Write-Host ""
     Write-Host "To authenticate Tailscale, run:"
-    Write-Host "  tailscale up --ssh --accept-routes"
+    Write-Host "  tailscale up --hostname=`"$tsHostname`" --ssh --accept-routes"
     Write-Host ""
     Write-Host "This will:"
+    Write-Host "  - Register as '$tsHostname' on your Tailscale network"
     Write-Host "  - Open your browser to authenticate"
     Write-Host "  - Enable Tailscale SSH for remote access"
     Write-Host "  - Accept subnet routes from other devices"

@@ -82,10 +82,13 @@ if tailscale status &> /dev/null; then
   fi
 fi
 
+# Get hostname for Tailscale (append -tailnet suffix to distinguish from local network)
+ts_hostname="$(hostname -s)-tailnet"
+
 # Authenticate with Tailscale
 if [[ -n "${TS_AUTHKEY:-}" ]]; then
-  echo "Authenticating with auth key..."
-  if sudo tailscale up --authkey="${TS_AUTHKEY}" --ssh --accept-routes; then
+  echo "Authenticating with auth key (hostname: ${ts_hostname})..."
+  if sudo tailscale up --authkey="${TS_AUTHKEY}" --hostname="${ts_hostname}" --ssh --accept-routes; then
     echo "[Tailscale] [OK] Authentication successful"
     echo ""
     tailscale status
@@ -97,9 +100,10 @@ else
   echo "[OK] Service configured"
   echo ""
   echo "To authenticate Tailscale, run:"
-  echo "  sudo tailscale up --ssh --accept-routes"
+  echo "  sudo tailscale up --hostname=\"${ts_hostname}\" --ssh --accept-routes"
   echo ""
   echo "This will:"
+  echo "  - Register as '${ts_hostname}' on your Tailscale network"
   echo "  - Open your browser to authenticate"
   echo "  - Enable Tailscale SSH for remote access"
   echo "  - Accept subnet routes from other devices"
