@@ -189,4 +189,54 @@ Describe "setup-user.functions.ps1" {
             }
         }
     }
+
+    Describe "Invoke-CustomWindowsScript" {
+        BeforeAll {
+            # Create a mock repository structure
+            $script:mockRepoRoot = Join-Path $TestDrive "laingville"
+            $script:mockDotfilesDir = Join-Path $script:mockRepoRoot "dotfiles\mrdavidlaing"
+            $script:mockSharedScriptsDir = Join-Path $script:mockRepoRoot "dotfiles\shared\scripts"
+
+            New-Item -ItemType Directory -Path $script:mockDotfilesDir -Force
+            New-Item -ItemType Directory -Path $script:mockSharedScriptsDir -Force
+
+            # Create a test script
+            $script:mockScriptPath = Join-Path $script:mockSharedScriptsDir "test_script.ps1"
+            "Write-Host 'Test script executed'" | Set-Content $script:mockScriptPath
+        }
+
+        Context "when resolving script paths" {
+            It "correctly resolves repo root from dotfiles directory" {
+                # This test verifies the fix for the path resolution bug
+                # where $repoRoot was incorrectly calculated
+
+                $scripts = @("test_script")
+                $result = Invoke-CustomWindowsScript -DotfilesDir $script:mockDotfilesDir -Scripts $scripts -DryRun $true
+
+                # Should succeed in dry-run mode
+                $result | Should -Be $true
+            }
+
+            It "finds scripts in shared scripts directory" {
+                $scripts = @("test_script")
+
+                # Mock Test-SafePath to always return true
+                Mock Test-SafePath { return $true }
+
+                $result = Invoke-CustomWindowsScript -DotfilesDir $script:mockDotfilesDir -Scripts $scripts -DryRun $false
+
+                # Should execute successfully
+                $result | Should -Be $true
+            }
+
+            It "handles missing scripts gracefully" {
+                $scripts = @("nonexistent_script")
+
+                $result = Invoke-CustomWindowsScript -DotfilesDir $script:mockDotfilesDir -Scripts $scripts -DryRun $false
+
+                # Should return false when script not found
+                $result | Should -Be $false
+            }
+        }
+    }
 }

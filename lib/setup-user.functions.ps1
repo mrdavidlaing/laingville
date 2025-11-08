@@ -202,7 +202,10 @@ function Invoke-CustomWindowsScript {
         return $true
     }
 
-    $repoRoot = Split-Path $DotfilesDir -Parent
+    # $DotfilesDir is like "C:\...\laingville\dotfiles\mrdavidlaing"
+    # So parent is "dotfiles", and we need to go up one more level to get repo root
+    $dotfilesRoot = Split-Path $DotfilesDir -Parent
+    $repoRoot = Split-Path $dotfilesRoot -Parent
     $sharedScriptsDir = Join-Path $repoRoot "dotfiles\shared\scripts"
     $userScriptsDir = Join-Path $DotfilesDir "scripts"
 

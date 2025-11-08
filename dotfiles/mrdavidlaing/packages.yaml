@@ -150,7 +150,7 @@ windows:
     - Microsoft.VisualStudioCode
     - Starship.Starship
     - Microsoft.PowerShell
-    - tailscale.tailscale
+    - Tailscale.Tailscale
   scoop:
     - versions/wezterm-nightly
     - lazygit
