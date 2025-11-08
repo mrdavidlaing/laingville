@@ -38,6 +38,7 @@ arch:
     - brightnessctl
     - playerctl
     - gimp
+    - tailscale
   yay:
     # AUR-only packages
     - glibc-locales
@@ -80,6 +81,7 @@ arch:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
+    - configure_tailscale
 
 # WSL - terminal-focused, no GUI
 wsl:
@@ -105,6 +107,7 @@ wsl:
     - unzip
     - docker
     - wget
+    - tailscale
   yay:
     # AUR-only packages
     - glibc-locales
@@ -137,6 +140,7 @@ wsl:
     - opencode-bin
   custom:
     - install_claude_code
+    - configure_tailscale
 
 # Windows - GUI applications
 windows:
@@ -146,6 +150,7 @@ windows:
     - Microsoft.VisualStudioCode
     - Starship.Starship
     - Microsoft.PowerShell
+    - tailscale.tailscale
   scoop:
     - versions/wezterm-nightly
     - lazygit
@@ -160,6 +165,7 @@ windows:
     - PSScriptAnalyzer
   custom:
     - install_claude_code_windows
+    - configure_tailscale_windows
   winget_cleanup:
     - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
     - Zen-Team.Zen-Browser  # Removed 2025-10, no longer using Zen browser
@@ -204,6 +210,7 @@ macos:
     - codex  # OpenAI Codex CLI - AI coding assistant
     - gemini-cli  # Google Gemini CLI - AI coding assistant
     - charmbracelet/tap/crush  # Glamorous AI coding agent TUI
+    - tailscale
   cask:
     - jordanbaird-ice  # Menu bar manager for notch-aware icon management
     - nikitabobko/tap/aerospace
@@ -220,6 +227,7 @@ macos:
     - install_nil
     - configure_rectangle
     - configure_ice
+    - configure_tailscale
   cask_cleanup:
     - alacritty  # Removed 2025-09-30, switched to wezterm
     - zen  # Removed 2025-10, no longer using Zen browser
@@ -262,5 +270,7 @@ nix:
     - k9s
     - gnumake
     - clang
+    - tailscale
   custom:
     - install_claude_code
+    - configure_tailscale
