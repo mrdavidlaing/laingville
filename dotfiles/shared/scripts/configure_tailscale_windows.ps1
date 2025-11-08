@@ -14,7 +14,8 @@ if ($DryRun -eq "true") {
     Write-Host "[Tailscale] [DRY RUN] Would verify tailscaled service is running"
     if ($env:TS_AUTHKEY) {
         Write-Host "[Tailscale] [DRY RUN] Would authenticate with TS_AUTHKEY and enable --ssh --accept-routes"
-    } else {
+    }
+    else {
         Write-Host "[Tailscale] [DRY RUN] Would print authentication instructions"
     }
     exit 0
@@ -43,11 +44,13 @@ if ($service.Status -ne "Running") {
     try {
         Start-Service -Name "Tailscale"
         Write-Host "[Tailscale] Service started"
-    } catch {
+    }
+    catch {
         Write-Host "[WARNING] Failed to start Tailscale service: $_"
         Write-Host "You may need to start it manually from Services or the Tailscale tray icon."
     }
-} else {
+}
+else {
     Write-Host "Service already running"
 }
 
@@ -60,7 +63,8 @@ try {
         tailscale status
         exit 0
     }
-} catch {
+}
+catch {
     # Continue to authentication
 }
 
@@ -76,15 +80,18 @@ if ($env:TS_AUTHKEY) {
             Write-Host "[Tailscale] [OK] Authentication successful"
             Write-Host ""
             tailscale status
-        } else {
+        }
+        else {
             Write-Host "[Tailscale] [ERROR] Authentication failed"
             exit 1
         }
-    } catch {
+    }
+    catch {
         Write-Host "[Tailscale] [ERROR] Authentication failed: $_"
         exit 1
     }
-} else {
+}
+else {
     Write-Host "[OK] Service configured"
     Write-Host ""
     Write-Host "To authenticate Tailscale, run:"
