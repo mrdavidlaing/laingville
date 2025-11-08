@@ -283,7 +283,6 @@ Describe 'Package cleanup functionality'
                   The stderr should include 'INVALID_PACKAGE'
                   The status should be success
                 End
-              End
 
               Describe 'remove_yay_packages()'
                 Context 'with valid packages'
@@ -604,3 +603,4 @@ Describe 'Package cleanup functionality'
                                       The status should be success
                                     End
                                   End
+End
