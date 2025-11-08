@@ -3,6 +3,9 @@
 # Tailscale Configuration Script for Windows
 # Verifies tailscaled service and optionally authenticates with Tailscale
 
+# Suppress PSScriptAnalyzer warning about Write-Host
+# This is a user-facing setup script where Write-Host is appropriate for output
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
 [CmdletBinding()]
 param(
     [string]$DryRun = "false"
@@ -65,7 +68,9 @@ try {
     }
 }
 catch {
-    # Continue to authentication
+    # Intentionally empty - if status check fails, continue to authentication
+    # This handles the case where Tailscale is not yet authenticated
+    $null = $_
 }
 
 # Get hostname for Tailscale (append -tailnet suffix to distinguish from local network)
