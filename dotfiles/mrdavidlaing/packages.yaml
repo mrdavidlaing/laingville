@@ -83,6 +83,7 @@ arch:
   custom:
     - install_claude_code
     - install_happy_cli
+    - install_beads
     - configure_tailscale
 
 # WSL - terminal-focused, no GUI
@@ -143,6 +144,7 @@ wsl:
   custom:
     - install_claude_code
     - install_happy_cli
+    - install_beads
     - configure_tailscale
 
 # Windows - GUI applications
@@ -230,6 +232,7 @@ macos:
   custom:
     - install_claude_code
     - install_happy_cli
+    - install_beads
     - install_nil
     - configure_rectangle
     - configure_ice
@@ -281,4 +284,5 @@ nix:
   custom:
     - install_claude_code
     - install_happy_cli
+    - install_beads
     - configure_tailscale
