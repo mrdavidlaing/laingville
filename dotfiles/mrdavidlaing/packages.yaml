@@ -75,10 +75,7 @@ arch:
     - ttf-jetbrains-mono-nerd
     - vivaldi
     - 1password-cli
-  pacman_cleanup:
-    - alacritty  # Removed 2025-09-30, switched to wezterm
   yay_cleanup:
-    - zen-bin  # Removed 2025-10, no longer using Zen browser
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
@@ -172,10 +169,6 @@ windows:
   custom:
     - install_claude_code_windows
     - configure_tailscale_windows
-  winget_cleanup:
-    - Alacritty.Alacritty  # Removed 2025-09-30, switched to wezterm
-    - Zen-Team.Zen-Browser  # Removed 2025-10, no longer using Zen browser
-    - DEVCOM.JetBrainsMonoNerdFont  # Moved to scoop nerd-fonts bucket
 
 # macOS - Unix tools and GUI apps
 macos:
@@ -237,9 +230,6 @@ macos:
     - configure_rectangle
     - configure_ice
     - configure_tailscale
-  cask_cleanup:
-    - alacritty  # Removed 2025-09-30, switched to wezterm
-    - zen  # Removed 2025-10, no longer using Zen browser
 
 # Nix - package management
 nix:
