@@ -14,6 +14,7 @@ arch:
     - docker            # Container runtime for happy-server
     - docker-compose    # Container orchestration for happy-server stack
     - docker-buildx     # Modern Docker build system
+    - rclone            # Cloud storage sync tool for GCS backups
   yay:
     # No AUR packages currently needed
   custom:

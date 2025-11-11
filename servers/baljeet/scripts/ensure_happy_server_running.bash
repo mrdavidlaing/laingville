@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HAPPY_DIR="${SCRIPT_DIR}/../happy-server"
+# Happy server runs from /srv/happy-server (FHS-compliant location for services)
+HAPPY_DIR="/srv/happy-server"
 COMPOSE_FILE="${HAPPY_DIR}/docker-compose.yml"
 
 echo "Ensuring happy-server Docker stack is running..."
@@ -30,6 +30,9 @@ if [ ! -f "${HAPPY_DIR}/.env" ]; then
   echo "Copy .env.template to .env and configure secrets before starting"
   exit 0
 fi
+
+# Security: Ensure .env has proper permissions (owner-only readable)
+chmod 600 "${HAPPY_DIR}/.env"
 
 # Start the stack (docker-compose up -d is idempotent)
 cd "$HAPPY_DIR"

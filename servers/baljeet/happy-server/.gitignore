@@ -12,3 +12,6 @@ logs/
 # Docker volumes (managed by Docker)
 postgres-data/
 redis-data/
+
+# External source code (cloned separately, lives in /srv/happy-server/)
+happy-server-src/
