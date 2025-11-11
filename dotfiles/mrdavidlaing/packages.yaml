@@ -17,6 +17,7 @@ arch:
     - qt5-wayland
     - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
     - npm
+    - yarn
     - base-devel
     - make
     - bash
@@ -97,6 +98,7 @@ wsl:
     - go
     - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
     - npm
+    - yarn
     - ripgrep
     - bat
     - fd
@@ -161,6 +163,7 @@ windows:
     - eza
     - zoxide
     - bat
+    - yarn
     - nerd-fonts/CascadiaCode-NF
     - nerd-fonts/JetBrainsMono-NF
   psmodule:
@@ -182,6 +185,7 @@ macos:
     - gh
     - rsync
     - neovim
+    - yarn
     - lua-language-server
     - bash-language-server
     - marksman
@@ -261,6 +265,7 @@ nix:
     - kubectl
     - go
     - nodejs_22  # Node.js 22.x LTS
+    - yarn
     - openssh
     - shellcheck
     - shellspec
