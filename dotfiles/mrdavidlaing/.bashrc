@@ -39,6 +39,11 @@ alias grep='grep --color=auto'
 alias vim='nvim'
 alias vi='nvim'
 
+# Happy CLI - Always start in yolo mode (skip permission prompts)
+happy() {
+  command happy --yolo "$@"
+}
+
 # WSL-specific interactive configuration
 if grep -qi microsoft /proc/version 2>/dev/null; then
     # 1Password SSH Agent integration for WSL (interactive aliases)

@@ -82,6 +82,7 @@ arch:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
+    - install_happy_cli
     - configure_tailscale
 
 # WSL - terminal-focused, no GUI
@@ -141,6 +142,7 @@ wsl:
     - opencode-bin
   custom:
     - install_claude_code
+    - install_happy_cli
     - configure_tailscale
 
 # Windows - GUI applications
@@ -227,6 +229,7 @@ macos:
     - cursor-cli  # Cursor AI code editor CLI
   custom:
     - install_claude_code
+    - install_happy_cli
     - install_nil
     - configure_rectangle
     - configure_ice
@@ -277,4 +280,5 @@ nix:
     - tailscale
   custom:
     - install_claude_code
+    - install_happy_cli
     - configure_tailscale

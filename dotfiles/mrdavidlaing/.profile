@@ -15,6 +15,10 @@ fi
 # Add Cargo (Rust) bin directory to PATH
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Add pnpm global bin directory to PATH
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
 # Add Scoop shims to PATH when available (Git Bash on Windows)
 if [ -d "$HOME/scoop/shims" ]; then
     export PATH="$HOME/scoop/shims:$PATH"
@@ -40,6 +44,10 @@ if [ -n "$SSH_TTY" ] && [ "$TERM" = "xterm-256color" ] && [ -z "$TMUX" ]; then
     # We're in an SSH session with a 256-color terminal
     export COLORTERM=truecolor
 fi
+
+# Happy CLI - Use self-hosted relay server on baljeet
+# Default server is https://api.cluster-fluster.com
+export HAPPY_SERVER_URL="http://baljeet-tailnet:3005"
 
 # Load 1Password environment secrets if available
 # Scripts and interactive shells both need access to environment secrets
