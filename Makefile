@@ -60,7 +60,12 @@ test-powershell:
 	@echo "🧪 Running PowerShell tests..."
 	@if command -v pwsh >/dev/null 2>&1; then \
 		if [ -f ".pester.ps1" ] && [ -d "spec/powershell" ]; then \
-			pwsh -NoProfile -Command "Invoke-Pester -Path ./spec/powershell -Output Detailed"; \
+			if pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { exit 0 } else { exit 1 }" 2>/dev/null; then \
+				pwsh -NoProfile -Command "Invoke-Pester -Path ./spec/powershell -Output Detailed"; \
+			else \
+				echo "ℹ️  Pester not installed. Skipping PowerShell tests"; \
+				echo "    Install with: pwsh -Command 'Install-Module -Name Pester -Force'"; \
+			fi; \
 		else \
 			echo "ℹ️  No PowerShell tests found. Skipping PowerShell tests"; \
 		fi; \
