@@ -14,19 +14,17 @@ fi
 
 echo -n "[Beads (bd)] "
 
-# Check if bd binary is already installed and working
+# Path to target binary
 bd_binary_path="${HOME}/.local/bin/bd"
 
-if [[ -f "${bd_binary_path}" ]] && [[ -x "${bd_binary_path}" ]]; then
-  # Verify it's actually working by checking version
-  if "${bd_binary_path}" --version &> /dev/null; then
-    version_output=$("${bd_binary_path}" --version 2>&1 | head -n 1)
-    echo "[OK] Native binary already installed and working: ${version_output}"
-    exit 0
-  fi
+# If an existing binary is present and working, report current version,
+# but do not exit — always install/update to the latest version.
+if [[ -x "${bd_binary_path}" ]] && "${bd_binary_path}" --version &> /dev/null; then
+  version_output=$("${bd_binary_path}" --version 2>&1 | head -n 1)
+  echo "[INFO] Existing installation detected: ${version_output} — updating to latest"
+else
+  echo "Installing native binary..."
 fi
-
-echo "Installing native binary..."
 
 # Ensure ~/.local/bin exists
 mkdir -p "${HOME}/.local/bin"
