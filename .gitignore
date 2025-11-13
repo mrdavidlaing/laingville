@@ -1,5 +1,6 @@
 .crush/
 .cursor/
+.dev/
 .worktrees/
 *.log
 .DS_Store

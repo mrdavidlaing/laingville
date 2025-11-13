@@ -33,5 +33,6 @@ if (Get-Module -ListAvailable PSScriptAnalyzer) {
 }
 else {
     Write-Host "PSScriptAnalyzer not found. Install with: Install-Module -Name PSScriptAnalyzer"
-    exit 1
+    Write-Host "Skipping PowerShell linting"
+    exit 0
 }
