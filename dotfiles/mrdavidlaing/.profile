@@ -47,7 +47,7 @@ fi
 
 # Happy CLI - Use self-hosted relay server on baljeet
 # Default server is https://api.cluster-fluster.com
-export HAPPY_SERVER_URL="http://baljeet-tailnet:3005"
+export HAPPY_SERVER_URL="https://baljeet-tailnet.cyprus-macaroni.ts.net"
 
 # Load 1Password environment secrets if available
 # Scripts and interactive shells both need access to environment secrets

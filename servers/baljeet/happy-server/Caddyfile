@@ -1,0 +1,44 @@
+# Caddy reverse proxy configuration for Happy Server
+# Uses Tailscale HTTPS certificates
+
+# Main HTTPS endpoint
+{$HAPPY_DOMAIN:baljeet-tailnet.cyprus-macaroni.ts.net} {
+    # Use Tailscale-provided certificates
+    tls /certs/baljeet-tailnet.cyprus-macaroni.ts.net.crt /certs/baljeet-tailnet.cyprus-macaroni.ts.net.key
+
+    # Reverse proxy to happy-server container
+    reverse_proxy happy-server:3005 {
+        # WebSocket support (required for Happy Server)
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Enable compression
+    encode gzip
+
+    # Security headers
+    header {
+        # Remove server identification
+        -Server
+        # Prevent XSS attacks
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+    }
+
+    # Access logging
+    log {
+        output file /var/log/caddy/access.log
+    }
+}
+
+# Metrics endpoint (optional, for Prometheus)
+{$METRICS_DOMAIN:metrics.baljeet-tailnet} {
+    reverse_proxy happy-server:9090
+
+    # Basic auth for metrics (optional)
+    # basicauth {
+    #     admin $2a$14$...your-bcrypt-hash-here
+    # }
+}

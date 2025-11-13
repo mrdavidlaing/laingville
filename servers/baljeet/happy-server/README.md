@@ -16,7 +16,8 @@ Docker Compose configuration for running happy-server on baljeet.
 **Production (Not in git):**
 ```
 /srv/happy-server/       # FHS-compliant service location
-├── docker-compose.yml   # Copied from laingville repo
+├── docker-compose.yml   # Symlink to ~/workspace/laingville/servers/baljeet/happy-server/
+├── Caddyfile           # Symlink to ~/workspace/laingville/servers/baljeet/happy-server/
 ├── happy-server-src/    # Cloned from github.com/slopus/happy-server
 ├── .env                 # Production secrets (NOT in git)
 └── logs/                # Runtime logs (NOT in git)
@@ -39,15 +40,15 @@ cd /srv/happy-server
 git clone https://github.com/slopus/happy-server.git happy-server-src
 ```
 
-### 2. Copy configuration files
+### 2. Copy and configure secrets
 
 ```bash
-# Copy docker-compose.yml from laingville repo
-cp ~/workspace/laingville/servers/baljeet/happy-server/docker-compose.yml /srv/happy-server/
-
-# Copy and configure .env
+# Copy and configure .env (one-time setup)
 cp ~/workspace/laingville/servers/baljeet/happy-server/.env.template /srv/happy-server/.env
 nano /srv/happy-server/.env  # Fill in secrets
+
+# Configuration files (docker-compose.yml, Caddyfile) are automatically symlinked
+# by setup-server, so no manual copying needed!
 ```
 
 ### 3. Start services
@@ -62,6 +63,7 @@ This will:
 - Start PostgreSQL and Redis containers
 - Wait for health checks
 - Start happy-server with your configuration
+- Start Caddy reverse proxy with automatic HTTPS
 
 ### 4. Enable automatic startup
 
@@ -90,9 +92,30 @@ docker-compose logs -f happy-server   # Container logs
 ```bash
 cd /srv/happy-server
 docker-compose ps                      # Service status
-curl http://localhost:3005/health      # Application health
-curl http://localhost:9090/metrics     # Prometheus metrics
+curl http://localhost:3005/health      # Application health (internal)
+curl https://baljeet-tailnet/health    # Application health (via HTTPS)
+curl http://localhost:9090/metrics     # Prometheus metrics (internal)
 ```
+
+### Accessing the Web Interface
+
+**For Claude Code web app (https://app.happy.engineering):**
+```
+Server URL: https://baljeet-tailnet
+```
+
+**For mobile app:**
+```
+Server URL: https://baljeet-tailnet
+```
+
+**Direct browser access:**
+```
+https://baljeet-tailnet/health  # Health check
+https://baljeet-tailnet/stats   # Server statistics
+```
+
+Note: The Caddy reverse proxy automatically obtains and renews SSL certificates. The first HTTPS connection may take a few seconds while Caddy provisions the certificate.
 
 ## Updates
 
@@ -105,17 +128,26 @@ docker-compose build happy-server
 docker-compose up -d happy-server
 ```
 
-### Update configuration (docker-compose.yml)
+### Update configuration (docker-compose.yml or Caddyfile)
 ```bash
-# 1. Edit in laingville repo
+# 1. Edit in laingville repo (in Claude Code or your editor)
 nano ~/workspace/laingville/servers/baljeet/happy-server/docker-compose.yml
+# or
+nano ~/workspace/laingville/servers/baljeet/happy-server/Caddyfile
 
-# 2. Copy to production
-cp ~/workspace/laingville/servers/baljeet/happy-server/docker-compose.yml /srv/happy-server/
+# 2. Commit to git (optional but recommended)
+git add servers/baljeet/happy-server/
+git commit -m "chore: update happy-server configuration"
+git push
 
-# 3. Restart services
-cd /srv/happy-server
-docker-compose up -d
+# 3. Run setup-server to automatically sync and restart
+cd ~/workspace/laingville
+./bin/setup-server
+
+# This will:
+# - Symlink updated configuration files to /srv/happy-server
+# - Restart services with updated configuration
+# - Wait for health checks to pass
 ```
 
 ## Backups
@@ -251,18 +283,30 @@ docker-compose logs happy-server | grep S3
 ## Configuration Management
 
 **What's in git (laingville repo):**
-- `docker-compose.yml` - Service definitions
+- `docker-compose.yml` - Service definitions (auto-symlinked to production)
+- `Caddyfile` - Reverse proxy config (auto-symlinked to production)
 - `.env.template` - Template for secrets
 - `README.md` - Documentation
-- `scripts/ensure_happy_server_running.bash` - Startup automation
+- `scripts/ensure_happy_server_running.bash` - Symlinks configs and starts services
 
 **What's NOT in git (production only):**
 - `happy-server-src/` - External git repo
-- `.env` - Secrets
+- `.env` - Secrets (one-time manual setup)
 - `logs/` - Runtime data
+- `*.crt`, `*.key` - Tailscale HTTPS certificates
 
-**Deploying changes:**
+**Deploying changes (automatic):**
 1. Edit files in `~/workspace/laingville/servers/baljeet/happy-server/`
-2. Commit to git
-3. Copy updated files to `/srv/happy-server/`
-4. Restart services if needed
+2. Commit to git (optional but recommended)
+3. Run `./bin/setup-server` on baljeet
+
+This will:
+- Symlink updated configuration files (like dotfiles!)
+- Restart services automatically with docker-compose
+- Wait for health checks to pass
+
+**How it works:**
+- `setup-server` calls `ensure_happy_server_running.bash`
+- Script symlinks docker-compose.yml and Caddyfile to `/srv/happy-server/`
+- Then starts/restarts services with `docker-compose up -d` (idempotent)
+- Changes to repo files are immediately reflected in production

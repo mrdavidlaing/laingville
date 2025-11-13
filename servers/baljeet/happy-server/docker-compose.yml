@@ -58,16 +58,43 @@ services:
       - .env
     volumes:
       - ./logs:/app/.logs
-    ports:
-      - "3005:3005"
-      - "9090:9090"
+    # Ports only exposed to internal network (Caddy handles external access)
+    expose:
+      - "3005"
+      - "9090"
     networks:
       - happy-network
     mem_limit: 1g
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: happy-caddy
+    restart: unless-stopped
+    depends_on:
+      - happy-server
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./baljeet-tailnet.cyprus-macaroni.ts.net.crt:/certs/baljeet-tailnet.cyprus-macaroni.ts.net.crt:ro
+      - ./baljeet-tailnet.cyprus-macaroni.ts.net.key:/certs/baljeet-tailnet.cyprus-macaroni.ts.net.key:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./logs/caddy:/var/log/caddy
+    environment:
+      HAPPY_DOMAIN: ${HAPPY_DOMAIN:-baljeet-tailnet.cyprus-macaroni.ts.net}
+      METRICS_DOMAIN: ${METRICS_DOMAIN:-metrics.baljeet-tailnet.cyprus-macaroni.ts.net}
+    networks:
+      - happy-network
+    mem_limit: 256m
+
 volumes:
   happy-postgres-data:
   happy-redis-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   happy-network:
