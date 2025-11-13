@@ -211,7 +211,6 @@ macos:
     - shfmt
     - speedtest-cli
     - sst/tap/opencode
-    - codex  # OpenAI Codex CLI - AI coding assistant
     - gemini-cli  # Google Gemini CLI - AI coding assistant
     - charmbracelet/tap/crush  # Glamorous AI coding agent TUI
     - tailscale
@@ -226,6 +225,7 @@ macos:
     - docker-desktop
     - claude
     - cursor-cli  # Cursor AI code editor CLI
+    - codex  # OpenAI Codex CLI - AI coding assistant
   custom:
     - install_claude_code
     - install_happy_cli
