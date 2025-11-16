@@ -11,6 +11,7 @@ arch:
     - fail2ban          # Automatic IP banning for security
     - ipset             # Efficient IP set management
     # Note: iptables-nft already installed - ipset works with both
+    - firewalld         # Dynamic firewall manager
     - docker            # Container runtime for happy-server
     - docker-compose    # Container orchestration for happy-server stack
     - docker-buildx     # Modern Docker build system
@@ -22,6 +23,7 @@ arch:
     - ensure_minecraft_security_running
     - ensure_docker_running
     - ensure_happy_server_running
+    - configure_tailscale_firewalld
 
 windows:
   winget:
