@@ -321,6 +321,12 @@ log_finish() {
   local script_name
   script_name=$(basename "${0}")
 
+  # Restore terminal state in case any command left it in a bad state
+  # This fixes issues where terminal echo is disabled after package installations
+  if [[ -t 1 ]]; then
+    stty sane 2> /dev/null || true
+  fi
+
   # Skip logging during shellspec tests
   if [[ -n "${SHELLSPEC_PROJECT_ROOT:-}" || -n "${SHELLSPEC_RUNNING:-}" ]]; then
     return

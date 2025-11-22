@@ -62,6 +62,7 @@ arch:
     - eza
     - kubectl
     - pnpm
+    - bun-bin
     - uv
     - shellspec
     - shfmt
@@ -129,6 +130,7 @@ wsl:
     - eza
     - navi
     - pnpm
+    - bun-bin
     - powershell-bin  # Native Linux PowerShell (avoids ShellSpec issue #351 with pwsh.exe)
     - uv
     - kubectl
@@ -165,6 +167,7 @@ windows:
     - zoxide
     - bat
     - yarn
+    - bun
     - nerd-fonts/CascadiaCode-NF
     - nerd-fonts/JetBrainsMono-NF
   psmodule:
@@ -231,6 +234,7 @@ macos:
     - install_claude_code
     - install_happy_cli
     - install_beads
+    - install_bun
     - install_nil
     - configure_rectangle
     - configure_ice
@@ -267,6 +271,7 @@ nix:
     - go
     - nodejs_22  # Node.js 22.x LTS
     - yarn
+    - bun
     - openssh
     - shellcheck
     - shellspec
