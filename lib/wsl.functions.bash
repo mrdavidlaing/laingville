@@ -117,6 +117,9 @@ handle_wsl_packages() {
     log_info "Installing ${context,,} packages for ${platform}..."
   fi
 
+  # Refresh mirrors first for fastest downloads
+  refresh_arch_mirrors "${dry_run}"
+
   # Install yay first for unified package management
   install_yay "${dry_run}"
 

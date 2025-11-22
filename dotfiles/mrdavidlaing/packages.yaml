@@ -139,6 +139,8 @@ wsl:
     - k9s
     - speedtest-cli
     - opencode-bin
+  yay_cleanup:
+    - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
     - install_happy_cli

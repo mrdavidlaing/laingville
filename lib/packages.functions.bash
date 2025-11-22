@@ -332,6 +332,43 @@ validate_and_filter_packages() {
   printf '%s\n' "${valid_packages[@]}"
 }
 
+# Refresh Arch Linux mirror list using reflector
+refresh_arch_mirrors() {
+  local dry_run="$1"
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "refresh Arch mirrors using reflector"
+    return 0
+  fi
+
+  log_info "Refreshing Arch Linux mirror list..."
+
+  # Install reflector if not available
+  if ! command -v reflector > /dev/null 2>&1; then
+    log_info "Installing reflector..."
+    if ! sudo pacman -S --needed --noconfirm reflector; then
+      log_warning "Failed to install reflector, skipping mirror refresh"
+      return 0
+    fi
+  fi
+
+  # Backup current mirrorlist
+  if [[ -f /etc/pacman.d/mirrorlist ]]; then
+    sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
+  fi
+
+  # Refresh mirrors: latest 10 European mirrors, sorted by rate, HTTPS only, 1s timeout
+  if ! sudo reflector --country France,Germany,Netherlands,UK,Sweden --latest 10 --protocol https --sort rate --download-timeout 1 --save /etc/pacman.d/mirrorlist; then
+    log_warning "Failed to refresh mirrors, continuing with existing mirrorlist"
+    # Restore backup if refresh failed
+    if [[ -f /etc/pacman.d/mirrorlist.backup ]]; then
+      sudo cp /etc/pacman.d/mirrorlist.backup /etc/pacman.d/mirrorlist
+    fi
+  else
+    log_success "Mirror list refreshed successfully"
+  fi
+}
+
 # Install pacman packages (batch mode)
 install_pacman_packages() {
   local packages="$1" dry_run="$2"
@@ -949,6 +986,9 @@ handle_packages_from_file() {
 
   case "${platform}" in
     "arch")
+      # Refresh mirrors first for fastest downloads
+      refresh_arch_mirrors "${dry_run}"
+
       # Install yay first for unified package management
       install_yay "${dry_run}"
 
