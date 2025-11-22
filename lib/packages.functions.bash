@@ -335,10 +335,22 @@ validate_and_filter_packages() {
 # Refresh Arch Linux mirror list using reflector
 refresh_arch_mirrors() {
   local dry_run="$1"
+  local mirrorlist="/etc/pacman.d/mirrorlist"
+  local max_age=3600 # 1 hour in seconds
 
   if [[ "${dry_run}" = true ]]; then
-    log_dry_run "refresh Arch mirrors using reflector"
+    log_dry_run "refresh Arch mirrors using reflector (if older than 1 hour)"
     return 0
+  fi
+
+  # Skip if mirrorlist was updated less than 1 hour ago
+  if [[ -f "${mirrorlist}" ]]; then
+    local file_age
+    file_age=$(($(date +%s) - $(stat -c %Y "${mirrorlist}" 2> /dev/null || echo 0)))
+    if [[ ${file_age} -lt ${max_age} ]]; then
+      log_info "Mirror list is recent ($((file_age / 60)) min old), skipping refresh"
+      return 0
+    fi
   fi
 
   log_info "Refreshing Arch Linux mirror list..."
