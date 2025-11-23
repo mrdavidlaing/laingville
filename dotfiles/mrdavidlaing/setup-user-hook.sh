@@ -9,6 +9,30 @@ if [[ -x "$SCRIPT_DIR/.claude/generate-settings.sh" ]]; then
   "$SCRIPT_DIR/.claude/generate-settings.sh"
 fi
 
+# macOS: Load workday LaunchAgents on mo-inator only
+if [[ "$(uname)" == "Darwin" ]]; then
+  hostname_short=$(scutil --get ComputerName 2> /dev/null || hostname -s 2> /dev/null || echo "unknown")
+  if [[ "$hostname_short" == "mo-inator" ]]; then
+    echo "Loading workday LaunchAgents for mo-inator..."
+    # Load countdown agent (17:45 warning)
+    if [[ -f "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist" ]]; then
+      launchctl unload "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist" 2> /dev/null || true
+      launchctl load "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist"
+      echo "  Loaded: workday-countdown (17:45 Mon-Fri)"
+    fi
+    # Load suspend agent (18:00 sleep)
+    if [[ -f "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist" ]]; then
+      launchctl unload "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist" 2> /dev/null || true
+      launchctl load "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist"
+      echo "  Loaded: workday-suspend (18:00 Mon-Fri)"
+    fi
+  else
+    # On other Macs, ensure workday agents are NOT loaded
+    launchctl unload "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist" 2> /dev/null || true
+    launchctl unload "$HOME/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist" 2> /dev/null || true
+  fi
+fi
+
 # Skip check on Git Bash where this script running means we're already in bash
 if [[ "${OSTYPE}" == "msys"* ]] || [[ "${OSTYPE}" == "cygwin"* ]]; then
   exit 0
