@@ -61,14 +61,19 @@ bd close bd-42 --reason "Completed" --json
 4. **Discover new work?** Create linked issue:
    - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id>`
 5. **Complete**: `bd close <id> --reason "Done"`
-6. **Commit together**: Always commit the `.beads/beads.jsonl` file together with the code changes so issue state stays in sync with code state
+6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
 ### Auto-Sync
 
 bd automatically syncs with git:
-- Exports to `.beads/beads.jsonl` after changes (5s debounce)
+- Exports to `.beads/issues.jsonl` after changes (5s debounce)
 - Imports from JSONL when newer (e.g., after `git pull`)
 - No manual export/import needed!
+
+### GitHub Copilot Integration
+
+If using GitHub Copilot, also create `.github/copilot-instructions.md` for automatic instruction loading.
+Run `bd onboard` to get the content, or see step 2 of the onboard instructions.
 
 ### MCP Server (Recommended)
 
