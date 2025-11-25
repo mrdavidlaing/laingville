@@ -15,9 +15,7 @@ arch:
     - pipewire-alsa
     - qt6-wayland
     - qt5-wayland
-    - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
-    - npm
-    - yarn
+    - nodejs-lts-jod  # Node.js 22.x LTS (Jod) - includes npm
     - base-devel
     - make
     - bash
@@ -96,9 +94,7 @@ wsl:
     - tmux
     - neovim
     - go
-    - nodejs-lts-jod  # Node.js 22.x LTS (Jod)
-    - npm
-    - yarn
+    - nodejs-lts-jod  # Node.js 22.x LTS (Jod) - includes npm
     - ripgrep
     - bat
     - fd
