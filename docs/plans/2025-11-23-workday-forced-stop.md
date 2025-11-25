@@ -4,181 +4,70 @@
 **Status**: Implemented
 **Platform**: macOS (mo-inator only)
 
-## Problem Statement
+## Problem Statement (Updated 2025-11-25)
 
-Working past 18:00 due to "one more thing" syndrome - Slack conversations, meetings, or tasks that extend the workday to 20:00. By this time, emotional tiredness is high and west coast colleagues are just getting started, making it hard to disengage.
+Original problem: Working past 18:00 due to "one more thing" syndrome with countdown timer that respawns continuously if dismissed, making computer unusable.
+
+New requirement: Dismissible alerts at 5-minute intervals with final "last chance" warning before forced sleep.
 
 ## Solution Overview
 
-Implement a forced work stop mechanism using native macOS tools (launchd + AppleScript):
+Implement a friendly work stop mechanism using native macOS tools (launchd + AppleScript):
 
-1. **17:45** - Large countdown timer appears (15 minutes warning)
-2. **18:00** - Mac is forced to sleep via `pmset sleepnow`
+1. **17:45** - "15 minutes remaining" alert (dismissible)
+2. **17:50** - "10 minutes remaining" alert (dismissible)
+3. **17:55** - "5 minutes remaining" alert (dismissible)
+4. **18:00** - "Last Chance! Sleeping in 30 seconds" countdown, then forced sleep via `pmset sleepnow`
 
 ### Design Constraints
 
 - Mon-Fri only (weekdays)
-- Timer respawns if closed (truly forced, cannot dismiss)
+- Each alert is dismissible (user regains control of computer)
+- Final 18:00 alert shows 30-second countdown before forced sleep
 - Pure launchd + AppleScript (no third-party apps)
 - Scripts stored in `~/.local/bin/` (via dotfiles symlinks)
 
-## Implementation Details
+## Implementation Details (Updated 2025-11-25)
 
 ### Files to Create
 
-All files will be created in `dotfiles/mrdavidlaing/.local/bin/`:
+All files created in `dotfiles/mrdavidlaing/.local/bin/`:
 
-#### 1. `workday-countdown.applescript`
+#### Alert Scripts (Individual dismissible alerts)
 
-An AppleScript application that displays a floating, always-on-top countdown timer:
+1. **`workday-alert-15min.applescript`** - Simple alert: "15 minutes remaining"
+2. **`workday-alert-10min.applescript`** - Simple alert: "10 minutes remaining"
+3. **`workday-alert-5min.applescript`** - Simple alert: "5 minutes remaining"
+4. **`workday-final-warning.applescript`** - Countdown alert with 30-second timer before forced sleep
 
-- Large, prominent countdown display
-- Cannot be hidden behind other windows
-- If closed, respawns immediately via wrapper script
-- Counts down from 15 minutes to 0
-- Provides social cover for leaving meetings: "My machine is about to lock"
+Each alert displays and exits when user clicks OK (user controls computer again).
 
-```applescript
--- Pseudocode structure
-on run
-    set targetTime to (current date) + (15 * minutes)
-    repeat while (current date) < targetTime
-        set remainingSeconds to (targetTime - (current date))
-        display dialog with countdown...
-        delay 1
-    end repeat
-end run
-```
+#### Dispatcher and Wrapper Scripts
 
-#### 2. `workday-countdown-wrapper.sh`
+**`workday-alert-dispatcher.sh`** - Smart dispatcher that:
+- Runs at each scheduled time (17:45, 17:50, 17:55, 18:00)
+- Determines which alert to show based on current time
+- Calls appropriate alert script
+- At 18:00: calls `workday-countdown-wrapper.sh`
 
-Bash wrapper that ensures the timer respawns if closed:
-
-```bash
-#!/bin/bash
-# Continuously run the countdown timer
-# If it exits (user closed), restart it immediately
-while true; do
-    osascript ~/.local/bin/workday-countdown.applescript
-    # Small delay to prevent CPU spin if something goes wrong
-    sleep 1
-done
-```
-
-#### 3. `workday-suspend.sh`
-
-Script that triggers the forced sleep:
-
-```bash
-#!/bin/bash
-# Kill the countdown timer process
-pkill -f "workday-countdown"
-
-# Force immediate sleep
-pmset sleepnow
-```
+**`workday-countdown-wrapper.sh`** - Final warning and sleep:
+- Shows 30-second countdown dialog with "Last Chance!" message
+- Auto-dismisses countdown every second to keep it fresh
+- After 30 seconds: forces immediate sleep via `pmset sleepnow`
 
 ### Launch Agent Configuration
 
-Files to create in `dotfiles/mrdavidlaing/Library/LaunchAgents/`:
+File created in `dotfiles/mrdavidlaing/Library/LaunchAgents/`:
 
-#### 4. `com.mrdavidlaing.workday-countdown.plist`
+**`com.mrdavidlaing.workday-countdown.plist`** - Single launch agent that:
+- Triggers `workday-alert-dispatcher.sh` at 4 times per day (17:45, 17:50, 17:55, 18:00)
+- Runs Mon-Fri only (weekdays)
+- Dispatcher determines which alert to show based on time
 
-Triggers the countdown timer at 17:45 on weekdays:
+See: `dotfiles/mrdavidlaing/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.mrdavidlaing.workday-countdown</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/bin/bash</string>
-        <string>~/.local/bin/workday-countdown-wrapper.sh</string>
-    </array>
-    <key>StartCalendarInterval</key>
-    <array>
-        <!-- Monday through Friday at 17:45 -->
-        <dict>
-            <key>Weekday</key><integer>1</integer>
-            <key>Hour</key><integer>17</integer>
-            <key>Minute</key><integer>45</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>2</integer>
-            <key>Hour</key><integer>17</integer>
-            <key>Minute</key><integer>45</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>3</integer>
-            <key>Hour</key><integer>17</integer>
-            <key>Minute</key><integer>45</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>4</integer>
-            <key>Hour</key><integer>17</integer>
-            <key>Minute</key><integer>45</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>5</integer>
-            <key>Hour</key><integer>17</integer>
-            <key>Minute</key><integer>45</integer>
-        </dict>
-    </array>
-</dict>
-</plist>
-```
-
-#### 5. `com.mrdavidlaing.workday-suspend.plist`
-
-Triggers the forced sleep at 18:00 on weekdays:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.mrdavidlaing.workday-suspend</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/bin/bash</string>
-        <string>~/.local/bin/workday-suspend.sh</string>
-    </array>
-    <key>StartCalendarInterval</key>
-    <array>
-        <!-- Monday through Friday at 18:00 -->
-        <dict>
-            <key>Weekday</key><integer>1</integer>
-            <key>Hour</key><integer>18</integer>
-            <key>Minute</key><integer>0</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>2</integer>
-            <key>Hour</key><integer>18</integer>
-            <key>Minute</key><integer>0</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>3</integer>
-            <key>Hour</key><integer>18</integer>
-            <key>Minute</key><integer>0</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>4</integer>
-            <key>Hour</key><integer>18</integer>
-            <key>Minute</key><integer>0</integer>
-        </dict>
-        <dict>
-            <key>Weekday</key><integer>5</integer>
-            <key>Hour</key><integer>18</integer>
-            <key>Minute</key><integer>0</integer>
-        </dict>
-    </array>
-</dict>
-</plist>
-```
+The plist triggers `workday-alert-dispatcher.sh` at 17:45, 17:50, 17:55, and 18:00 on weekdays (Mon-Fri).
+The dispatcher script determines which alert to show based on the current time.
 
 ## Directory Structure
 
@@ -186,26 +75,28 @@ Triggers the forced sleep at 18:00 on weekdays:
 dotfiles/mrdavidlaing/
 ├── .local/
 │   └── bin/
-│       ├── workday-countdown.applescript
-│       ├── workday-countdown-wrapper.sh
-│       └── workday-suspend.sh
+│       ├── workday-alert-15min.applescript
+│       ├── workday-alert-10min.applescript
+│       ├── workday-alert-5min.applescript
+│       ├── workday-alert-dispatcher.sh
+│       ├── workday-final-warning.applescript
+│       └── workday-countdown-wrapper.sh
 └── Library/
     └── LaunchAgents/
-        ├── com.mrdavidlaing.workday-countdown.plist
-        └── com.mrdavidlaing.workday-suspend.plist
+        └── com.mrdavidlaing.workday-countdown.plist
 ```
 
 ## Installation
 
 After running `setup-user`, the files will be symlinked to:
-- `~/.local/bin/workday-*.sh` - Scripts
-- `~/Library/LaunchAgents/*.plist` - Launch agents
+- `~/.local/bin/workday-*.applescript` - Alert scripts
+- `~/.local/bin/workday-*.sh` - Dispatcher and wrapper scripts
+- `~/Library/LaunchAgents/*.plist` - Launch agent
 
-Then load the launch agents:
+Then load the launch agent:
 
 ```bash
 launchctl load ~/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist
-launchctl load ~/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist
 ```
 
 ## Emergency Override
@@ -214,11 +105,10 @@ If you genuinely need to work late (emergency):
 
 ```bash
 # Disable for the rest of the day
-launchctl unload ~/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist
 launchctl unload ~/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist
 
-# Kill current timer if running
-pkill -f "workday-countdown"
+# Kill current alerts if running
+pkill -f "osascript.*workday-alert"
 ```
 
 Re-enable next day by running `launchctl load` again, or reboot (agents auto-load on login).
@@ -226,10 +116,13 @@ Re-enable next day by running `launchctl load` again, or reboot (agents auto-loa
 ## Testing
 
 ```bash
-# Test countdown timer manually
-osascript ~/.local/bin/workday-countdown.applescript
+# Test individual alerts manually
+osascript ~/.local/bin/workday-alert-15min.applescript
+osascript ~/.local/bin/workday-alert-10min.applescript
+osascript ~/.local/bin/workday-alert-5min.applescript
+osascript ~/.local/bin/workday-final-warning.applescript
 
-# Test suspend script (will immediately sleep your Mac!)
+# Test dispatcher script (will immediately sleep your Mac!)
 ~/.local/bin/workday-suspend.sh
 
 # Verify launch agents are loaded
@@ -243,16 +136,29 @@ launchctl list | grep workday
 - Make times configurable via environment variables
 - Add audio warning at 17:55
 
-## Implementation Tasks
+## Implementation Tasks (Updated 2025-11-25)
 
+### Original Implementation (Completed)
 1. [x] Create `dotfiles/mrdavidlaing/Library/LaunchAgents/` directory
 2. [x] Update `symlinks.yaml` to include `Library/LaunchAgents/` directory
 3. [x] Create `workday-countdown.applescript` with floating timer UI
 4. [x] Create `workday-countdown-wrapper.sh` with respawn logic
 5. [x] Create `workday-suspend.sh` with cleanup and sleep command
 6. [x] Create both `.plist` launch agent files
-7. [ ] Test on macOS (mo-inator)
-8. [ ] Document in dotfiles README
+
+### Updated Implementation (Completed)
+7. [x] Create 4 individual alert scripts (15min, 10min, 5min, final warning)
+8. [x] Create `workday-alert-dispatcher.sh` smart router
+9. [x] Rewrite `workday-countdown-wrapper.sh` for final warning + sleep
+10. [x] Simplify `com.mrdavidlaing.workday-countdown.plist` to single agent
+11. [x] Remove `com.mrdavidlaing.workday-suspend.plist` (merged into countdown)
+12. [x] Update documentation with new approach
+
+### Testing & Deployment
+13. [ ] Test on macOS (mo-inator) during 17:45-18:00 window
+14. [ ] Verify alerts appear and can be dismissed
+15. [ ] Verify final warning shows 30-second countdown
+16. [ ] Verify Mac sleeps at 18:00
 
 ## Implementation Notes
 

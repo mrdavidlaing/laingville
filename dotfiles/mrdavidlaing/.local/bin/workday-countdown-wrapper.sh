@@ -1,14 +1,12 @@
 #!/bin/bash
-# Workday Countdown Wrapper
-# Continuously runs the countdown timer, respawning if user closes it
-# This ensures the timer cannot be dismissed
+# Workday Final Warning and Suspend Handler
+# Displays final 30-second countdown then forces sleep
 
 # Get the directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-while true; do
-  osascript "$SCRIPT_DIR/workday-countdown.applescript"
+# Show final countdown warning
+osascript "$SCRIPT_DIR/workday-final-warning.applescript"
 
-  # Small delay to prevent CPU spin if something goes wrong
-  sleep 1
-done
+# Force immediate sleep
+pmset sleepnow
