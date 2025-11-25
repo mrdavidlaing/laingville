@@ -163,18 +163,28 @@ macos:
   - source: .claude/wrappers
     target: ~/.claude/wrappers
   # Workday forced stop scripts (mo-inator only - loaded via setup-user-hook.sh)
-  - source: .local/bin/workday-countdown.applescript
-    target: ~/.local/bin/workday-countdown.applescript
+  - source: .local/bin/workday-alert-15min.applescript
+    target: ~/.local/bin/workday-alert-15min.applescript
+  - source: .local/bin/workday-alert-10min.applescript
+    target: ~/.local/bin/workday-alert-10min.applescript
+  - source: .local/bin/workday-alert-5min.applescript
+    target: ~/.local/bin/workday-alert-5min.applescript
+  - source: .local/bin/workday-alert-dispatcher.sh
+    target: ~/.local/bin/workday-alert-dispatcher.sh
   - source: .local/bin/workday-countdown-wrapper.sh
     target: ~/.local/bin/workday-countdown-wrapper.sh
-  - source: .local/bin/workday-suspend.sh
-    target: ~/.local/bin/workday-suspend.sh
+  - source: .local/bin/workday-final-warning.applescript
+    target: ~/.local/bin/workday-final-warning.applescript
   - source: Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist
     target: ~/Library/LaunchAgents/com.mrdavidlaing.workday-countdown.plist
-  - source: Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist
-    target: ~/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist
 macos_cleanup:
   - .config/alacritty  # Removed 2025-09-30, switched to wezterm
+  - source: .local/bin/workday-countdown.applescript
+    target: ~/.local/bin/workday-countdown.applescript
+  - source: .local/bin/workday-suspend.sh
+    target: ~/.local/bin/workday-suspend.sh
+  - source: Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist
+    target: ~/Library/LaunchAgents/com.mrdavidlaing.workday-suspend.plist
 
 # Nix - terminal-focused like WSL
 nix:
