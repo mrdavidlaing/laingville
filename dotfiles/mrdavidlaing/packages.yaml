@@ -39,6 +39,11 @@ arch:
     - playerctl
     - gimp
     - tailscale
+  pacman_cleanup:
+    - nodejs  # Replaced with nodejs-lts-jod 2025-11-25
+    - npm  # Included with nodejs-lts-jod 2025-11-25
+    - node-gyp  # npm dependency, reinstalled with nodejs-lts-jod 2025-11-25
+    - nodejs-nopt  # npm dependency, reinstalled with nodejs-lts-jod 2025-11-25
   yay:
     # AUR-only packages
     - glibc-locales
@@ -107,6 +112,11 @@ wsl:
     - docker
     - wget
     - tailscale
+  pacman_cleanup:
+    - nodejs  # Replaced with nodejs-lts-jod 2025-11-25
+    - npm  # Included with nodejs-lts-jod 2025-11-25
+    - node-gyp  # npm dependency, reinstalled with nodejs-lts-jod 2025-11-25
+    - nodejs-nopt  # npm dependency, reinstalled with nodejs-lts-jod 2025-11-25
   yay:
     # AUR-only packages
     - glibc-locales
