@@ -32,7 +32,8 @@
       "Bash(chmod:*)",
       "WebFetch(domain:happy.engineering)",
       "Bash(crontab:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(bd:*)"
     ],
     "deny": []
   },
