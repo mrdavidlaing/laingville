@@ -141,6 +141,7 @@ wsl:
     - k9s
     - speedtest-cli
     - opencode-bin
+    - wslu  # WSL Utilities - provides wslview for opening URLs in Windows browser
   yay_cleanup:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:

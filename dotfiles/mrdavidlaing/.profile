@@ -62,4 +62,10 @@ if [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; then
     if command -v ssh.exe >/dev/null 2>&1; then
         export GIT_SSH_COMMAND="ssh.exe"
     fi
+    
+    # Use wslview for opening URLs in Windows browser (requires wslu package)
+    # This fixes "xdg-open: command not found" errors
+    if command -v wslview >/dev/null 2>&1; then
+        export BROWSER=wslview
+    fi
 fi
