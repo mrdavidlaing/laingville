@@ -278,16 +278,16 @@ EOF
                     The output should include "ripgrep"
                   End
 
-                  It "extracts cask packages from real config"
+                  It "extracts homebrew packages from real config"
                     export DOTFILES_DIR
                     DOTFILES_DIR="$(cd "${SHELLSPEC_PROJECT_ROOT}/dotfiles/mrdavidlaing" && pwd)"
 
-                    When call extract_packages_from_yaml "macos" "cask" "${DOTFILES_DIR}/packages.yaml"
+                    When call extract_packages_from_yaml "macos" "homebrew" "${DOTFILES_DIR}/packages.yaml"
 
                     The output should not be blank
-                    The output should include "wezterm@nightly"
-                    The output should include "claude"
-                    The output should include "font-jetbrains-mono-nerd-font"
+                    The output should include "direnv"
+                    The output should include "lazygit"
+                    The output should include "neovim"
                   End
                 End
 
