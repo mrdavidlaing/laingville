@@ -109,6 +109,7 @@ wsl:
     - docker
     - wget
     - tailscale
+    - gemini-cli
   yay:
     # AUR-only packages
     - glibc-locales
