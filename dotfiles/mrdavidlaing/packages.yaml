@@ -170,6 +170,7 @@ windows:
     - bat
     - jq
     - just
+    - shfmt
     - yarn
     - bun
     - nerd-fonts/CascadiaCode-NF
@@ -179,6 +180,7 @@ windows:
     - PSScriptAnalyzer
   custom:
     - install_claude_code_windows
+    - install_beads
     - configure_tailscale_windows
 
 # macOS - Unix tools and GUI apps
