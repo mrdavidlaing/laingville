@@ -33,6 +33,16 @@
     "terminal.integrated.fontLigatures.enabled": true,
     "github.copilot.nextEditSuggestions.enabled": true,
     "editor.accessibilitySupport": "off",
-    "claudeCode.useTerminal": true,
     "markdown-mermaid.darkModeTheme": "neutral",
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.selectedModel": "opus",
+    "claudeCode.allowDangerouslySkipPermissions": true,
+    "chat.agentSessionsViewLocation": "single-view",
+    "chat.tools.terminal.autoApprove": {
+        "git checkout": true,
+        "git worktree": true,
+        "Set-Location": true,
+        "Test-Path": true
+    },
+    "githubPullRequests.pullBranch": "never",
 }
