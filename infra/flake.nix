@@ -102,28 +102,47 @@
         # Helper functions for user/config creation
         #############################################
 
-        # Create a non-root user for containers
-        mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
-          pkgs.runCommand "user-${name}" {} ''
-            mkdir -p $out/etc
+        # Create passwd file
+        mkPasswd = { name, uid, gid, home, shell }:
+          pkgs.writeTextDir "etc/passwd" "root:x:0:0:root:/root:${shell}\n${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}\n";
 
-            echo "root:x:0:0:root:/root:${shell}" > $out/etc/passwd
-            echo "${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}" >> $out/etc/passwd
+        # Create group file
+        mkGroup = { name, gid }:
+          pkgs.writeTextDir "etc/group" "root:x:0:\nwheel:x:10:${name}\n${name}:x:${toString gid}:\n";
 
-            echo "root:x:0:" > $out/etc/group
-            echo "wheel:x:10:${name}" >> $out/etc/group
-            echo "${name}:x:${toString gid}:" >> $out/etc/group
+        # Create shadow file
+        mkShadow = { name }:
+          pkgs.writeTextDir "etc/shadow" "root:!:1::::::\n${name}:!:1::::::\n";
 
-            echo "root:!:1::::::" > $out/etc/shadow
-            echo "${name}:!:1::::::" >> $out/etc/shadow
-
+        # Create home and tmp directories
+        mkDirs = { home }:
+          pkgs.runCommand "dirs" {} ''
             mkdir -p $out${home}
             mkdir -p $out/root
+            mkdir -p $out/tmp
+            chmod 1777 $out/tmp
+          '';
 
-            # sudoers
+        # Create sudoers
+        mkSudoers = { name }:
+          pkgs.runCommand "sudoers-${name}" {} ''
             mkdir -p $out/etc/sudoers.d
             echo "${name} ALL=(ALL) NOPASSWD:ALL" > $out/etc/sudoers.d/${name}
+            chmod 440 $out/etc/sudoers.d/${name}
           '';
+
+        # Create a non-root user for containers
+        mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
+          pkgs.symlinkJoin {
+            name = "user-${name}";
+            paths = [
+              (mkPasswd { inherit name uid gid home shell; })
+              (mkGroup { inherit name gid; })
+              (mkShadow { inherit name; })
+              (mkDirs { inherit home; })
+              (mkSudoers { inherit name; })
+            ];
+          };
 
         # Nix configuration
         mkNixConf = pkgs.writeTextDir "etc/nix/nix.conf" ''
