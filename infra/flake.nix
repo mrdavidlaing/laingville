@@ -106,7 +106,7 @@
         # Uses runCommand to create real files (not symlinks) to avoid
         # "path escapes from parent" errors in Docker overlay filesystem
         mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
-          pkgs.runCommand "user-${name}" {} ''
+          pkgs.runCommand "user-${name}-v2" {} ''
             # Create directories
             mkdir -p $out/etc/sudoers.d
             mkdir -p $out${home}
@@ -114,24 +114,24 @@
             mkdir -p $out/tmp
             chmod 1777 $out/tmp
 
-            # passwd file
-            cat > $out/etc/passwd << 'PASSWD'
-            root:x:0:0:root:/root:${shell}
-            ${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}
-            PASSWD
+            # passwd file (no leading whitespace!)
+            cat > $out/etc/passwd <<EOF
+root:x:0:0:root:/root:${shell}
+${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}
+EOF
 
             # group file
-            cat > $out/etc/group << 'GROUP'
-            root:x:0:
-            wheel:x:10:${name}
-            ${name}:x:${toString gid}:
-            GROUP
+            cat > $out/etc/group <<EOF
+root:x:0:
+wheel:x:10:${name}
+${name}:x:${toString gid}:
+EOF
 
             # shadow file
-            cat > $out/etc/shadow << 'SHADOW'
-            root:!:1::::::
-            ${name}:!:1::::::
-            SHADOW
+            cat > $out/etc/shadow <<EOF
+root:!:1::::::
+${name}:!:1::::::
+EOF
             chmod 640 $out/etc/shadow
 
             # sudoers
@@ -140,45 +140,45 @@
           '';
 
         # Nix configuration - real file, not symlink
-        mkNixConf = pkgs.runCommand "nix-conf" {} ''
+        mkNixConf = pkgs.runCommand "nix-conf-v2" {} ''
           mkdir -p $out/etc/nix
-          cat > $out/etc/nix/nix.conf << 'EOF'
-          experimental-features = nix-command flakes
-          accept-flake-config = true
-          EOF
+          cat > $out/etc/nix/nix.conf <<EOF
+experimental-features = nix-command flakes
+accept-flake-config = true
+EOF
         '';
 
         # direnv configuration - real file, not symlink
-        mkDirenvConf = pkgs.runCommand "direnv-conf" {} ''
+        mkDirenvConf = pkgs.runCommand "direnv-conf-v2" {} ''
           mkdir -p $out/etc/direnv
-          cat > $out/etc/direnv/direnvrc << 'EOF'
-          source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
-          EOF
+          cat > $out/etc/direnv/direnvrc <<EOF
+source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+EOF
         '';
 
         # bashrc with direnv hook - real file
-        mkBashrc = user: pkgs.runCommand "bashrc-${user}" {} ''
+        mkBashrc = user: pkgs.runCommand "bashrc-${user}-v2" {} ''
           mkdir -p $out/home/${user}
-          cat > $out/home/${user}/.bashrc << 'EOF'
-          eval "$(direnv hook bash)"
-          EOF
+          cat > $out/home/${user}/.bashrc <<EOF
+eval "\$(direnv hook bash)"
+EOF
         '';
 
         # User nix config - real file
-        mkUserNixConf = user: pkgs.runCommand "user-nix-conf-${user}" {} ''
+        mkUserNixConf = user: pkgs.runCommand "user-nix-conf-${user}-v2" {} ''
           mkdir -p $out/home/${user}/.config/nix
-          cat > $out/home/${user}/.config/nix/nix.conf << 'EOF'
-          experimental-features = nix-command flakes
-          accept-flake-config = true
-          EOF
+          cat > $out/home/${user}/.config/nix/nix.conf <<EOF
+experimental-features = nix-command flakes
+accept-flake-config = true
+EOF
         '';
 
         # User direnv config - real file
-        mkUserDirenvConf = user: pkgs.runCommand "user-direnv-conf-${user}" {} ''
+        mkUserDirenvConf = user: pkgs.runCommand "user-direnv-conf-${user}-v2" {} ''
           mkdir -p $out/home/${user}/.config/direnv
-          cat > $out/home/${user}/.config/direnv/direnvrc << 'EOF'
-          source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
-          EOF
+          cat > $out/home/${user}/.config/direnv/direnvrc <<EOF
+source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+EOF
         '';
 
         #############################################
