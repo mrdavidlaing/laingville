@@ -3,7 +3,7 @@
   description = "Nix container infrastructure for laingville";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
