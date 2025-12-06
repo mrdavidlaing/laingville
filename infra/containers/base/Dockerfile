@@ -1,40 +1,24 @@
 # infra/containers/base/Dockerfile
 # Layer 1: Base image with Nix + direnv
-ARG BASE_IMAGE=debian:bookworm-slim
-FROM ${BASE_IMAGE} AS base
+# Uses official nixos/nix image - pure Nix, no Debian/apt
+ARG NIX_VERSION=2.32.4
+FROM nixos/nix:${NIX_VERSION}
 
-# Install Nix dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    xz-utils \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# Configure Nix for flakes (nixos/nix has Nix pre-installed)
+RUN mkdir -p /root/.config/nix && \
+    echo 'experimental-features = nix-command flakes' > /root/.config/nix/nix.conf && \
+    echo 'accept-flake-config = true' >> /root/.config/nix/nix.conf
 
-# Create nix user with home directory
-RUN groupadd -r nix && useradd -r -g nix -d /home/nix -s /bin/bash -m nix
-RUN mkdir -p /nix && chown -R nix:nix /nix
+# Set default channel to small for faster security updates
+ENV NIX_PATH="nixpkgs=channel:nixos-25.11-small"
 
-# Install Nix as single-user (simpler for containers)
-USER nix
-WORKDIR /nix
-RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
-
-# Configure Nix
-RUN mkdir -p /home/nix/.config/nix
-COPY --chown=nix:nix nix.conf /home/nix/.config/nix/nix.conf
-
-# Add Nix to PATH
-ENV HOME="/home/nix"
-ENV PATH="/home/nix/.nix-profile/bin:${PATH}"
-ENV NIX_PATH="nixpkgs=channel:nixos-24.11"
-
-# Install direnv
-RUN . /home/nix/.nix-profile/etc/profile.d/nix.sh && \
-    nix profile install nixpkgs#direnv nixpkgs#nix-direnv
+# Install direnv and nix-direnv
+RUN nix profile install \
+      nixpkgs#direnv \
+      nixpkgs#nix-direnv
 
 # Configure direnv
-RUN mkdir -p /home/nix/.config/direnv && \
-    echo 'source /home/nix/.nix-profile/share/nix-direnv/direnvrc' > /home/nix/.config/direnv/direnvrc
+RUN mkdir -p /root/.config/direnv && \
+    echo 'source /root/.nix-profile/share/nix-direnv/direnvrc' > /root/.config/direnv/direnvrc
 
 WORKDIR /workspace

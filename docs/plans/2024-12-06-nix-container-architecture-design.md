@@ -31,16 +31,16 @@ A layered container architecture using **pure Nix** for reproducible builds, sup
 |  Shipped to production (project-specific Nix closure)       |
 +-------------------------------------------------------------+
 |  LAYER 1: Base                                              |
-|  - Debian slim (for Nix installer compatibility)            |
+|  - nixos/nix:2.32.4 (official pure Nix image)               |
 |  - Nix + binary cache config + direnv                       |
-|  - All dependencies from nixpkgs (not apt)                  |
+|  - All dependencies from nixpkgs                            |
 |  Shipped to production                                      |
 +-------------------------------------------------------------+
 ```
 
 ### Layer Details
 
-**Layer 1 (Base)**: Debian slim provides glibc and minimal OS for Nix installation. After Nix is installed, **all packages come from nixpkgs**, not apt. The base image exists only to bootstrap Nix.
+**Layer 1 (Base)**: The official `nixos/nix` Docker image provides a pure Nix environment with no Debian/apt. All packages come from nixpkgs via the `nixos-25.11-small` channel.
 
 **Layer 2 (Runtime)**: All interpreters and runtime libraries come from **nixpkgs via small channels**. This ensures:
 - Reproducible builds (flake.lock pins exact versions)
@@ -77,13 +77,26 @@ inputs = {
 };
 ```
 
-### Debian Base Image (Bootstrap Only)
+### Official nixos/nix Base Image
 
-Debian slim is used **only** to install Nix. We cannot use Distroless because:
-- Distroless has no shell (required for Nix installer)
-- Distroless has no package manager (required for curl, xz)
+We use the official `nixos/nix` Docker image as our base:
 
-After Nix is installed, all subsequent packages come from nixpkgs. Debian's apt is not used for any runtime dependencies.
+```dockerfile
+ARG NIX_VERSION=2.32.4
+FROM nixos/nix:${NIX_VERSION}
+```
+
+**Why nixos/nix:**
+- Built with `pkgs.dockerTools.buildLayeredImage` (pure Nix, no Dockerfile)
+- Nix pre-installed and configured
+- No Debian/Ubuntu/apt anywhere in the stack
+- Truly pure Nix from the ground up
+
+**Version pinning:**
+- `NIX_VERSION` (e.g., `2.32.4`) - the Nix binary version
+- `nixos-25.11-small` channel - configured in flake.nix for packages
+
+The Nix version and nixpkgs channel are independent - we pin the Nix binary for stability while using the small channel for fast security updates.
 
 ## Compiled vs Interpreted Languages
 
@@ -413,10 +426,10 @@ infrastructure-repo/
 
 | Area | Decision |
 |------|----------|
-| **Dependency source** | Pure Nix (all packages from nixpkgs, not apt) |
+| **Dependency source** | Pure Nix (all packages from nixpkgs) |
 | **Nixpkgs channel** | `nixos-25.11-small` (fast security updates) |
-| **Base image** | Debian slim (bootstrap only, for Nix installer) |
-| **C library** | glibc (from Debian base) |
+| **Base image** | `nixos/nix:2.32.4` (official pure Nix image) |
+| **Nix version** | Pinned (e.g., 2.32.4) for stability |
 | **Nix management** | Flakes with flake.lock |
 | **Overlay structure** | Single overlays/ directory |
 | **Update cadence** | Automated weekly PRs, human review |
@@ -429,8 +442,7 @@ infrastructure-repo/
 
 ## License Considerations
 
-- **Base image**: Debian (various, mostly permissive)
-- **glibc**: LGPL 2.1 (safe with dynamic linking)
+- **Base image**: nixos/nix (MIT license)
 - **Nix packages**: Inherit upstream licenses
 - **Runtimes**: All permissive (Python PSF, Node MIT, Go BSD, Rust MIT/Apache)
 - **GnuCOBOL**: GPL (compiler), LGPL (runtime) - acceptable for teaching/training
