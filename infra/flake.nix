@@ -269,7 +269,7 @@ EOF
 
         # Export builder functions
         lib = {
-          inherit mkDevContainer mkRuntime mkUser;
+          inherit mkDevContainer mkRuntime;
         };
 
         # DevShells - for local development without containers
