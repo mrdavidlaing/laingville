@@ -53,6 +53,11 @@ RUN mkdir -p ~/.config/direnv && \
 # Configure shell for direnv
 RUN echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
 
+# Ensure vscode owns all of /nix (including db created during install)
+USER root
+RUN chown -R vscode:vscode /nix
+USER vscode
+
 WORKDIR /workspace
 
 # Default command
