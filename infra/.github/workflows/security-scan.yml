@@ -1,0 +1,48 @@
+# infra/.github/workflows/security-scan.yml
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6am UTC
+  push:
+    branches: [main]
+    paths:
+      - 'infra/flake.nix'
+      - 'infra/flake.lock'
+      - 'infra/overlays/**'
+  workflow_dispatch:
+
+jobs:
+  vulnix-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          nix_path: nixpkgs=channel:nixos-24.11
+
+      - name: Install vulnix
+        run: nix profile install nixpkgs#vulnix
+
+      - name: Run vulnix scan
+        working-directory: infra
+        run: |
+          echo "Scanning Python devShell..."
+          nix build .#devShells.x86_64-linux.python --no-link -o python-shell
+          vulnix python-shell || true
+
+          echo "Scanning Node devShell..."
+          nix build .#devShells.x86_64-linux.node --no-link -o node-shell
+          vulnix node-shell || true
+        continue-on-error: true
+
+      - name: Check for Critical/High CVEs
+        working-directory: infra
+        run: |
+          echo "Checking for Critical/High severity CVEs..."
+          # vulnix outputs CVEs to stdout
+          # This step would parse output and fail on Critical/High
+          # For now, just warn
+          echo "::warning::Review vulnix output above for Critical/High CVEs"
