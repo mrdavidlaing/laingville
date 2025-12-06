@@ -31,9 +31,9 @@ A layered container architecture using **pure Nix** for reproducible builds, sup
 |  Shipped to production (project-specific Nix closure)       |
 +-------------------------------------------------------------+
 |  LAYER 1: Base                                              |
-|  - nixos/nix:2.32.4 (official pure Nix image)               |
-|  - Nix + binary cache config + direnv                       |
-|  - All dependencies from nixpkgs                            |
+|  - Built with dockerTools.buildLayeredImage (no Dockerfile) |
+|  - bash, coreutils, nix, direnv, cacert, tzdata             |
+|  - All dependencies from nixpkgs (nixos-25.11-small)        |
 |  Shipped to production                                      |
 +-------------------------------------------------------------+
 ```
@@ -77,26 +77,39 @@ inputs = {
 };
 ```
 
-### Official nixos/nix Base Image
+### Pure Nix Container Images (No Dockerfiles)
 
-We use the official `nixos/nix` Docker image as our base:
+All container images are built using `pkgs.dockerTools.buildLayeredImage` - no Dockerfiles anywhere:
 
-```dockerfile
-ARG NIX_VERSION=2.32.4
-FROM nixos/nix:${NIX_VERSION}
+```nix
+pkgs.dockerTools.buildLayeredImage {
+  name = "ghcr.io/mrdavidlaing/laingville/base";
+  tag = "latest";
+  contents = [ pkgs.bashInteractive pkgs.coreutils pkgs.nix pkgs.direnv ];
+  config = {
+    Env = [ "PATH=/nix/var/nix/profiles/default/bin:/bin" ];
+    WorkingDir = "/workspace";
+  };
+  maxLayers = 100;
+}
 ```
 
-**Why nixos/nix:**
-- Built with `pkgs.dockerTools.buildLayeredImage` (pure Nix, no Dockerfile)
-- Nix pre-installed and configured
-- No Debian/Ubuntu/apt anywhere in the stack
-- Truly pure Nix from the ground up
+**Why dockerTools instead of Dockerfiles:**
+- **Pure Nix**: No imperative Dockerfile steps, everything declarative
+- **Reproducible**: Same flake.lock = same image, always
+- **Optimal layers**: Nix automatically creates efficient layer boundaries
+- **Perfect SBOM**: Image contents = Nix closure (exact dependency tree)
+- **No base image dependency**: Built from scratch, not FROM another image
 
-**Version pinning:**
-- `NIX_VERSION` (e.g., `2.32.4`) - the Nix binary version
-- `nixos-25.11-small` channel - configured in flake.nix for packages
+**How it works:**
+1. `nix build ./infra#devcontainer-base` produces a `.tar.gz`
+2. `docker load < result` imports it
+3. Push to registry with standard docker commands
 
-The Nix version and nixpkgs channel are independent - we pin the Nix binary for stability while using the small channel for fast security updates.
+**Layer optimization:**
+- `maxLayers = 100` allows fine-grained caching
+- Most-used packages get their own layers (shared across images)
+- Nix store paths are content-addressed (identical deps = shared layers)
 
 ## Compiled vs Interpreted Languages
 
@@ -209,22 +222,19 @@ Projects compose features as needed:
 ### Namespace Structure
 
 ```
-ghcr.io/yourorg/
-├── containers/
-│   ├── base                    # Layer 1
-│   ├── devcontainer-base       # Layer 1 + pre-cached /nix/store
-│   ├── runtime-python          # Layer 1+2: Base + Python
-│   ├── runtime-node            # Layer 1+2: Base + Node
-│   └── runtime-minimal         # Layer 1+2: Base + libcob only
+ghcr.io/mrdavidlaing/laingville/
+├── base                    # Nix + direnv (foundation)
+├── devcontainer-base       # base + dev tools + vscode user
+├── runtime-python          # minimal + Python (production)
+├── runtime-node            # minimal + Node.js (production)
+├── runtime-minimal         # just cacert + app user (for static binaries)
 │
 └── devcontainer-features/
-    ├── python
-    ├── node
-    ├── go
-    ├── rust
-    ├── java
-    └── cobol
+    ├── python              # VS Code extensions for Python
+    └── node                # VS Code extensions for Node
 ```
+
+All images built with `nix build ./infra#<image-name>` using `dockerTools.buildLayeredImage`.
 
 ### Tagging Strategy
 
@@ -390,37 +400,32 @@ No development tools, compilers, or Layer 3 components.
 ## Repository Structure
 
 ```
-infrastructure-repo/
-├── containers/
-│   ├── base/
-│   │   └── Dockerfile
-│   └── devcontainer-base/
-│       └── Dockerfile
-├── devcontainer-features/
-│   └── src/
-│       ├── python/
-│       ├── node/
-│       ├── go/
-│       ├── rust/
-│       ├── java/
-│       └── cobol/
-├── overlays/
-│   ├── default.nix
-│   ├── cve-patches.nix
-│   ├── license-fixes.nix
-│   └── custom-builds.nix
+laingville/
+├── infra/
+│   ├── flake.nix              # All container images defined here
+│   ├── flake.lock             # Pinned nixpkgs version
+│   ├── overlays/
+│   │   ├── default.nix
+│   │   ├── cve-patches.nix
+│   │   ├── license-fixes.nix
+│   │   └── custom-builds.nix
+│   ├── devcontainer-features/
+│   │   └── src/
+│   │       ├── python/
+│   │       └── node/
+│   ├── templates/
+│   │   └── python-project/
+│   └── README.md
 ├── .github/
 │   └── workflows/
-│       ├── build-containers.yml
+│       ├── build-containers.yml   # nix build + docker push
 │       ├── build-features.yml
-│       ├── test.yml
 │       ├── security-scan.yml
-│       ├── update-nixpkgs.yml
-│       └── release.yml
-├── flake.nix
-├── flake.lock
-└── README.md
+│       └── update-nixpkgs.yml
+└── ...
 ```
+
+**No Dockerfiles** - all container images defined in `infra/flake.nix` using `dockerTools.buildLayeredImage`.
 
 ## Decisions Summary
 
@@ -428,8 +433,8 @@ infrastructure-repo/
 |------|----------|
 | **Dependency source** | Pure Nix (all packages from nixpkgs) |
 | **Nixpkgs channel** | `nixos-25.11-small` (fast security updates) |
-| **Base image** | `nixos/nix:2.32.4` (official pure Nix image) |
-| **Nix version** | Pinned (e.g., 2.32.4) for stability |
+| **Image builder** | `dockerTools.buildLayeredImage` (no Dockerfiles) |
+| **Base image** | None - built from scratch |
 | **Nix management** | Flakes with flake.lock |
 | **Overlay structure** | Single overlays/ directory |
 | **Update cadence** | Automated weekly PRs, human review |
