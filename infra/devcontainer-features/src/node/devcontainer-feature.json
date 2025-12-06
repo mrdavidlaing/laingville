@@ -1,0 +1,32 @@
+{
+  "id": "node",
+  "version": "1.0.0",
+  "name": "Node/Bun DevShell",
+  "description": "Activates Node/Bun Nix devShell with VS Code extensions",
+  "documentationURL": "https://github.com/mrdavidlaing/laingville/tree/main/infra/devcontainer-features",
+  "options": {},
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "oven.bun-vscode"
+      ],
+      "settings": {
+        "[javascript]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescript]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        }
+      }
+    }
+  },
+  "installsAfter": []
+}
