@@ -2,15 +2,15 @@
 
 ## Overview
 
-A layered container architecture using Nix for reproducible builds, supporting multiple development runtimes with CVE-managed base images and composable development environments.
+A layered container architecture using **pure Nix** for reproducible builds, supporting multiple development runtimes with fast CVE updates via small channels and composable development environments.
 
 ## Goals
 
-1. **Reproducibility**: Identical builds locally, in CI, and in production
-2. **Security**: CVE-managed base images with defined patching process
+1. **Reproducibility**: Identical builds locally, in CI, and in production via Nix flakes
+2. **Security**: Fast CVE patches via `nixos-25.11-small` channel + manual overlays for critical issues
 3. **Developer experience**: Git clone, open VS Code, devcontainer ready
 4. **Flexibility**: Support Python, Node/Bun, Go, Rust, Java, GnuCOBOL
-5. **Minimal production images**: Only ship what's needed to run
+5. **Minimal production images**: Nix closures with only required dependencies
 
 ## Layer Architecture
 
@@ -22,74 +22,84 @@ A layered container architecture using Nix for reproducible builds, supporting m
 |  - lazygit, neovim, tmux, shellspec                         |
 |  NOT in production                                          |
 +-------------------------------------------------------------+
-|  LAYER 2: Runtime (interpreters + runtime libs)             |
-|  - Python interpreter                                       |
-|  - libcob (COBOL runtime library)                           |
-|  - JRE (if not using GraalVM native-image)                  |
+|  LAYER 2: Runtime (interpreters + runtime libs from Nix)    |
+|  - Python interpreter (nixpkgs)                             |
+|  - Node.js runtime (nixpkgs)                                |
+|  - libcob (COBOL runtime library, nixpkgs)                  |
+|  - JRE (if not using GraalVM native-image, nixpkgs)         |
 |  - Compiled binaries from Layer 3                           |
-|  Shipped to production (project-specific subset)            |
+|  Shipped to production (project-specific Nix closure)       |
 +-------------------------------------------------------------+
 |  LAYER 1: Base                                              |
-|  - Distroless/Ubuntu (parameterized)                        |
+|  - Debian slim (for Nix installer compatibility)            |
 |  - Nix + binary cache config + direnv                       |
-|  - glibc, ca-certs, tzdata                                  |
+|  - All dependencies from nixpkgs (not apt)                  |
 |  Shipped to production                                      |
 +-------------------------------------------------------------+
 ```
 
 ### Layer Details
 
-**Layer 1 (Base)**: Provides the OS foundation with Nix package manager pre-configured. The base image is parameterized to allow switching between Google Distroless (default) and Ubuntu LTS (for FIPS compliance).
+**Layer 1 (Base)**: Debian slim provides glibc and minimal OS for Nix installation. After Nix is installed, **all packages come from nixpkgs**, not apt. The base image exists only to bootstrap Nix.
 
-**Layer 2 (Runtime)**: Contains only interpreters and runtime libraries that cannot be statically compiled away. Compiled languages (Go, Rust, Bun) produce static binaries that need nothing from this layer.
+**Layer 2 (Runtime)**: All interpreters and runtime libraries come from **nixpkgs via small channels**. This ensures:
+- Reproducible builds (flake.lock pins exact versions)
+- Fast security updates (small channel updates in hours, not days)
+- Consistent CVE patching via overlays
 
 **Layer 3 (DevShell)**: Full development environment with compilers, toolchains, LSPs, and developer tools. Never shipped to production.
 
-## Base Image Strategy
+## Pure Nix Strategy
 
-### Abstracted Base Image
+### Why Pure Nix (Not Hybrid Debian/Nix)
 
-The base image is parameterized to support multiple targets:
+We chose pure Nix over hybrid approaches for these reasons:
 
-```dockerfile
-ARG BASE_IMAGE=gcr.io/distroless/base-debian12
-FROM ${BASE_IMAGE}
+| Concern | Hybrid (Debian runtimes) | Pure Nix |
+|---------|-------------------------|----------|
+| **Reproducibility** | Approximate (apt versions float) | Exact (flake.lock pins hashes) |
+| **CVE tracking** | Split SBOM (apt + nix) | Single SBOM from Nix |
+| **Update mechanism** | Manual apt + nix flake update | Single nix flake update |
+| **Build consistency** | Varies by build date | Identical everywhere |
+
+### Small Channels for Fast Security Updates
+
+We use `nixos-25.11-small` instead of the full channel:
+
+- **Full channels**: Wait for all ~30,000 packages to build (2-5 days)
+- **Small channels**: Wait for critical packages only (hours to ~1 day)
+
+This gives us security patch velocity comparable to traditional distros while maintaining Nix's reproducibility guarantees.
+
+```nix
+inputs = {
+  nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
+};
 ```
 
-| Target | Image | Use Case |
-|--------|-------|----------|
-| Default | `gcr.io/distroless/base-debian12` | Standard deployments |
-| FIPS | `ubuntu:24.04` + Pro | Government/compliance |
+### Debian Base Image (Bootstrap Only)
 
-Both use glibc, ensuring binary compatibility for Nix-built packages.
+Debian slim is used **only** to install Nix. We cannot use Distroless because:
+- Distroless has no shell (required for Nix installer)
+- Distroless has no package manager (required for curl, xz)
 
-### Why Google Distroless (Default)
-
-- Google-backed, 7+ years in production
-- Debian-based (familiar, well-documented)
-- Minimal attack surface (~20MB base)
-- No shell by default (security)
-
-### Why Ubuntu (FIPS Fallback)
-
-- Canonical backing, 10-year LTS
-- FIPS 140-2 certified packages available
-- Larger community, more documentation
-- Required for government/compliance contexts
+After Nix is installed, all subsequent packages come from nixpkgs. Debian's apt is not used for any runtime dependencies.
 
 ## Compiled vs Interpreted Languages
 
-| Language | Build-time | Runtime | Production Needs |
-|----------|------------|---------|------------------|
-| Python | Interpreter | Interpreter | Python in Layer 2 |
-| Node.js | Node + npm | Node | Node in Layer 2 |
-| Bun | Bun | Nothing | Static binary only |
-| Go | Go compiler | Nothing | Static binary only |
+| Language | Build-time (Nix) | Runtime (Nix) | Production Needs |
+|----------|------------------|---------------|------------------|
+| Python | python312 | python312 | Python closure from nixpkgs |
+| Node.js | nodejs_22 + npm | nodejs_22 | Node closure from nixpkgs |
+| Bun | bun | Nothing | Static binary only |
+| Go | go | Nothing | Static binary only |
 | Rust | rustc + cargo | Nothing | Static binary only |
-| Java | JDK | JRE | JRE in Layer 2 |
-| GnuCOBOL | cobc + gcc | libcob | libcob in Layer 2 |
+| Java | jdk | jre | JRE closure from nixpkgs |
+| GnuCOBOL | gnucobol + gcc | libcob | libcob closure from nixpkgs |
 
-Compiled languages produce static binaries. Production images only include Layer 2 components actually needed by the project.
+**All runtimes come from nixpkgs**, ensuring consistent versioning and CVE patching across dev and production.
+
+Compiled languages produce static binaries that need minimal runtime dependencies. Production images use `nix build` to create minimal closures containing only required packages.
 
 ## Nix Configuration
 
@@ -113,12 +123,20 @@ overlays/
 
 ### CVE Handling
 
-**Hybrid approach**:
-1. Run vulnix in CI to detect known CVEs
-2. Fail builds on Critical/High severity
-3. Manually patch Critical/High in `overlays/cve-patches.nix`
-4. Wait for upstream on Low/Medium
-5. Remove local patches once upstream catches up
+**Pure Nix approach with small channels**:
+
+1. **Primary defense**: Use `nixos-25.11-small` channel for fast upstream patches (hours vs days)
+2. **Automated updates**: Weekly `nix flake update` PRs via CI
+3. **Scanning**: Run OSV Scanner in CI to detect known CVEs
+4. **Manual patches**: For Critical/High CVEs not yet in nixpkgs, add to `overlays/cve-patches.nix`
+5. **Cleanup**: Remove local patches once upstream catches up
+6. **Subscribe**: Monitor [NixOS Security Discourse](https://discourse.nixos.org/c/announcements/security/56) for advisories
+
+**Why this works**:
+- Small channels update when critical packages build (not all 30k packages)
+- Weekly flake updates keep us current with upstream security fixes
+- Overlays provide escape hatch for zero-day response
+- Single dependency tree = single SBOM = simpler compliance
 
 ## DevContainer Integration
 
@@ -395,29 +413,34 @@ infrastructure-repo/
 
 | Area | Decision |
 |------|----------|
-| Base image | Parameterized (Distroless default, Ubuntu for FIPS) |
-| C library | glibc (both bases compatible) |
-| Nix management | Flakes with flake.lock |
-| Overlay structure | Single overlays/ directory |
-| Update cadence | Automated weekly PRs, human review |
-| CVE handling | vulnix scanner + manual patches for Critical/High |
-| DevShell model | Composable by domain via Features |
-| Registry | ghcr.io |
-| Image tags | Date-based + SHA + latest |
-| CI structure | Workflow per concern |
-| Build triggers | Main + tags (balanced) |
+| **Dependency source** | Pure Nix (all packages from nixpkgs, not apt) |
+| **Nixpkgs channel** | `nixos-25.11-small` (fast security updates) |
+| **Base image** | Debian slim (bootstrap only, for Nix installer) |
+| **C library** | glibc (from Debian base) |
+| **Nix management** | Flakes with flake.lock |
+| **Overlay structure** | Single overlays/ directory |
+| **Update cadence** | Automated weekly PRs, human review |
+| **CVE handling** | Small channel + OSV Scanner + manual patches for Critical/High |
+| **DevShell model** | Composable by domain via Features |
+| **Registry** | ghcr.io |
+| **Image tags** | Date-based + SHA + latest |
+| **CI structure** | Workflow per concern |
+| **Build triggers** | Main + tags (balanced) |
 
 ## License Considerations
 
-- **Base images**: Apache 2.0 (Distroless), various permissive (Ubuntu)
+- **Base image**: Debian (various, mostly permissive)
 - **glibc**: LGPL 2.1 (safe with dynamic linking)
+- **Nix packages**: Inherit upstream licenses
 - **Runtimes**: All permissive (Python PSF, Node MIT, Go BSD, Rust MIT/Apache)
 - **GnuCOBOL**: GPL (compiler), LGPL (runtime) - acceptable for teaching/training
 - **Avoid Berkeley DB** with GnuCOBOL to prevent source disclosure requirements
 
 ## Future Considerations
 
-- GraalVM native-image for Java (eliminates JRE from Layer 2)
-- Nuitka/PyInstaller for Python (could eliminate interpreter)
-- Ubuntu Chiseled images (smaller than full Ubuntu, newer option)
+- GraalVM native-image for Java (eliminates JRE from runtime closure)
+- Nuitka/PyInstaller for Python (could eliminate interpreter from closure)
+- `pkgs.dockerTools.buildImage` for minimal production containers (no Debian base)
 - Cachix integration if ghcr.io Nix caching proves insufficient
+- Determinate Systems evaluation if SLA/compliance requirements emerge
+- nix-security-tracker adoption when it matures

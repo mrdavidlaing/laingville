@@ -4,9 +4,15 @@
 
 **Goal:** Build the layered Nix container infrastructure within laingville/infra, with Python and Node DevContainer Features.
 
-**Architecture:** Three-layer containers (Base → Runtime → DevShell) using Nix flakes, with composable DevContainer Features published to ghcr.io.
+**Architecture:** Three-layer containers (Base → Runtime → DevShell) using **pure Nix** with `nixos-25.11-small` channel for fast security updates. All dependencies from nixpkgs, not apt.
 
 **Tech Stack:** Nix flakes, Docker, GitHub Actions, DevContainer Features, ghcr.io
+
+**Key Decisions:**
+- All packages from nixpkgs (Debian base is only for Nix bootstrap)
+- `nixos-25.11-small` channel for security patch velocity (hours vs days)
+- OSV Scanner for CVE detection (vulnix is deprecated)
+- Manual overlays for Critical/High CVEs not yet upstream
 
 ---
 
@@ -41,7 +47,7 @@ mkdir -p infra/.github/workflows
   description = "Nix container infrastructure for laingville";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -236,7 +242,7 @@ COPY --chown=nix:nix nix.conf /home/nix/.config/nix/nix.conf
 
 # Add Nix to PATH
 ENV PATH="/home/nix/.nix-profile/bin:${PATH}"
-ENV NIX_PATH="nixpkgs=channel:nixos-24.11"
+ENV NIX_PATH="nixpkgs=channel:nixos-25.11-small"
 
 # Install direnv
 RUN . /home/nix/.nix-profile/etc/profile.d/nix.sh && \
@@ -705,9 +711,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v24
-        with:
-          nix_path: nixpkgs=channel:nixos-24.11
+        uses: DeterminateSystems/nix-installer-action@main
 
       - name: Update flake.lock
         working-directory: infra
@@ -757,12 +761,12 @@ git commit -m "ci(infra): add weekly nixpkgs update workflow
 ### Task 9: Create security scan workflow
 
 **Files:**
-- Create: `infra/.github/workflows/security-scan.yml`
+- Create: `.github/workflows/security-scan.yml`
 
 **Step 1: Create security-scan.yml**
 
 ```yaml
-# infra/.github/workflows/security-scan.yml
+# .github/workflows/security-scan.yml
 name: Security Scan
 
 on:
@@ -777,50 +781,52 @@ on:
   workflow_dispatch:
 
 jobs:
-  vulnix-scan:
+  osv-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v24
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Run OSV Scanner
+        uses: google/osv-scanner-action@v2
         with:
-          nix_path: nixpkgs=channel:nixos-24.11
-
-      - name: Install vulnix
-        run: nix profile install nixpkgs#vulnix
-
-      - name: Run vulnix scan
-        working-directory: infra
-        run: |
-          echo "Scanning Python devShell..."
-          nix build .#devShells.x86_64-linux.python --no-link -o python-shell
-          vulnix python-shell || true
-
-          echo "Scanning Node devShell..."
-          nix build .#devShells.x86_64-linux.node --no-link -o node-shell
-          vulnix node-shell || true
+          scan-args: |-
+            --lockfile=infra/flake.lock
+            --format=table
         continue-on-error: true
 
-      - name: Check for Critical/High CVEs
+      - name: Check flake health
         working-directory: infra
         run: |
-          echo "Checking for Critical/High severity CVEs..."
-          # vulnix outputs CVEs to stdout
-          # This step would parse output and fail on Critical/High
-          # For now, just warn
-          echo "::warning::Review vulnix output above for Critical/High CVEs"
+          echo "Checking flake builds..."
+          nix flake check --no-build
+
+          echo "Listing package versions..."
+          nix eval .#devShells.x86_64-linux.python.buildInputs --json | jq -r '.[].name' || true
+
+      - name: Security summary
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Channel**: nixos-25.11-small (fast security updates)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scanner**: OSV Scanner (Google)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Flake lock**: $(date -r infra/flake.lock)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Review OSV output above for vulnerabilities." >> $GITHUB_STEP_SUMMARY
 ```
 
 **Step 2: Commit**
 
 ```bash
-git add infra/.github/workflows/security-scan.yml
-git commit -m "ci(infra): add vulnix security scan workflow
+git add .github/workflows/security-scan.yml
+git commit -m "ci(infra): add OSV security scan workflow
 
 - Daily scan + on changes to flake/overlays
-- Scans Python and Node devShells
-- Warns on Critical/High CVEs (manual review required)"
+- Uses Google OSV Scanner (production-ready, unlike deprecated vulnix)
+- Checks flake health and package versions
+- Generates GitHub step summary"
 ```
 
 ---
