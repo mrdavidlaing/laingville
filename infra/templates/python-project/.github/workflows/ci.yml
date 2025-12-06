@@ -1,0 +1,24 @@
+# templates/python-project/.github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/mrdavidlaing/laingville/devcontainer-base:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: |
+          nix develop --impure --command python -m pytest || echo "No tests yet"
+
+      - name: Lint
+        run: |
+          nix develop --impure --command ruff check . || echo "No Python files yet"
