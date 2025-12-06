@@ -1,4 +1,4 @@
-# infra/.github/workflows/build-features.yml
+# .github/workflows/build-features.yml
 name: Build DevContainer Features
 
 on:

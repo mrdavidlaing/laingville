@@ -1,4 +1,4 @@
-# infra/.github/workflows/build-containers.yml
+# .github/workflows/build-containers.yml
 name: Build Containers
 
 on:

@@ -1,4 +1,4 @@
-# infra/.github/workflows/update-nixpkgs.yml
+# .github/workflows/update-nixpkgs.yml
 name: Update Nixpkgs
 
 on:

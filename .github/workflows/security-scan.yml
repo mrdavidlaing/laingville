@@ -1,4 +1,4 @@
-# infra/.github/workflows/security-scan.yml
+# .github/workflows/security-scan.yml
 name: Security Scan
 
 on:
