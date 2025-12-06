@@ -1,18 +1,24 @@
 {
   "name": "Python Project",
-  "image": "ghcr.io/mrdavidlaing/laingville/devcontainer-base:latest",
-  "features": {
-    "ghcr.io/mrdavidlaing/laingville/python": {}
-  },
-  "postStartCommand": "direnv allow && nix develop --impure",
+  "image": "ghcr.io/my-org/my-project/devcontainer:latest",
+  "postStartCommand": "direnv allow",
   "remoteUser": "vscode",
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
   ],
   "customizations": {
     "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "python.defaultInterpreterPath": "/home/vscode/.nix-profile/bin/python3",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
       }
     }
   }

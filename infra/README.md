@@ -1,55 +1,146 @@
 # Laingville Nix Container Infrastructure
 
-Layered container architecture using Nix for reproducible builds.
+Project-centric container architecture using pure Nix. Infrastructure provides **package sets** (building blocks) and **builder functions**. Projects compose these to create **project-specific** devcontainer and runtime images with **maximum Docker layer sharing**.
 
 ## Quick Start
 
 ### Using in a New Project
 
-1. Copy the template:
-   ```bash
-   cp -r infra/templates/python-project my-project
-   cd my-project
-   ```
+1. Create a `flake.nix` in your project:
 
-2. Open in VS Code with DevContainers extension
-3. VS Code will prompt to reopen in container
-4. Start coding!
+```nix
+{
+  inputs = {
+    infra.url = "github:mrdavidlaing/laingville?dir=infra";
+    nixpkgs.follows = "infra/nixpkgs";  # Critical for layer sharing!
+  };
 
-### Local Development (without DevContainer)
+  outputs = { self, infra, nixpkgs }:
+    let
+      system = "x86_64-linux";
+      sets = infra.packageSets.${system};
+      lib = infra.lib.${system};
+    in
+    {
+      packages.${system} = {
+        devcontainer = lib.mkDevContainer {
+          name = "ghcr.io/my-org/my-project/devcontainer";
+          packages = sets.base ++ sets.nixTools ++ sets.devTools
+                  ++ sets.python ++ sets.pythonDev;
+        };
 
+        runtime = lib.mkRuntime {
+          name = "ghcr.io/my-org/my-project/runtime";
+          packages = sets.base ++ sets.python;
+        };
+      };
+    };
+}
+```
+
+2. Build your images:
 ```bash
-cd my-project
-direnv allow
-# Nix devShell activates automatically
+nix build .#devcontainer
+nix build .#runtime
+```
+
+3. Load into Docker:
+```bash
+docker load < result
 ```
 
 ## Architecture
 
 ```
-Layer 3: DevShell (compilers + dev tools) - NOT in production
-Layer 2: Runtime (Python, libcob, JRE)   - project-specific
-Layer 1: Base (Nix + direnv)             - always present
+┌─────────────────────────────────────────────────────────────────────┐
+│  infra/flake.nix (single source of truth)                           │
+│                                                                     │
+│  nixpkgs pinned @ nixos-25.11-small (weekly updates via CI)         │
+│                                                                     │
+│  Package Sets:                    Builder Functions:                │
+│  ├── base                         ├── mkDevContainer { packages }   │
+│  ├── devTools                     └── mkRuntime { packages }        │
+│  ├── nixTools                                                       │
+│  ├── python, pythonDev                                              │
+│  ├── node, nodeDev                                                  │
+│  ├── go, goDev                                                      │
+│  └── rust, rustDev                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              │ inputs.nixpkgs.follows = "infra/nixpkgs"
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  project/flake.nix                                                  │
+│                                                                     │
+│  packages = sets.base ++ sets.python ++ sets.pythonDev;            │
+│                                                                     │
+│  devcontainer = infra.lib.mkDevContainer { inherit packages; };    │
+│  runtime = infra.lib.mkRuntime { packages = sets.base ++ python; };│
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Available DevShells
+## Package Sets
 
-- `python` - Python 3.12, pip, uv, ruff, pyright
-- `node` - Node 22, Bun, TypeScript, ESLint, Prettier
+| Set | Contents |
+|-----|----------|
+| `base` | bash, coreutils, findutils, grep, sed, cacert, tzdata |
+| `devTools` | git, curl, jq, ripgrep, fd, fzf, bat, shadow, sudo |
+| `nixTools` | nix, direnv, nix-direnv |
+| `python` | python312 |
+| `pythonDev` | pip, virtualenv, uv, ruff, pyright |
+| `node` | nodejs_22 |
+| `nodeDev` | bun, typescript, prettier, eslint |
+| `go` | go |
+| `goDev` | gopls, golangci-lint |
+| `rust` | rustc, cargo |
+| `rustDev` | rust-analyzer, clippy, rustfmt |
 
-## Container Images
+## Builder Functions
 
-| Image | Description |
-|-------|-------------|
-| `ghcr.io/mrdavidlaing/laingville/base` | Layer 1 only |
-| `ghcr.io/mrdavidlaing/laingville/devcontainer-base` | Layer 1 + common tools |
+### mkDevContainer
 
-## DevContainer Features
+Creates a development container with:
+- vscode user (uid 1000) with sudo access
+- direnv hook in bashrc
+- Nix configured for flakes
 
-| Feature | Description |
-|---------|-------------|
-| `ghcr.io/mrdavidlaing/laingville/python` | Python VS Code extensions |
-| `ghcr.io/mrdavidlaing/laingville/node` | Node/Bun VS Code extensions |
+```nix
+lib.mkDevContainer {
+  name = "ghcr.io/org/project/devcontainer";
+  packages = sets.base ++ sets.devTools ++ sets.python;
+  # Optional:
+  user = "vscode";  # default
+  extraConfig = {};  # additional Docker config
+}
+```
+
+### mkRuntime
+
+Creates a minimal production container with:
+- app user (uid 1000, non-root)
+- No development tools
+- No Nix
+
+```nix
+lib.mkRuntime {
+  name = "ghcr.io/org/project/runtime";
+  packages = sets.base ++ sets.python;
+  # Optional:
+  user = "app";      # default
+  workdir = "/app";  # default
+  extraConfig = {};  # additional Docker config
+}
+```
+
+## Docker Layer Sharing
+
+All projects using `nixpkgs.follows = "infra/nixpkgs"` get **identical store paths** for shared packages. This means:
+
+- Python in Project A = `/nix/store/xyz-python312`
+- Python in Project B = `/nix/store/xyz-python312` (same hash!)
+- Docker layers containing these paths are **shared**
+
+Result: Only project-specific packages are downloaded when pulling images.
 
 ## Overlays
 
@@ -63,20 +154,22 @@ Custom Nix overlays in `overlays/`:
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| build-containers | Push to main | Build container images |
-| build-features | Push to main | Publish DevContainer Features |
-| security-scan | Daily + main | vulnix CVE scanning |
+| build-containers | Push to main | Build example container images |
+| security-scan | Daily + main | OSV CVE scanning |
 | update-nixpkgs | Weekly | Automated flake.lock updates |
 
-## Adding a New DevShell
+## Local Development
 
-1. Add to `flake.nix`:
-   ```nix
-   devShells.myshell = pkgs.mkShell {
-     packages = [ ... ];
-   };
-   ```
+For local development without containers:
 
-2. Create DevContainer Feature in `devcontainer-features/src/myshell/`
+```bash
+cd your-project
+direnv allow
+# Nix devShell activates automatically
+```
 
-3. Commit and push - CI publishes automatically
+Or explicitly:
+
+```bash
+nix develop
+```
