@@ -99,89 +99,6 @@
         };
 
         #############################################
-        # Helper functions for user/config creation
-        #############################################
-
-        # Create a non-root user for containers
-        # Uses runCommand to create real files (not symlinks) to avoid
-        # "path escapes from parent" errors in Docker overlay filesystem
-        mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
-          pkgs.runCommand "user-${name}-v2" {} ''
-            # Create directories
-            mkdir -p $out/etc/sudoers.d
-            mkdir -p $out${home}
-            mkdir -p $out/root
-            mkdir -p $out/tmp
-            chmod 1777 $out/tmp
-
-            # passwd file (no leading whitespace!)
-            cat > $out/etc/passwd <<EOF
-root:x:0:0:root:/root:${shell}
-${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}
-EOF
-
-            # group file
-            cat > $out/etc/group <<EOF
-root:x:0:
-wheel:x:10:${name}
-${name}:x:${toString gid}:
-EOF
-
-            # shadow file
-            cat > $out/etc/shadow <<EOF
-root:!:1::::::
-${name}:!:1::::::
-EOF
-            chmod 640 $out/etc/shadow
-
-            # sudoers
-            echo "${name} ALL=(ALL) NOPASSWD:ALL" > $out/etc/sudoers.d/${name}
-            chmod 440 $out/etc/sudoers.d/${name}
-          '';
-
-        # Nix configuration - real file, not symlink
-        mkNixConf = pkgs.runCommand "nix-conf-v2" {} ''
-          mkdir -p $out/etc/nix
-          cat > $out/etc/nix/nix.conf <<EOF
-experimental-features = nix-command flakes
-accept-flake-config = true
-EOF
-        '';
-
-        # direnv configuration - real file, not symlink
-        mkDirenvConf = pkgs.runCommand "direnv-conf-v2" {} ''
-          mkdir -p $out/etc/direnv
-          cat > $out/etc/direnv/direnvrc <<EOF
-source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
-EOF
-        '';
-
-        # bashrc with direnv hook - real file
-        mkBashrc = user: pkgs.runCommand "bashrc-${user}-v2" {} ''
-          mkdir -p $out/home/${user}
-          cat > $out/home/${user}/.bashrc <<EOF
-eval "\$(direnv hook bash)"
-EOF
-        '';
-
-        # User nix config - real file
-        mkUserNixConf = user: pkgs.runCommand "user-nix-conf-${user}-v2" {} ''
-          mkdir -p $out/home/${user}/.config/nix
-          cat > $out/home/${user}/.config/nix/nix.conf <<EOF
-experimental-features = nix-command flakes
-accept-flake-config = true
-EOF
-        '';
-
-        # User direnv config - real file
-        mkUserDirenvConf = user: pkgs.runCommand "user-direnv-conf-${user}-v2" {} ''
-          mkdir -p $out/home/${user}/.config/direnv
-          cat > $out/home/${user}/.config/direnv/direnvrc <<EOF
-source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
-EOF
-        '';
-
-        #############################################
         # Builder Functions
         #############################################
 
@@ -198,34 +115,87 @@ EOF
           extraConfig ? {}
         }:
           let
-            userSetup = mkUser {
-              name = user;
-              uid = 1000;
-              gid = 1000;
-              home = "/home/${user}";
-            };
+            shell = "${pkgs.bashInteractive}/bin/bash";
+            uid = "1000";
+            gid = "1000";
+            home = "/home/${user}";
           in
           pkgs.dockerTools.buildLayeredImage {
             inherit name tag;
-            contents = packages ++ [
-              mkNixConf
-              mkDirenvConf
-              userSetup
-              (mkBashrc user)
-              (mkUserNixConf user)
-              (mkUserDirenvConf user)
-            ];
+            contents = packages;
+            # Create real files (not symlinks) using fakeRootCommands
+            fakeRootCommands = ''
+              # Create directories
+              mkdir -p ./etc/sudoers.d ./etc/nix ./etc/direnv
+              mkdir -p .${home}/.config/nix .${home}/.config/direnv
+              mkdir -p ./root ./tmp
+              chmod 1777 ./tmp
+
+              # passwd - must be a real file, not symlink
+              cat > ./etc/passwd <<EOF
+root:x:0:0:root:/root:${shell}
+${user}:x:${uid}:${gid}:${user}:${home}:${shell}
+EOF
+
+              # group
+              cat > ./etc/group <<EOF
+root:x:0:
+wheel:x:10:${user}
+${user}:x:${gid}:
+EOF
+
+              # shadow
+              cat > ./etc/shadow <<EOF
+root:!:1::::::
+${user}:!:1::::::
+EOF
+              chmod 640 ./etc/shadow
+
+              # sudoers
+              echo "${user} ALL=(ALL) NOPASSWD:ALL" > ./etc/sudoers.d/${user}
+              chmod 440 ./etc/sudoers.d/${user}
+
+              # nix config
+              cat > ./etc/nix/nix.conf <<EOF
+experimental-features = nix-command flakes
+accept-flake-config = true
+EOF
+
+              # direnv config
+              cat > ./etc/direnv/direnvrc <<EOF
+source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+EOF
+
+              # user bashrc
+              cat > .${home}/.bashrc <<'BASHRC'
+eval "$(direnv hook bash)"
+BASHRC
+
+              # user nix config
+              cat > .${home}/.config/nix/nix.conf <<EOF
+experimental-features = nix-command flakes
+accept-flake-config = true
+EOF
+
+              # user direnv config
+              cat > .${home}/.config/direnv/direnvrc <<EOF
+source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+EOF
+
+              # Fix ownership
+              chown -R ${uid}:${gid} .${home}
+            '';
             config = {
               User = user;
               WorkingDir = "/workspace";
               Env = [
-                "HOME=/home/${user}"
+                "HOME=${home}"
                 "USER=${user}"
-                "PATH=/home/${user}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
+                "PATH=${home}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
                 "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
               ];
-              Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
+              Cmd = [ shell ];
             } // extraConfig;
             maxLayers = 100;
           };
@@ -243,16 +213,43 @@ EOF
           extraConfig ? {}
         }:
           let
-            userSetup = mkUser {
-              name = user;
-              uid = 1000;
-              gid = 1000;
-              home = workdir;
-            };
+            shell = "${pkgs.bashInteractive}/bin/bash";
+            uid = "1000";
+            gid = "1000";
           in
           pkgs.dockerTools.buildLayeredImage {
             inherit name tag;
-            contents = packages ++ [ userSetup ];
+            contents = packages;
+            # Create real files (not symlinks) using fakeRootCommands
+            fakeRootCommands = ''
+              # Create directories
+              mkdir -p ./etc
+              mkdir -p .${workdir}
+              mkdir -p ./root ./tmp
+              chmod 1777 ./tmp
+
+              # passwd - must be a real file, not symlink
+              cat > ./etc/passwd <<EOF
+root:x:0:0:root:/root:${shell}
+${user}:x:${uid}:${gid}:${user}:${workdir}:${shell}
+EOF
+
+              # group
+              cat > ./etc/group <<EOF
+root:x:0:
+${user}:x:${gid}:
+EOF
+
+              # shadow
+              cat > ./etc/shadow <<EOF
+root:!:1::::::
+${user}:!:1::::::
+EOF
+              chmod 640 ./etc/shadow
+
+              # Fix ownership
+              chown -R ${uid}:${gid} .${workdir}
+            '';
             config = {
               User = user;
               WorkingDir = workdir;
