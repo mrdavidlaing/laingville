@@ -2,18 +2,19 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Build the layered Nix container infrastructure within laingville/infra, with Python and Node DevContainer Features.
+**Goal:** Build a project-centric Nix container infrastructure with package sets and builder functions for maximum Docker layer sharing.
 
-**Architecture:** Three-layer containers (Base → Runtime → DevShell) using **pure Nix** with `nixos-25.11-small` channel for fast security updates. All dependencies from nixpkgs, not apt.
+**Architecture:** Pure Nix with `dockerTools.buildLayeredImage`. Infrastructure provides **package sets** (building blocks) and **builder functions**. Projects compose these to create project-specific images.
 
-**Tech Stack:** Nix flakes, Docker, GitHub Actions, DevContainer Features, ghcr.io
+**Tech Stack:** Nix flakes, dockerTools.buildLayeredImage, GitHub Actions, ghcr.io
 
 **Key Decisions:**
-- Base image: `nixos/nix:2.32.4` (official pure Nix, no Debian/apt)
-- All packages from nixpkgs
+- No Dockerfiles - all images built with `dockerTools.buildLayeredImage`
+- Package sets are composable building blocks (base, devTools, python, pythonDev, etc.)
+- Builder functions (`mkDevContainer`, `mkRuntime`) create images from package sets
+- All projects follow `infra/nixpkgs` for identical store paths = shared Docker layers
 - `nixos-25.11-small` channel for security patch velocity (hours vs days)
 - OSV Scanner for CVE detection (vulnix is deprecated)
-- Manual overlays for Critical/High CVEs not yet upstream
 
 ---
 
@@ -33,14 +34,9 @@
 
 ```bash
 mkdir -p infra/overlays
-mkdir -p infra/containers/base
-mkdir -p infra/containers/devcontainer-base
-mkdir -p infra/devcontainer-features/src/python
-mkdir -p infra/devcontainer-features/src/node
-mkdir -p infra/.github/workflows
 ```
 
-**Step 2: Create base flake.nix**
+**Step 2: Create base flake.nix with package sets and builder functions**
 
 ```nix
 # infra/flake.nix
@@ -61,9 +57,237 @@ mkdir -p infra/.github/workflows
           overlays = [ overlays ];
           config.allowUnfree = false;
         };
+
+        #############################################
+        # Package Sets - composable building blocks
+        #############################################
+        packageSets = {
+          # Foundation (always included)
+          base = with pkgs; [
+            bashInteractive
+            coreutils
+            findutils
+            gnugrep
+            gnused
+            gawk
+            cacert           # TLS certificates
+            tzdata           # Timezone data
+          ];
+
+          # Development tools (for devcontainers)
+          devTools = with pkgs; [
+            git
+            curl
+            jq
+            ripgrep
+            fd
+            fzf
+            bat
+            shadow           # for user management
+            sudo
+          ];
+
+          # Nix tooling (for containers that need nix develop)
+          nixTools = with pkgs; [
+            nix
+            direnv
+            nix-direnv
+          ];
+
+          # Language: Python
+          python = with pkgs; [
+            python312
+          ];
+          pythonDev = with pkgs; [
+            python312Packages.pip
+            python312Packages.virtualenv
+            uv
+            ruff
+            pyright
+          ];
+
+          # Language: Node
+          node = with pkgs; [
+            nodejs_22
+          ];
+          nodeDev = with pkgs; [
+            bun
+            nodePackages.typescript
+            nodePackages.typescript-language-server
+            nodePackages.prettier
+            nodePackages.eslint
+          ];
+
+          # Language: Go
+          go = with pkgs; [
+            go
+          ];
+          goDev = with pkgs; [
+            gopls
+            golangci-lint
+          ];
+
+          # Language: Rust
+          rust = with pkgs; [
+            rustc
+            cargo
+          ];
+          rustDev = with pkgs; [
+            rust-analyzer
+            clippy
+            rustfmt
+          ];
+        };
+
+        #############################################
+        # Helper functions for user/config creation
+        #############################################
+
+        # Create a non-root user for containers
+        mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
+          pkgs.runCommand "user-${name}" {} ''
+            mkdir -p $out/etc
+
+            echo "root:x:0:0:root:/root:${shell}" > $out/etc/passwd
+            echo "${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}" >> $out/etc/passwd
+
+            echo "root:x:0:" > $out/etc/group
+            echo "wheel:x:10:${name}" >> $out/etc/group
+            echo "${name}:x:${toString gid}:" >> $out/etc/group
+
+            echo "root:!:1::::::" > $out/etc/shadow
+            echo "${name}:!:1::::::" >> $out/etc/shadow
+
+            mkdir -p $out${home}
+            mkdir -p $out/root
+
+            # sudoers
+            mkdir -p $out/etc/sudoers.d
+            echo "${name} ALL=(ALL) NOPASSWD:ALL" > $out/etc/sudoers.d/${name}
+          '';
+
+        # Nix configuration
+        mkNixConf = pkgs.writeTextDir "etc/nix/nix.conf" ''
+          experimental-features = nix-command flakes
+          accept-flake-config = true
+        '';
+
+        # direnv configuration
+        mkDirenvConf = pkgs.writeTextDir "etc/direnv/direnvrc" ''
+          source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+        '';
+
+        # bashrc with direnv hook
+        mkBashrc = user: pkgs.writeTextDir "home/${user}/.bashrc" ''
+          eval "$(direnv hook bash)"
+        '';
+
+        # User nix config
+        mkUserNixConf = user: pkgs.writeTextDir "home/${user}/.config/nix/nix.conf" ''
+          experimental-features = nix-command flakes
+          accept-flake-config = true
+        '';
+
+        # User direnv config
+        mkUserDirenvConf = user: pkgs.writeTextDir "home/${user}/.config/direnv/direnvrc" ''
+          source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+        '';
+
+        #############################################
+        # Builder Functions
+        #############################################
+
+        # mkDevContainer: Creates a development container
+        # - vscode user (uid 1000)
+        # - sudo access
+        # - direnv hook in bashrc
+        # - Nix configured for flakes
+        mkDevContainer = {
+          packages,
+          name ? "devcontainer",
+          tag ? "latest",
+          user ? "vscode",
+          extraConfig ? {}
+        }:
+          let
+            userSetup = mkUser {
+              name = user;
+              uid = 1000;
+              gid = 1000;
+              home = "/home/${user}";
+            };
+          in
+          pkgs.dockerTools.buildLayeredImage {
+            inherit name tag;
+            contents = packages ++ [
+              mkNixConf
+              mkDirenvConf
+              userSetup
+              (mkBashrc user)
+              (mkUserNixConf user)
+              (mkUserDirenvConf user)
+            ];
+            config = {
+              User = user;
+              WorkingDir = "/workspace";
+              Env = [
+                "HOME=/home/${user}"
+                "USER=${user}"
+                "PATH=/home/${user}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
+                "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              ];
+              Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
+            } // extraConfig;
+            maxLayers = 100;
+          };
+
+        # mkRuntime: Creates a minimal production container
+        # - app user (uid 1000, non-root)
+        # - No development tools
+        # - No Nix (unless explicitly included in packages)
+        mkRuntime = {
+          packages,
+          name ? "runtime",
+          tag ? "latest",
+          user ? "app",
+          workdir ? "/app",
+          extraConfig ? {}
+        }:
+          let
+            userSetup = mkUser {
+              name = user;
+              uid = 1000;
+              gid = 1000;
+              home = workdir;
+            };
+          in
+          pkgs.dockerTools.buildLayeredImage {
+            inherit name tag;
+            contents = packages ++ [ userSetup ];
+            config = {
+              User = user;
+              WorkingDir = workdir;
+              Env = [
+                "HOME=${workdir}"
+                "USER=${user}"
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              ];
+            } // extraConfig;
+            maxLayers = 50;
+          };
+
       in
       {
-        # DevShells - composable development environments
+        # Export package sets for projects to use
+        inherit packageSets;
+
+        # Export builder functions
+        lib = {
+          inherit mkDevContainer mkRuntime mkUser;
+        };
+
+        # DevShells - for local development without containers
         devShells = {
           default = pkgs.mkShell {
             name = "infra-dev";
@@ -76,14 +300,7 @@ mkdir -p infra/.github/workflows
 
           python = pkgs.mkShell {
             name = "python-dev";
-            packages = with pkgs; [
-              python312
-              python312Packages.pip
-              python312Packages.virtualenv
-              uv
-              ruff
-              pyright
-            ];
+            packages = packageSets.base ++ packageSets.python ++ packageSets.pythonDev;
             shellHook = ''
               echo "Python devShell activated"
             '';
@@ -91,25 +308,41 @@ mkdir -p infra/.github/workflows
 
           node = pkgs.mkShell {
             name = "node-dev";
-            packages = with pkgs; [
-              nodejs_22
-              bun
-              nodePackages.typescript
-              nodePackages.typescript-language-server
-              nodePackages.prettier
-              nodePackages.eslint
-            ];
+            packages = packageSets.base ++ packageSets.node ++ packageSets.nodeDev;
             shellHook = ''
               echo "Node devShell activated"
             '';
           };
         };
 
-        # Packages - for container builds
+        # Example container images (for testing/demo)
+        # Projects should build their own using mkDevContainer/mkRuntime
         packages = {
-          # Runtime closures for Layer 2
-          pythonRuntime = pkgs.python312;
-          nodeRuntime = pkgs.nodejs_22;
+          # Example devcontainer with Python
+          example-python-devcontainer = mkDevContainer {
+            name = "ghcr.io/mrdavidlaing/laingville/example-python-devcontainer";
+            packages = packageSets.base ++ packageSets.nixTools ++ packageSets.devTools
+                    ++ packageSets.python ++ packageSets.pythonDev;
+          };
+
+          # Example runtime with Python
+          example-python-runtime = mkRuntime {
+            name = "ghcr.io/mrdavidlaing/laingville/example-python-runtime";
+            packages = packageSets.base ++ packageSets.python;
+          };
+
+          # Example devcontainer with Node
+          example-node-devcontainer = mkDevContainer {
+            name = "ghcr.io/mrdavidlaing/laingville/example-node-devcontainer";
+            packages = packageSets.base ++ packageSets.nixTools ++ packageSets.devTools
+                    ++ packageSets.node ++ packageSets.nodeDev;
+          };
+
+          # Example runtime with Node
+          example-node-runtime = mkRuntime {
+            name = "ghcr.io/mrdavidlaing/laingville/example-node-runtime";
+            packages = packageSets.base ++ packageSets.node;
+          };
         };
       }
     );
@@ -187,359 +420,64 @@ Expected: No errors
 
 ```bash
 git add infra/
-git commit -m "feat(infra): add base flake.nix with overlays structure
+git commit -m "feat(infra): add flake.nix with package sets and builder functions
 
-- flake.nix with Python and Node devShells
+- Package sets: base, devTools, nixTools, python, pythonDev, node, nodeDev, go, goDev, rust, rustDev
+- Builder functions: mkDevContainer, mkRuntime
 - Overlay structure for CVE patches, license fixes, custom builds
-- direnv integration via .envrc"
+- Example container images for testing"
 ```
 
 ---
 
-## Phase 2: Container Definitions
+## Phase 2: CI Workflows
 
-### Task 2: Create base container Dockerfile
-
-**Files:**
-- Create: `infra/containers/base/Dockerfile`
-- Create: `infra/containers/base/nix.conf`
-
-**Step 1: Create nix.conf**
-
-```ini
-# infra/containers/base/nix.conf
-experimental-features = nix-command flakes
-accept-flake-config = true
-max-jobs = auto
-```
-
-**Step 2: Create base Dockerfile**
-
-```dockerfile
-# infra/containers/base/Dockerfile
-# Layer 1: Base image with Nix + direnv
-# Uses official nixos/nix image - pure Nix, no Debian/apt
-ARG NIX_VERSION=2.32.4
-FROM nixos/nix:${NIX_VERSION}
-
-# Configure Nix for flakes (nixos/nix has Nix pre-installed)
-RUN mkdir -p /root/.config/nix && \
-    echo 'experimental-features = nix-command flakes' > /root/.config/nix/nix.conf && \
-    echo 'accept-flake-config = true' >> /root/.config/nix/nix.conf
-
-# Set default channel to small for faster security updates
-ENV NIX_PATH="nixpkgs=channel:nixos-25.11-small"
-
-# Install direnv and nix-direnv
-RUN nix profile install \
-      nixpkgs#direnv \
-      nixpkgs#nix-direnv
-
-# Configure direnv
-RUN mkdir -p /root/.config/direnv && \
-    echo 'source /root/.nix-profile/share/nix-direnv/direnvrc' > /root/.config/direnv/direnvrc
-
-WORKDIR /workspace
-```
-
-**Step 3: Test base image builds**
-
-Run: `docker build -t infra-base:test infra/containers/base/`
-Expected: Build succeeds
-
-**Step 4: Commit**
-
-```bash
-git add infra/containers/base/
-git commit -m "feat(infra): add base container with Nix and direnv
-
-- Debian bookworm-slim base (glibc compatible)
-- Single-user Nix installation
-- Flakes enabled via nix.conf
-- direnv + nix-direnv pre-installed"
-```
-
----
-
-### Task 3: Create devcontainer-base image
+### Task 2: Create container build workflow
 
 **Files:**
-- Create: `infra/containers/devcontainer-base/Dockerfile`
+- Update: `.github/workflows/build-containers.yml`
 
-**Step 1: Create devcontainer-base Dockerfile**
-
-```dockerfile
-# infra/containers/devcontainer-base/Dockerfile
-# DevContainer base with pre-cached /nix/store for fast startup
-# Uses official nixos/nix image - pure Nix, no Debian/apt
-ARG NIX_VERSION=2.32.4
-FROM nixos/nix:${NIX_VERSION}
-
-# Install shadow for user management (needed for vscode user)
-RUN nix profile install nixpkgs#shadow nixpkgs#sudo nixpkgs#bashInteractive
-
-# Create vscode user (standard devcontainer user)
-RUN groupadd -r vscode && \
-    useradd -r -g vscode -G wheel -d /home/vscode -s /bin/bash -m vscode && \
-    echo 'vscode ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
-    chown -R vscode:vscode /nix
-
-# Configure Nix for flakes
-RUN mkdir -p /root/.config/nix && \
-    echo 'experimental-features = nix-command flakes' > /root/.config/nix/nix.conf && \
-    echo 'accept-flake-config = true' >> /root/.config/nix/nix.conf
-
-# Copy nix config to vscode user
-USER vscode
-WORKDIR /home/vscode
-
-RUN mkdir -p ~/.config/nix && \
-    echo 'experimental-features = nix-command flakes' > ~/.config/nix/nix.conf && \
-    echo 'accept-flake-config = true' >> ~/.config/nix/nix.conf
-
-# Set default channel to small for faster security updates
-ENV NIX_PATH="nixpkgs=channel:nixos-25.11-small"
-ENV PATH="/home/vscode/.nix-profile/bin:/nix/var/nix/profiles/default/bin:${PATH}"
-
-# Install common tools into /nix/store (pre-cache)
-RUN nix profile install \
-      nixpkgs#direnv \
-      nixpkgs#nix-direnv \
-      nixpkgs#git \
-      nixpkgs#curl \
-      nixpkgs#jq \
-      nixpkgs#ripgrep \
-      nixpkgs#fd \
-      nixpkgs#fzf \
-      nixpkgs#bat
-
-# Configure direnv
-RUN mkdir -p ~/.config/direnv && \
-    echo 'source ~/.nix-profile/share/nix-direnv/direnvrc' > ~/.config/direnv/direnvrc
-
-# Configure shell for direnv
-RUN echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
-
-# Ensure vscode owns all of /nix (including any new files)
-USER root
-RUN chown -R vscode:vscode /nix
-USER vscode
-
-WORKDIR /workspace
-
-# Default command
-CMD ["/bin/bash"]
-```
-
-**Step 2: Test devcontainer-base builds**
-
-Run: `docker build -t infra-devcontainer-base:test infra/containers/devcontainer-base/`
-Expected: Build succeeds (may take several minutes for Nix downloads)
-
-**Step 3: Commit**
-
-```bash
-git add infra/containers/devcontainer-base/
-git commit -m "feat(infra): add devcontainer-base with pre-cached nix store
-
-- vscode user for devcontainer compatibility
-- Common tools pre-installed (direnv, git, ripgrep, fd, fzf, bat, jq)
-- Nix flakes enabled
-- direnv auto-hook in bashrc"
-```
-
----
-
-## Phase 3: DevContainer Features
-
-### Task 4: Create Python DevContainer Feature
-
-**Files:**
-- Create: `infra/devcontainer-features/src/python/devcontainer-feature.json`
-- Create: `infra/devcontainer-features/src/python/install.sh`
-
-**Step 1: Create devcontainer-feature.json**
-
-```json
-{
-  "id": "python",
-  "version": "1.0.0",
-  "name": "Python DevShell",
-  "description": "Activates Python Nix devShell with VS Code extensions",
-  "documentationURL": "https://github.com/mrdavidlaing/laingville/tree/main/infra/devcontainer-features",
-  "options": {},
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.debugpy",
-        "charliermarsh.ruff"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/home/vscode/.nix-profile/bin/python3",
-        "[python]": {
-          "editor.formatOnSave": true,
-          "editor.defaultFormatter": "charliermarsh.ruff"
-        }
-      }
-    }
-  },
-  "installsAfter": []
-}
-```
-
-**Step 2: Create install.sh**
-
-```bash
-#!/bin/bash
-# infra/devcontainer-features/src/python/install.sh
-set -e
-
-echo "Python DevContainer Feature installed"
-echo "Python devShell will be activated via 'nix develop' in postStartCommand"
-
-# Feature installation is minimal - actual Python comes from Nix devShell
-# This feature primarily declares VS Code extensions and settings
-```
-
-**Step 3: Make install.sh executable**
-
-```bash
-chmod +x infra/devcontainer-features/src/python/install.sh
-```
-
-**Step 4: Commit**
-
-```bash
-git add infra/devcontainer-features/src/python/
-git commit -m "feat(infra): add Python DevContainer Feature
-
-- VS Code extensions: Python, Pylance, debugpy, Ruff
-- Format on save with Ruff
-- Python comes from Nix devShell (not installed by feature)"
-```
-
----
-
-### Task 5: Create Node DevContainer Feature
-
-**Files:**
-- Create: `infra/devcontainer-features/src/node/devcontainer-feature.json`
-- Create: `infra/devcontainer-features/src/node/install.sh`
-
-**Step 1: Create devcontainer-feature.json**
-
-```json
-{
-  "id": "node",
-  "version": "1.0.0",
-  "name": "Node/Bun DevShell",
-  "description": "Activates Node/Bun Nix devShell with VS Code extensions",
-  "documentationURL": "https://github.com/mrdavidlaing/laingville/tree/main/infra/devcontainer-features",
-  "options": {},
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "oven.bun-vscode"
-      ],
-      "settings": {
-        "[javascript]": {
-          "editor.formatOnSave": true,
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[typescript]": {
-          "editor.formatOnSave": true,
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[json]": {
-          "editor.formatOnSave": true,
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        }
-      }
-    }
-  },
-  "installsAfter": []
-}
-```
-
-**Step 2: Create install.sh**
-
-```bash
-#!/bin/bash
-# infra/devcontainer-features/src/node/install.sh
-set -e
-
-echo "Node/Bun DevContainer Feature installed"
-echo "Node devShell will be activated via 'nix develop' in postStartCommand"
-
-# Feature installation is minimal - actual Node/Bun comes from Nix devShell
-# This feature primarily declares VS Code extensions and settings
-```
-
-**Step 3: Make install.sh executable**
-
-```bash
-chmod +x infra/devcontainer-features/src/node/install.sh
-```
-
-**Step 4: Commit**
-
-```bash
-git add infra/devcontainer-features/src/node/
-git commit -m "feat(infra): add Node/Bun DevContainer Feature
-
-- VS Code extensions: ESLint, Prettier, Bun
-- Format on save with Prettier for JS/TS/JSON
-- Node/Bun come from Nix devShell (not installed by feature)"
-```
-
----
-
-## Phase 4: CI Workflows
-
-### Task 6: Create container build workflow
-
-**Files:**
-- Create: `infra/.github/workflows/build-containers.yml`
-
-**Step 1: Create build-containers.yml**
+**Step 1: Update build-containers.yml for Nix builds**
 
 ```yaml
-# infra/.github/workflows/build-containers.yml
+# .github/workflows/build-containers.yml
 name: Build Containers
 
 on:
   push:
     branches: [main]
     paths:
-      - 'infra/containers/**'
       - 'infra/flake.nix'
       - 'infra/flake.lock'
+      - 'infra/overlays/**'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/laingville
 
 jobs:
-  build-base:
+  build-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
+    strategy:
+      matrix:
+        image:
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Generate image tags
         id: tags
@@ -549,25 +487,9 @@ jobs:
           echo "date=${DATE}" >> $GITHUB_OUTPUT
           echo "sha=${SHA}" >> $GITHUB_OUTPUT
 
-      - name: Build and push base image
-        uses: docker/build-push-action@v5
-        with:
-          context: infra/containers/base
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/base:${{ steps.tags.outputs.date }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/base:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/base:latest
-
-  build-devcontainer-base:
-    runs-on: ubuntu-latest
-    needs: build-base
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.image }} image with Nix
+        run: |
+          nix build ./infra#${{ matrix.image }} --out-link result
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -576,111 +498,47 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate image tags
-        id: tags
+      - name: Load and push image
         run: |
-          DATE=$(date +%Y-%m-%d)
-          SHA=$(git rev-parse --short HEAD)
-          echo "date=${DATE}" >> $GITHUB_OUTPUT
-          echo "sha=${SHA}" >> $GITHUB_OUTPUT
+          # Load the Nix-built image into Docker
+          docker load < result
 
-      - name: Build and push devcontainer-base image
-        uses: docker/build-push-action@v5
-        with:
-          context: infra/containers/devcontainer-base
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/devcontainer-base:${{ steps.tags.outputs.date }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/devcontainer-base:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/devcontainer-base:latest
+          # Get the image name from the tarball
+          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
+
+          # Tag with date and SHA
+          docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}"
+          docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}"
+          docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest"
+
+          # Push all tags
+          docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}"
+          docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}"
+          docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest"
 ```
 
 **Step 2: Commit**
 
 ```bash
-git add infra/.github/workflows/build-containers.yml
-git commit -m "ci(infra): add container build workflow
+git add .github/workflows/build-containers.yml
+git commit -m "ci(infra): update container build workflow for Nix
 
-- Builds base and devcontainer-base images
-- Pushes to ghcr.io with date-based tags
-- Triggers on changes to containers/ or flake files"
+- Uses nix build instead of docker build
+- Builds example devcontainer and runtime images
+- Uses DeterminateSystems Nix installer and magic-nix-cache"
 ```
 
 ---
 
-### Task 7: Create DevContainer Features publish workflow
+### Task 3: Create nixpkgs update workflow
 
 **Files:**
-- Create: `infra/.github/workflows/build-features.yml`
-
-**Step 1: Create build-features.yml**
-
-```yaml
-# infra/.github/workflows/build-features.yml
-name: Build DevContainer Features
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'infra/devcontainer-features/**'
-  workflow_dispatch:
-
-jobs:
-  publish-features:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish Features
-        uses: devcontainers/action@v1
-        with:
-          publish-features: 'true'
-          base-path-to-features: 'infra/devcontainer-features/src'
-          generate-docs: 'true'
-
-      - name: Commit generated docs
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add infra/devcontainer-features/src/*/README.md || true
-          git diff --staged --quiet || git commit -m "docs: update DevContainer Feature READMEs [skip ci]"
-          git push || true
-```
-
-**Step 2: Commit**
-
-```bash
-git add infra/.github/workflows/build-features.yml
-git commit -m "ci(infra): add DevContainer Features publish workflow
-
-- Uses official devcontainers/action
-- Publishes features to ghcr.io
-- Auto-generates README docs"
-```
-
----
-
-### Task 8: Create nixpkgs update workflow
-
-**Files:**
-- Create: `infra/.github/workflows/update-nixpkgs.yml`
+- Create: `.github/workflows/update-nixpkgs.yml`
 
 **Step 1: Create update-nixpkgs.yml**
 
 ```yaml
-# infra/.github/workflows/update-nixpkgs.yml
+# .github/workflows/update-nixpkgs.yml
 name: Update Nixpkgs
 
 on:
@@ -736,7 +594,7 @@ jobs:
 **Step 2: Commit**
 
 ```bash
-git add infra/.github/workflows/update-nixpkgs.yml
+git add .github/workflows/update-nixpkgs.yml
 git commit -m "ci(infra): add weekly nixpkgs update workflow
 
 - Runs every Monday at 9am UTC
@@ -746,7 +604,7 @@ git commit -m "ci(infra): add weekly nixpkgs update workflow
 
 ---
 
-### Task 9: Create security scan workflow
+### Task 4: Create security scan workflow
 
 **Files:**
 - Create: `.github/workflows/security-scan.yml`
@@ -812,16 +670,16 @@ git add .github/workflows/security-scan.yml
 git commit -m "ci(infra): add OSV security scan workflow
 
 - Daily scan + on changes to flake/overlays
-- Uses Google OSV Scanner (production-ready, unlike deprecated vulnix)
+- Uses Google OSV Scanner (production-ready)
 - Checks flake health and package versions
 - Generates GitHub step summary"
 ```
 
 ---
 
-## Phase 5: Example Project Template
+## Phase 3: Example Project Usage
 
-### Task 10: Create example project template
+### Task 5: Create example project template
 
 **Files:**
 - Create: `infra/templates/python-project/.devcontainer/devcontainer.json`
@@ -829,31 +687,7 @@ git commit -m "ci(infra): add OSV security scan workflow
 - Create: `infra/templates/python-project/.envrc`
 - Create: `infra/templates/python-project/.github/workflows/ci.yml`
 
-**Step 1: Create devcontainer.json**
-
-```json
-{
-  "name": "Python Project",
-  "image": "ghcr.io/mrdavidlaing/laingville/devcontainer-base:latest",
-  "features": {
-    "ghcr.io/mrdavidlaing/laingville/python": {}
-  },
-  "postStartCommand": "direnv allow && nix develop --impure",
-  "remoteUser": "vscode",
-  "mounts": [
-    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
-  ],
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
-      }
-    }
-  }
-}
-```
-
-**Step 2: Create flake.nix**
+**Step 1: Create project flake.nix**
 
 ```nix
 # templates/python-project/flake.nix
@@ -862,16 +696,63 @@ git commit -m "ci(infra): add OSV security scan workflow
 
   inputs = {
     infra.url = "github:mrdavidlaing/laingville?dir=infra";
-    nixpkgs.follows = "infra/nixpkgs";
+    nixpkgs.follows = "infra/nixpkgs";  # Critical for layer sharing!
   };
 
   outputs = { self, infra, nixpkgs }:
     let
       system = "x86_64-linux";
+      sets = infra.packageSets.${system};
+      lib = infra.lib.${system};
     in
     {
+      # DevShell for local development (nix develop)
       devShells.${system}.default = infra.devShells.${system}.python;
+
+      # Container images (built by CI, pushed to registry)
+      packages.${system} = {
+        devcontainer = lib.mkDevContainer {
+          name = "ghcr.io/my-org/my-project/devcontainer";
+          packages = sets.base ++ sets.nixTools ++ sets.devTools
+                  ++ sets.python ++ sets.pythonDev;
+        };
+
+        runtime = lib.mkRuntime {
+          name = "ghcr.io/my-org/my-project/runtime";
+          packages = sets.base ++ sets.python;
+        };
+      };
     };
+}
+```
+
+**Step 2: Create devcontainer.json**
+
+```json
+{
+  "name": "Python Project",
+  "image": "ghcr.io/my-org/my-project/devcontainer:latest",
+  "postStartCommand": "direnv allow",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/home/vscode/.nix-profile/bin/python3",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -894,21 +775,43 @@ on:
   pull_request:
 
 jobs:
-  test:
+  build-and-push:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/mrdavidlaing/laingville/devcontainer-base:latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run tests
-        run: |
-          nix develop --impure --command python -m pytest || echo "No tests yet"
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Lint
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build devcontainer
+        run: nix build .#devcontainer -o devcontainer.tar.gz
+
+      - name: Build runtime
+        run: nix build .#runtime -o runtime.tar.gz
+
+      - name: Login to ghcr.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          nix develop --impure --command ruff check . || echo "No Python files yet"
+          docker load < devcontainer.tar.gz
+          docker push ghcr.io/my-org/my-project/devcontainer:latest
+
+          docker load < runtime.tar.gz
+          docker push ghcr.io/my-org/my-project/runtime:latest
 ```
 
 **Step 5: Create directory structure**
@@ -924,76 +827,167 @@ mkdir -p infra/templates/python-project/.github/workflows
 git add infra/templates/
 git commit -m "feat(infra): add Python project template
 
-- devcontainer.json with Python feature
-- flake.nix importing infra devShell
-- CI workflow using devcontainer-base image
-- .envrc for local development"
+- flake.nix using infra's packageSets and mkDevContainer/mkRuntime
+- devcontainer.json pointing to project-specific image
+- CI workflow that builds and pushes images
+- Uses nixpkgs.follows for layer sharing"
 ```
 
 ---
 
-## Phase 6: Documentation
+## Phase 4: Documentation
 
-### Task 11: Create infrastructure README
+### Task 6: Create infrastructure README
 
 **Files:**
-- Create: `infra/README.md`
+- Update: `infra/README.md`
 
 **Step 1: Create README.md**
 
 ```markdown
 # Laingville Nix Container Infrastructure
 
-Layered container architecture using Nix for reproducible builds.
+Project-centric container architecture using pure Nix. Infrastructure provides **package sets** (building blocks) and **builder functions**. Projects compose these to create **project-specific** devcontainer and runtime images with **maximum Docker layer sharing**.
 
 ## Quick Start
 
 ### Using in a New Project
 
-1. Copy the template:
-   ```bash
-   cp -r infra/templates/python-project my-project
-   cd my-project
-   ```
+1. Create a `flake.nix` in your project:
 
-2. Open in VS Code with DevContainers extension
-3. VS Code will prompt to reopen in container
-4. Start coding!
+```nix
+{
+  inputs = {
+    infra.url = "github:mrdavidlaing/laingville?dir=infra";
+    nixpkgs.follows = "infra/nixpkgs";  # Critical for layer sharing!
+  };
 
-### Local Development (without DevContainer)
+  outputs = { self, infra, nixpkgs }:
+    let
+      system = "x86_64-linux";
+      sets = infra.packageSets.${system};
+      lib = infra.lib.${system};
+    in
+    {
+      packages.${system} = {
+        devcontainer = lib.mkDevContainer {
+          name = "ghcr.io/my-org/my-project/devcontainer";
+          packages = sets.base ++ sets.nixTools ++ sets.devTools
+                  ++ sets.python ++ sets.pythonDev;
+        };
 
+        runtime = lib.mkRuntime {
+          name = "ghcr.io/my-org/my-project/runtime";
+          packages = sets.base ++ sets.python;
+        };
+      };
+    };
+}
+```
+
+2. Build your images:
 ```bash
-cd my-project
-direnv allow
-# Nix devShell activates automatically
+nix build .#devcontainer
+nix build .#runtime
+```
+
+3. Load into Docker:
+```bash
+docker load < result
 ```
 
 ## Architecture
 
 ```
-Layer 3: DevShell (compilers + dev tools) - NOT in production
-Layer 2: Runtime (Python, libcob, JRE)   - project-specific
-Layer 1: Base (Nix + direnv)             - always present
+┌─────────────────────────────────────────────────────────────────────┐
+│  infra/flake.nix (single source of truth)                           │
+│                                                                     │
+│  nixpkgs pinned @ nixos-25.11-small (weekly updates via CI)         │
+│                                                                     │
+│  Package Sets:                    Builder Functions:                │
+│  ├── base                         ├── mkDevContainer { packages }   │
+│  ├── devTools                     └── mkRuntime { packages }        │
+│  ├── nixTools                                                       │
+│  ├── python, pythonDev                                              │
+│  ├── node, nodeDev                                                  │
+│  ├── go, goDev                                                      │
+│  └── rust, rustDev                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              │ inputs.nixpkgs.follows = "infra/nixpkgs"
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  project/flake.nix                                                  │
+│                                                                     │
+│  packages = sets.base ++ sets.python ++ sets.pythonDev;            │
+│                                                                     │
+│  devcontainer = infra.lib.mkDevContainer { inherit packages; };    │
+│  runtime = infra.lib.mkRuntime { packages = sets.base ++ python; };│
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Available DevShells
+## Package Sets
 
-- `python` - Python 3.12, pip, uv, ruff, pyright
-- `node` - Node 22, Bun, TypeScript, ESLint, Prettier
+| Set | Contents |
+|-----|----------|
+| `base` | bash, coreutils, findutils, grep, sed, cacert, tzdata |
+| `devTools` | git, curl, jq, ripgrep, fd, fzf, bat, shadow, sudo |
+| `nixTools` | nix, direnv, nix-direnv |
+| `python` | python312 |
+| `pythonDev` | pip, virtualenv, uv, ruff, pyright |
+| `node` | nodejs_22 |
+| `nodeDev` | bun, typescript, prettier, eslint |
+| `go` | go |
+| `goDev` | gopls, golangci-lint |
+| `rust` | rustc, cargo |
+| `rustDev` | rust-analyzer, clippy, rustfmt |
 
-## Container Images
+## Builder Functions
 
-| Image | Description |
-|-------|-------------|
-| `ghcr.io/mrdavidlaing/laingville/base` | Layer 1 only |
-| `ghcr.io/mrdavidlaing/laingville/devcontainer-base` | Layer 1 + common tools |
+### mkDevContainer
 
-## DevContainer Features
+Creates a development container with:
+- vscode user (uid 1000) with sudo access
+- direnv hook in bashrc
+- Nix configured for flakes
 
-| Feature | Description |
-|---------|-------------|
-| `ghcr.io/mrdavidlaing/laingville/python` | Python VS Code extensions |
-| `ghcr.io/mrdavidlaing/laingville/node` | Node/Bun VS Code extensions |
+```nix
+lib.mkDevContainer {
+  name = "ghcr.io/org/project/devcontainer";
+  packages = sets.base ++ sets.devTools ++ sets.python;
+  # Optional:
+  user = "vscode";  # default
+  extraConfig = {};  # additional Docker config
+}
+```
+
+### mkRuntime
+
+Creates a minimal production container with:
+- app user (uid 1000, non-root)
+- No development tools
+- No Nix
+
+```nix
+lib.mkRuntime {
+  name = "ghcr.io/org/project/runtime";
+  packages = sets.base ++ sets.python;
+  # Optional:
+  user = "app";      # default
+  workdir = "/app";  # default
+  extraConfig = {};  # additional Docker config
+}
+```
+
+## Docker Layer Sharing
+
+All projects using `nixpkgs.follows = "infra/nixpkgs"` get **identical store paths** for shared packages. This means:
+
+- Python in Project A = `/nix/store/xyz-python312`
+- Python in Project B = `/nix/store/xyz-python312` (same hash!)
+- Docker layers containing these paths are **shared**
+
+Result: Only project-specific packages are downloaded when pulling images.
 
 ## Overlays
 
@@ -1007,54 +1001,107 @@ Custom Nix overlays in `overlays/`:
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| build-containers | Push to main | Build container images |
-| build-features | Push to main | Publish DevContainer Features |
-| security-scan | Daily + main | vulnix CVE scanning |
+| build-containers | Push to main | Build example container images |
+| security-scan | Daily + main | OSV CVE scanning |
 | update-nixpkgs | Weekly | Automated flake.lock updates |
 
-## Adding a New DevShell
+## Local Development
 
-1. Add to `flake.nix`:
-   ```nix
-   devShells.myshell = pkgs.mkShell {
-     packages = [ ... ];
-   };
-   ```
+For local development without containers:
 
-2. Create DevContainer Feature in `devcontainer-features/src/myshell/`
+```bash
+cd your-project
+direnv allow
+# Nix devShell activates automatically
+```
 
-3. Commit and push - CI publishes automatically
+Or explicitly:
+
+```bash
+nix develop
+```
 ```
 
 **Step 2: Commit**
 
 ```bash
 git add infra/README.md
-git commit -m "docs(infra): add infrastructure README
+git commit -m "docs(infra): update README for package sets architecture
 
-- Quick start guide
-- Architecture overview
-- Available devShells and container images
-- How to add new devShells"
+- Package sets and builder functions documentation
+- Docker layer sharing explanation
+- Example project usage"
 ```
 
 ---
 
-## Phase 7: Integration Test
+## Phase 5: Cleanup and Migration
 
-### Task 12: Verify end-to-end flow
+### Task 7: Remove old Dockerfile-based containers
 
-**Step 1: Build containers locally**
+**Files:**
+- Delete: `infra/containers/` directory (if exists)
+- Delete: `infra/devcontainer-features/` directory (if exists)
+
+**Step 1: Remove old containers**
+
+```bash
+rm -rf infra/containers/
+rm -rf infra/devcontainer-features/
+```
+
+**Step 2: Commit**
+
+```bash
+git add -A
+git commit -m "refactor(infra): remove Dockerfile-based containers
+
+- All images now built with dockerTools.buildLayeredImage
+- No more Dockerfiles"
+```
+
+---
+
+## Phase 6: Integration Test
+
+### Task 8: Verify end-to-end flow
+
+**Step 1: Build example images locally**
 
 ```bash
 cd infra
-docker build -t test-base containers/base/
-docker build -t test-devcontainer-base containers/devcontainer-base/
+nix build .#example-python-devcontainer -o result-devcontainer
+nix build .#example-python-runtime -o result-runtime
 ```
 
 Expected: Both builds succeed
 
-**Step 2: Test devShell activation**
+**Step 2: Load images into Docker**
+
+```bash
+docker load < result-devcontainer
+docker load < result-runtime
+```
+
+Expected: Images load successfully
+
+**Step 3: Test devcontainer**
+
+```bash
+docker run --rm -it ghcr.io/mrdavidlaing/laingville/example-python-devcontainer:latest python --version
+```
+
+Expected: Python 3.12.x version printed
+
+**Step 4: Test runtime**
+
+```bash
+docker run --rm -it ghcr.io/mrdavidlaing/laingville/example-python-runtime:latest python --version
+```
+
+Expected: Python 3.12.x version printed
+
+**Step 5: Test devShell**
 
 ```bash
 cd infra
@@ -1064,7 +1111,7 @@ nix develop .#node --command node --version
 
 Expected: Python 3.12.x and Node 22.x versions printed
 
-**Step 3: Test flake check**
+**Step 6: Test flake check**
 
 ```bash
 cd infra
@@ -1073,32 +1120,30 @@ nix flake check
 
 Expected: No errors
 
-**Step 4: Final commit**
-
-```bash
-git add -A
-git status
-# If any uncommitted files, commit them
-```
-
 ---
 
 ## Summary
 
 After completing all tasks, the infrastructure provides:
 
-1. **flake.nix** with Python and Node devShells
-2. **Overlay structure** for CVE patches and custom builds
-3. **Container images** (base + devcontainer-base)
-4. **DevContainer Features** (python + node)
-5. **CI workflows** (build, scan, update)
-6. **Project template** for new Python projects
-7. **Documentation** in README.md
+1. **Package sets** - Composable building blocks (base, devTools, python, node, go, rust)
+2. **Builder functions** - mkDevContainer and mkRuntime
+3. **Docker layer sharing** - Via shared nixpkgs pin
+4. **CI workflows** - Build, scan, update
+5. **Project template** - For new projects
+6. **Documentation** - README with examples
+
+### Key Benefits
+
+- **Reproducibility**: Identical builds locally, in CI, and in production
+- **Security**: Fast CVE patches via nixos-25.11-small + weekly updates
+- **Developer experience**: Pre-built images, <30 second container startup
+- **Docker caching**: Shared layers across all projects
+- **Accurate SBOMs**: Each image = exact Nix closure
 
 ### Next Steps (Future Tasks)
 
-- Add Go, Rust, Java, COBOL DevContainer Features
-- Add vulnix failure threshold for Critical CVEs
-- Add runtime containers (runtime-python, runtime-node)
-- Create production container build in flake.nix
-- Add Ubuntu FIPS base image variant
+- Add more package sets (java, cobol)
+- Multi-arch support (aarch64-linux)
+- SBOM generation from Nix closure for compliance
+- Cachix/FlakeHub for faster CI if magic-nix-cache insufficient

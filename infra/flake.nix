@@ -17,36 +17,92 @@
           config.allowUnfree = false;
         };
 
-        # Common packages for all containers
-        basePackages = with pkgs; [
-          bashInteractive
-          coreutils
-          findutils
-          gnugrep
-          gnused
-          gawk
-          cacert           # TLS certificates
-          tzdata           # Timezone data
-          nix              # Nix package manager
-          direnv
-          nix-direnv
-        ];
+        #############################################
+        # Package Sets - composable building blocks
+        #############################################
+        packageSets = {
+          # Foundation (always included)
+          base = with pkgs; [
+            bashInteractive
+            coreutils
+            findutils
+            gnugrep
+            gnused
+            gawk
+            cacert           # TLS certificates
+            tzdata           # Timezone data
+          ];
 
-        # Additional packages for devcontainer
-        devcontainerPackages = with pkgs; [
-          git
-          curl
-          jq
-          ripgrep
-          fd
-          fzf
-          bat
-          shadow           # for user management
-          sudo
-        ];
+          # Development tools (for devcontainers)
+          devTools = with pkgs; [
+            git
+            curl
+            jq
+            ripgrep
+            fd
+            fzf
+            bat
+            shadow           # for user management
+            sudo
+          ];
+
+          # Nix tooling (for containers that need nix develop)
+          nixTools = with pkgs; [
+            nix
+            direnv
+            nix-direnv
+          ];
+
+          # Language: Python
+          python = with pkgs; [
+            python312
+          ];
+          pythonDev = with pkgs; [
+            python312Packages.pip
+            python312Packages.virtualenv
+            uv
+            ruff
+            pyright
+          ];
+
+          # Language: Node
+          node = with pkgs; [
+            nodejs_22
+          ];
+          nodeDev = with pkgs; [
+            bun
+            nodePackages.typescript
+            nodePackages.typescript-language-server
+            nodePackages.prettier
+            nodePackages.eslint
+          ];
+
+          # Language: Go
+          go = with pkgs; [
+            go
+          ];
+          goDev = with pkgs; [
+            gopls
+            golangci-lint
+          ];
+
+          # Language: Rust
+          rust = with pkgs; [
+            rustc
+            cargo
+          ];
+          rustDev = with pkgs; [
+            rust-analyzer
+            clippy
+            rustfmt
+          ];
+        };
+
+        #############################################
+        # Helper functions for user/config creation
+        #############################################
 
         # Create a non-root user for containers
-        # This creates /etc/passwd, /etc/group, etc.
         mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
           pkgs.runCommand "user-${name}" {} ''
             mkdir -p $out/etc
@@ -70,35 +126,127 @@
           '';
 
         # Nix configuration
-        nixConf = pkgs.writeTextDir "etc/nix/nix.conf" ''
+        mkNixConf = pkgs.writeTextDir "etc/nix/nix.conf" ''
           experimental-features = nix-command flakes
           accept-flake-config = true
         '';
 
         # direnv configuration
-        direnvConf = pkgs.writeTextDir "etc/direnv/direnvrc" ''
+        mkDirenvConf = pkgs.writeTextDir "etc/direnv/direnvrc" ''
           source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
         '';
 
-        # vscode user for devcontainers
-        vscodeUser = mkUser {
-          name = "vscode";
-          uid = 1000;
-          gid = 1000;
-          home = "/home/vscode";
-        };
+        # bashrc with direnv hook
+        mkBashrc = user: pkgs.writeTextDir "home/${user}/.bashrc" ''
+          eval "$(direnv hook bash)"
+        '';
 
-        # app user for runtime containers
-        appUser = mkUser {
-          name = "app";
-          uid = 1000;
-          gid = 1000;
-          home = "/app";
-        };
+        # User nix config
+        mkUserNixConf = user: pkgs.writeTextDir "home/${user}/.config/nix/nix.conf" ''
+          experimental-features = nix-command flakes
+          accept-flake-config = true
+        '';
+
+        # User direnv config
+        mkUserDirenvConf = user: pkgs.writeTextDir "home/${user}/.config/direnv/direnvrc" ''
+          source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+        '';
+
+        #############################################
+        # Builder Functions
+        #############################################
+
+        # mkDevContainer: Creates a development container
+        # - vscode user (uid 1000) by default
+        # - sudo access
+        # - direnv hook in bashrc
+        # - Nix configured for flakes
+        mkDevContainer = {
+          packages,
+          name ? "devcontainer",
+          tag ? "latest",
+          user ? "vscode",
+          extraConfig ? {}
+        }:
+          let
+            userSetup = mkUser {
+              name = user;
+              uid = 1000;
+              gid = 1000;
+              home = "/home/${user}";
+            };
+          in
+          pkgs.dockerTools.buildLayeredImage {
+            inherit name tag;
+            contents = packages ++ [
+              mkNixConf
+              mkDirenvConf
+              userSetup
+              (mkBashrc user)
+              (mkUserNixConf user)
+              (mkUserDirenvConf user)
+            ];
+            config = {
+              User = user;
+              WorkingDir = "/workspace";
+              Env = [
+                "HOME=/home/${user}"
+                "USER=${user}"
+                "PATH=/home/${user}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
+                "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              ];
+              Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
+            } // extraConfig;
+            maxLayers = 100;
+          };
+
+        # mkRuntime: Creates a minimal production container
+        # - app user (uid 1000, non-root) by default
+        # - No development tools
+        # - No Nix (unless explicitly included in packages)
+        mkRuntime = {
+          packages,
+          name ? "runtime",
+          tag ? "latest",
+          user ? "app",
+          workdir ? "/app",
+          extraConfig ? {}
+        }:
+          let
+            userSetup = mkUser {
+              name = user;
+              uid = 1000;
+              gid = 1000;
+              home = workdir;
+            };
+          in
+          pkgs.dockerTools.buildLayeredImage {
+            inherit name tag;
+            contents = packages ++ [ userSetup ];
+            config = {
+              User = user;
+              WorkingDir = workdir;
+              Env = [
+                "HOME=${workdir}"
+                "USER=${user}"
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              ];
+            } // extraConfig;
+            maxLayers = 50;
+          };
 
       in
       {
-        # DevShells - composable development environments
+        # Export package sets for projects to use
+        inherit packageSets;
+
+        # Export builder functions
+        lib = {
+          inherit mkDevContainer mkRuntime mkUser;
+        };
+
+        # DevShells - for local development without containers
         devShells = {
           default = pkgs.mkShell {
             name = "infra-dev";
@@ -111,14 +259,7 @@
 
           python = pkgs.mkShell {
             name = "python-dev";
-            packages = with pkgs; [
-              python312
-              python312Packages.pip
-              python312Packages.virtualenv
-              uv
-              ruff
-              pyright
-            ];
+            packages = packageSets.base ++ packageSets.python ++ packageSets.pythonDev;
             shellHook = ''
               echo "Python devShell activated"
             '';
@@ -126,143 +267,40 @@
 
           node = pkgs.mkShell {
             name = "node-dev";
-            packages = with pkgs; [
-              nodejs_22
-              bun
-              nodePackages.typescript
-              nodePackages.typescript-language-server
-              nodePackages.prettier
-              nodePackages.eslint
-            ];
+            packages = packageSets.base ++ packageSets.node ++ packageSets.nodeDev;
             shellHook = ''
               echo "Node devShell activated"
             '';
           };
         };
 
-        # Container images built with dockerTools
+        # Example container images (for testing/demo)
+        # Projects should build their own using mkDevContainer/mkRuntime
         packages = {
-          # Base image: Nix + direnv (foundation for all other images)
-          base = pkgs.dockerTools.buildLayeredImage {
-            name = "ghcr.io/mrdavidlaing/laingville/base";
-            tag = "latest";
-            contents = basePackages ++ [ nixConf direnvConf ];
-            config = {
-              Env = [
-                "PATH=/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
-                "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
-                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-              ];
-              WorkingDir = "/workspace";
-            };
-            maxLayers = 100;
+          # Example devcontainer with Python
+          example-python-devcontainer = mkDevContainer {
+            name = "ghcr.io/mrdavidlaing/laingville/example-python-devcontainer";
+            packages = packageSets.base ++ packageSets.nixTools ++ packageSets.devTools
+                    ++ packageSets.python ++ packageSets.pythonDev;
           };
 
-          # DevContainer base: base + dev tools + vscode user
-          devcontainer-base = pkgs.dockerTools.buildLayeredImage {
-            name = "ghcr.io/mrdavidlaing/laingville/devcontainer-base";
-            tag = "latest";
-            contents = basePackages ++ devcontainerPackages ++ [
-              nixConf
-              direnvConf
-              vscodeUser
-              # bashrc with direnv hook
-              (pkgs.writeTextDir "home/vscode/.bashrc" ''
-                eval "$(direnv hook bash)"
-              '')
-              # direnv config for vscode user
-              (pkgs.writeTextDir "home/vscode/.config/direnv/direnvrc" ''
-                source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
-              '')
-              # nix config for vscode user
-              (pkgs.writeTextDir "home/vscode/.config/nix/nix.conf" ''
-                experimental-features = nix-command flakes
-                accept-flake-config = true
-              '')
-            ];
-            config = {
-              Env = [
-                "PATH=/home/vscode/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
-                "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
-                "HOME=/home/vscode"
-                "USER=vscode"
-                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-              ];
-              User = "vscode";
-              WorkingDir = "/workspace";
-              Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
-            };
-            maxLayers = 100;
+          # Example runtime with Python
+          example-python-runtime = mkRuntime {
+            name = "ghcr.io/mrdavidlaing/laingville/example-python-runtime";
+            packages = packageSets.base ++ packageSets.python;
           };
 
-          # Runtime Python: base + Python interpreter (for production)
-          runtime-python = pkgs.dockerTools.buildLayeredImage {
-            name = "ghcr.io/mrdavidlaing/laingville/runtime-python";
-            tag = "latest";
-            contents = [
-              pkgs.bashInteractive
-              pkgs.coreutils
-              pkgs.cacert
-              pkgs.python312
-              appUser
-            ];
-            config = {
-              Env = [
-                "PATH=/app/.local/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
-                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-                "PYTHONUNBUFFERED=1"
-                "HOME=/app"
-                "USER=app"
-              ];
-              User = "app";
-              WorkingDir = "/app";
-            };
-            maxLayers = 50;
+          # Example devcontainer with Node
+          example-node-devcontainer = mkDevContainer {
+            name = "ghcr.io/mrdavidlaing/laingville/example-node-devcontainer";
+            packages = packageSets.base ++ packageSets.nixTools ++ packageSets.devTools
+                    ++ packageSets.node ++ packageSets.nodeDev;
           };
 
-          # Runtime Node: base + Node.js (for production)
-          runtime-node = pkgs.dockerTools.buildLayeredImage {
-            name = "ghcr.io/mrdavidlaing/laingville/runtime-node";
-            tag = "latest";
-            contents = [
-              pkgs.bashInteractive
-              pkgs.coreutils
-              pkgs.cacert
-              pkgs.nodejs_22
-              appUser
-            ];
-            config = {
-              Env = [
-                "PATH=/app/node_modules/.bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
-                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-                "NODE_ENV=production"
-                "HOME=/app"
-                "USER=app"
-              ];
-              User = "app";
-              WorkingDir = "/app";
-            };
-            maxLayers = 50;
-          };
-
-          # Runtime minimal: just enough to run static binaries (Go, Rust, Bun-compiled)
-          runtime-minimal = pkgs.dockerTools.buildLayeredImage {
-            name = "ghcr.io/mrdavidlaing/laingville/runtime-minimal";
-            tag = "latest";
-            contents = [
-              pkgs.cacert
-              appUser
-            ];
-            config = {
-              Env = [
-                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-                "HOME=/app"
-                "USER=app"
-              ];
-              User = "app";
-              WorkingDir = "/app";
-            };
-            maxLayers = 10;
+          # Example runtime with Node
+          example-node-runtime = mkRuntime {
+            name = "ghcr.io/mrdavidlaing/laingville/example-node-runtime";
+            packages = packageSets.base ++ packageSets.node;
           };
         };
       }

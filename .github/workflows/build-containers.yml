@@ -23,11 +23,10 @@ jobs:
     strategy:
       matrix:
         image:
-          - base
-          - devcontainer-base
-          - runtime-python
-          - runtime-node
-          - runtime-minimal
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
 
     steps:
       - uses: actions/checkout@v4

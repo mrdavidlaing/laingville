@@ -2,462 +2,461 @@
 
 ## Overview
 
-A layered container architecture using **pure Nix** for reproducible builds, supporting multiple development runtimes with fast CVE updates via small channels and composable development environments.
+A **project-centric** container architecture using pure Nix. Infrastructure provides **package sets** (building blocks) and **builder functions**. Projects compose these to create **project-specific** devcontainer and runtime images with **maximum Docker layer sharing**.
 
 ## Goals
 
 1. **Reproducibility**: Identical builds locally, in CI, and in production via Nix flakes
 2. **Security**: Fast CVE patches via `nixos-25.11-small` channel + manual overlays for critical issues
-3. **Developer experience**: Git clone, open VS Code, devcontainer ready
-4. **Flexibility**: Support Python, Node/Bun, Go, Rust, Java, GnuCOBOL
-5. **Minimal production images**: Nix closures with only required dependencies
+3. **Developer experience**: Git clone, open VS Code, container ready in <30 seconds
+4. **Docker layer caching**: Shared nixpkgs pin = shared `/nix/store` paths = shared Docker layers
+5. **Accurate SBOMs**: Each project's image = exact Nix closure = perfect dependency tracking
 
-## Layer Architecture
+## Architecture Overview
 
 ```
-+-------------------------------------------------------------+
-|  LAYER 3: DevShell (compilers + dev tools)                  |
-|  - Bun, Go, Rust, GnuCOBOL/cobc, JDK, GraalVM               |
-|  - LSPs, formatters, linters, debuggers                     |
-|  - lazygit, neovim, tmux, shellspec                         |
-|  NOT in production                                          |
-+-------------------------------------------------------------+
-|  LAYER 2: Runtime (interpreters + runtime libs from Nix)    |
-|  - Python interpreter (nixpkgs)                             |
-|  - Node.js runtime (nixpkgs)                                |
-|  - libcob (COBOL runtime library, nixpkgs)                  |
-|  - JRE (if not using GraalVM native-image, nixpkgs)         |
-|  - Compiled binaries from Layer 3                           |
-|  Shipped to production (project-specific Nix closure)       |
-+-------------------------------------------------------------+
-|  LAYER 1: Base                                              |
-|  - Built with dockerTools.buildLayeredImage (no Dockerfile) |
-|  - bash, coreutils, nix, direnv, cacert, tzdata             |
-|  - All dependencies from nixpkgs (nixos-25.11-small)        |
-|  Shipped to production                                      |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────┐
+│  infra/flake.nix (single source of truth)                           │
+│                                                                     │
+│  nixpkgs pinned @ nixos-25.11-small (weekly updates via CI)         │
+│                                                                     │
+│  Package Sets:                    Builder Functions:                │
+│  ├── base                         ├── mkDevContainer { packages }   │
+│  ├── devTools                     └── mkRuntime { packages }        │
+│  ├── python                                                         │
+│  ├── pythonDev                                                      │
+│  ├── node                                                           │
+│  ├── nodeDev                                                        │
+│  └── ...                                                            │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              │ inputs.nixpkgs.follows = "infra/nixpkgs"
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  project/flake.nix                                                  │
+│                                                                     │
+│  packages = sets.base ++ sets.python ++ sets.pythonDev;            │
+│                                                                     │
+│  devcontainer = infra.lib.mkDevContainer { inherit packages; };    │
+│  runtime = infra.lib.mkRuntime { packages = sets.base ++ python; };│
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Project-specific images (built by project's CI)                    │
+│                                                                     │
+│  ghcr.io/org/wctf/devcontainer:latest                              │
+│  ghcr.io/org/wctf/runtime:latest                                   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Layer Details
+## Why Project-Specific Images?
 
-**Layer 1 (Base)**: The official `nixos/nix` Docker image provides a pure Nix environment with no Debian/apt. All packages come from nixpkgs via the `nixos-25.11-small` channel.
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Generic images** (runtime-python) | Simple, fewer images | Bloated, inaccurate SBOM, one-size-fits-none |
+| **Project-specific images** | Exact deps, accurate SBOM, minimal size | More images, project CI builds them |
 
-**Layer 2 (Runtime)**: All interpreters and runtime libraries come from **nixpkgs via small channels**. This ensures:
-- Reproducible builds (flake.lock pins exact versions)
-- Fast security updates (small channel updates in hours, not days)
-- Consistent CVE patching via overlays
+We chose **project-specific** because:
+- Each project gets exactly what it needs
+- SBOM is accurate (image = project's Nix closure)
+- Smaller images (no unused packages)
+- Clear ownership (project defines and builds its images)
 
-**Layer 3 (DevShell)**: Full development environment with compilers, toolchains, LSPs, and developer tools. Never shipped to production.
+## Docker Layer Caching Strategy
 
-## Pure Nix Strategy
+### The Key Insight
 
-### Why Pure Nix (Not Hybrid Debian/Nix)
+Docker layers are shared when they have **identical content**. Nix store paths are **content-addressed** - same inputs = same `/nix/store/hash-name`.
 
-We chose pure Nix over hybrid approaches for these reasons:
+**If all projects use the same nixpkgs pin, they get identical store paths for shared packages.**
 
-| Concern | Hybrid (Debian runtimes) | Pure Nix |
-|---------|-------------------------|----------|
-| **Reproducibility** | Approximate (apt versions float) | Exact (flake.lock pins hashes) |
-| **CVE tracking** | Split SBOM (apt + nix) | Single SBOM from Nix |
-| **Update mechanism** | Manual apt + nix flake update | Single nix flake update |
-| **Build consistency** | Varies by build date | Identical everywhere |
+### How It Works
 
-### Small Channels for Fast Security Updates
+```
+infra/flake.nix:
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
+  # Pinned at commit abc123
 
-We use `nixos-25.11-small` instead of the full channel:
+project-a/flake.nix:
+  inputs.nixpkgs.follows = "infra/nixpkgs";  # Same abc123
+  # python312 → /nix/store/xyz-python312
 
-- **Full channels**: Wait for all ~30,000 packages to build (2-5 days)
-- **Small channels**: Wait for critical packages only (hours to ~1 day)
+project-b/flake.nix:
+  inputs.nixpkgs.follows = "infra/nixpkgs";  # Same abc123
+  # python312 → /nix/store/xyz-python312  ← IDENTICAL HASH
 
-This gives us security patch velocity comparable to traditional distros while maintaining Nix's reproducibility guarantees.
+Result: Project A and B share the python312 Docker layer
+```
+
+### Layer Structure
+
+```
+Project A (Python + Redis):
+┌────────────────────────────────────────────┐
+│ Layers 1-30:  base (bash, coreutils, etc.) │ ← Shared with ALL projects
+│ Layers 31-50: python312, pip               │ ← Shared with Python projects
+│ Layers 51-55: redis                        │ ← Project A only
+└────────────────────────────────────────────┘
+
+Project B (Python + Postgres):
+┌────────────────────────────────────────────┐
+│ Layers 1-30:  base (bash, coreutils, etc.) │ ← CACHED (same as A)
+│ Layers 31-50: python312, pip               │ ← CACHED (same as A)
+│ Layers 51-55: postgres                     │ ← Project B only
+└────────────────────────────────────────────┘
+
+When Project B pulls: Only layers 51-55 downloaded!
+```
+
+## Package Sets
+
+Infrastructure defines **composable package sets** - building blocks for container images:
 
 ```nix
-inputs = {
-  nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
+# infra/flake.nix
+packageSets = {
+  # Foundation (always included)
+  base = with pkgs; [
+    bashInteractive
+    coreutils
+    findutils
+    gnugrep
+    gnused
+    cacert
+    tzdata
+  ];
+
+  # Development tools (for devcontainers)
+  devTools = with pkgs; [
+    git
+    curl
+    jq
+    ripgrep
+    fd
+    fzf
+    bat
+    shadow
+    sudo
+  ];
+
+  # Nix tooling (for containers that need nix develop)
+  nixTools = with pkgs; [
+    nix
+    direnv
+    nix-direnv
+  ];
+
+  # Language: Python
+  python = with pkgs; [
+    python312
+  ];
+  pythonDev = with pkgs; [
+    python312Packages.pip
+    python312Packages.virtualenv
+    uv
+    ruff
+    pyright
+  ];
+
+  # Language: Node
+  node = with pkgs; [
+    nodejs_22
+  ];
+  nodeDev = with pkgs; [
+    bun
+    nodePackages.typescript
+    nodePackages.prettier
+    nodePackages.eslint
+  ];
+
+  # Language: Go
+  go = with pkgs; [
+    go
+  ];
+  goDev = with pkgs; [
+    gopls
+    golangci-lint
+  ];
+
+  # Language: Rust
+  rust = with pkgs; [
+    rustc
+    cargo
+  ];
+  rustDev = with pkgs; [
+    rust-analyzer
+    clippy
+    rustfmt
+  ];
 };
 ```
 
-### Pure Nix Container Images (No Dockerfiles)
+## Builder Functions
 
-All container images are built using `pkgs.dockerTools.buildLayeredImage` - no Dockerfiles anywhere:
+Infrastructure provides **builder functions** that take package sets and produce container images:
+
+### mkDevContainer
+
+Creates a development container with:
+- vscode user (uid 1000)
+- sudo access
+- direnv hook in bashrc
+- Nix configured for flakes
 
 ```nix
-pkgs.dockerTools.buildLayeredImage {
-  name = "ghcr.io/mrdavidlaing/laingville/base";
+mkDevContainer = {
+  packages,
+  name ? "devcontainer",
+  user ? "vscode",
+  extraConfig ? {}
+}: pkgs.dockerTools.buildLayeredImage {
+  inherit name;
   tag = "latest";
-  contents = [ pkgs.bashInteractive pkgs.coreutils pkgs.nix pkgs.direnv ];
+  contents = packages ++ [
+    (mkUser { name = user; uid = 1000; gid = 1000; home = "/home/${user}"; })
+    (mkBashrc { inherit user; })
+    (mkNixConf { })
+    (mkDirenvConf { })
+  ];
   config = {
-    Env = [ "PATH=/nix/var/nix/profiles/default/bin:/bin" ];
+    User = user;
     WorkingDir = "/workspace";
-  };
+    Env = [
+      "HOME=/home/${user}"
+      "USER=${user}"
+      "PATH=/home/${user}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
+      "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
+      "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+    ];
+    Cmd = [ "${pkgs.bashInteractive}/bin/bash" ];
+  } // extraConfig;
   maxLayers = 100;
-}
+};
 ```
 
-**Why dockerTools instead of Dockerfiles:**
-- **Pure Nix**: No imperative Dockerfile steps, everything declarative
-- **Reproducible**: Same flake.lock = same image, always
-- **Optimal layers**: Nix automatically creates efficient layer boundaries
-- **Perfect SBOM**: Image contents = Nix closure (exact dependency tree)
-- **No base image dependency**: Built from scratch, not FROM another image
+### mkRuntime
 
-**How it works:**
-1. `nix build ./infra#devcontainer-base` produces a `.tar.gz`
-2. `docker load < result` imports it
-3. Push to registry with standard docker commands
+Creates a minimal production container with:
+- app user (uid 1000, non-root)
+- No development tools
+- No Nix (unless explicitly included)
 
-**Layer optimization:**
-- `maxLayers = 100` allows fine-grained caching
-- Most-used packages get their own layers (shared across images)
-- Nix store paths are content-addressed (identical deps = shared layers)
-
-## Compiled vs Interpreted Languages
-
-| Language | Build-time (Nix) | Runtime (Nix) | Production Needs |
-|----------|------------------|---------------|------------------|
-| Python | python312 | python312 | Python closure from nixpkgs |
-| Node.js | nodejs_22 + npm | nodejs_22 | Node closure from nixpkgs |
-| Bun | bun | Nothing | Static binary only |
-| Go | go | Nothing | Static binary only |
-| Rust | rustc + cargo | Nothing | Static binary only |
-| Java | jdk | jre | JRE closure from nixpkgs |
-| GnuCOBOL | gnucobol + gcc | libcob | libcob closure from nixpkgs |
-
-**All runtimes come from nixpkgs**, ensuring consistent versioning and CVE patching across dev and production.
-
-Compiled languages produce static binaries that need minimal runtime dependencies. Production images use `nix build` to create minimal closures containing only required packages.
-
-## Nix Configuration
-
-### Flake Structure
-
-```
-flake.nix
-flake.lock
-overlays/
-├── default.nix          # Combines all overlays
-├── cve-patches.nix      # Security patches
-├── license-fixes.nix    # Recompile without copyleft deps
-└── custom-builds.nix    # Modified compilation flags
+```nix
+mkRuntime = {
+  packages,
+  name ? "runtime",
+  user ? "app",
+  workdir ? "/app",
+  extraConfig ? {}
+}: pkgs.dockerTools.buildLayeredImage {
+  inherit name;
+  tag = "latest";
+  contents = packages ++ [
+    (mkUser { name = user; uid = 1000; gid = 1000; home = workdir; })
+  ];
+  config = {
+    User = user;
+    WorkingDir = workdir;
+    Env = [
+      "HOME=${workdir}"
+      "USER=${user}"
+      "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+    ];
+  } // extraConfig;
+  maxLayers = 50;
+};
 ```
 
-### Nixpkgs Management
-
-- **Method**: Flakes with `flake.lock` pinning
-- **Updates**: Automated weekly PRs via GitHub Actions
-- **Review**: Human approval required before merge
-
-### CVE Handling
-
-**Pure Nix approach with small channels**:
-
-1. **Primary defense**: Use `nixos-25.11-small` channel for fast upstream patches (hours vs days)
-2. **Automated updates**: Weekly `nix flake update` PRs via CI
-3. **Scanning**: Run OSV Scanner in CI to detect known CVEs
-4. **Manual patches**: For Critical/High CVEs not yet in nixpkgs, add to `overlays/cve-patches.nix`
-5. **Cleanup**: Remove local patches once upstream catches up
-6. **Subscribe**: Monitor [NixOS Security Discourse](https://discourse.nixos.org/c/announcements/security/56) for advisories
-
-**Why this works**:
-- Small channels update when critical packages build (not all 30k packages)
-- Weekly flake updates keep us current with upstream security fixes
-- Overlays provide escape hatch for zero-day response
-- Single dependency tree = single SBOM = simpler compliance
-
-## DevContainer Integration
-
-### Image Strategy
-
-Pre-built base image with Nix shell activation:
-
-```json
-{
-  "image": "ghcr.io/yourorg/containers/devcontainer-base:latest",
-  "features": {
-    "ghcr.io/yourorg/devcontainer-features/python": {}
-  },
-  "postStartCommand": "nix develop --impure"
-}
-```
-
-### Binary Cache
-
-Common Nix dependencies are baked into the devcontainer-base image (`/nix/store` pre-populated). This minimizes first-run wait time - `nix develop` only fetches project-specific additions.
-
-### DevContainer Features
-
-Composable features published to ghcr.io:
-
-```
-devcontainer-features/
-└── src/
-    ├── python/
-    │   ├── devcontainer-feature.json
-    │   └── install.sh
-    ├── node/
-    ├── go/
-    ├── rust/
-    ├── java/
-    └── cobol/
-```
-
-Each feature declares:
-- VS Code extensions for that language
-- Any additional setup scripts
-- Default settings
-
-Projects compose features as needed:
-
-```json
-{
-  "features": {
-    "ghcr.io/yourorg/devcontainer-features/python": {},
-    "ghcr.io/yourorg/devcontainer-features/node": {}
-  }
-}
-```
-
-## Container Registry
-
-### Namespace Structure
-
-```
-ghcr.io/mrdavidlaing/laingville/
-├── base                    # Nix + direnv (foundation)
-├── devcontainer-base       # base + dev tools + vscode user
-├── runtime-python          # minimal + Python (production)
-├── runtime-node            # minimal + Node.js (production)
-├── runtime-minimal         # just cacert + app user (for static binaries)
-│
-└── devcontainer-features/
-    ├── python              # VS Code extensions for Python
-    └── node                # VS Code extensions for Node
-```
-
-All images built with `nix build ./infra#<image-name>` using `dockerTools.buildLayeredImage`.
-
-### Tagging Strategy
-
-Date-based with SHA for traceability:
-
-```
-# On push to main
-ghcr.io/yourorg/containers/base:2024-12-06
-ghcr.io/yourorg/containers/base:2024-12-06-abc123f
-ghcr.io/yourorg/containers/base:latest
-
-# On release tag (v1.2.3)
-ghcr.io/yourorg/containers/base:1.2.3
-ghcr.io/yourorg/containers/base:1.2
-ghcr.io/yourorg/containers/base:1
-```
-
-## CI Pipeline Structure
-
-### Workflows
-
-```
-.github/workflows/
-├── build-containers.yml      # Build & publish container images
-├── build-features.yml        # Build & publish devcontainer features
-├── test.yml                  # Run tests (shellspec, etc.)
-├── security-scan.yml         # vulnix CVE scanning
-├── update-nixpkgs.yml        # Weekly flake.lock update PRs
-└── release.yml               # Tag-triggered release
-```
-
-### Triggers
-
-| Workflow | Trigger |
-|----------|---------|
-| build-containers.yml | Push to `main`, tags |
-| build-features.yml | Push to `main`, tags |
-| test.yml | All PRs, push to `main` |
-| security-scan.yml | Daily schedule, push to `main` |
-| update-nixpkgs.yml | Weekly schedule (creates PR) |
-| release.yml | Tags (`v*`) |
-
-## Project Template
-
-Projects consuming this infrastructure:
-
-```
-my-project/
-├── .devcontainer/
-│   └── devcontainer.json
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-├── flake.nix
-├── flake.lock
-├── .envrc
-└── src/
-```
+## Project Usage
 
 ### Project flake.nix
 
 ```nix
 {
+  description = "WCTF - World Championship of Transformative Facilitation";
+
   inputs = {
-    infra.url = "github:yourorg/infra";
-    nixpkgs.follows = "infra/nixpkgs";
+    infra.url = "github:mrdavidlaing/laingville?dir=infra";
+    nixpkgs.follows = "infra/nixpkgs";  # Critical for layer sharing!
   };
 
-  outputs = { self, infra, nixpkgs }: {
-    devShells.x86_64-linux.default = infra.devShells.x86_64-linux.python;
-  };
+  outputs = { self, infra, nixpkgs }:
+    let
+      system = "x86_64-linux";
+      sets = infra.packageSets.${system};
+      lib = infra.lib.${system};
+    in
+    {
+      # DevShell for local development (nix develop)
+      devShells.${system}.default = infra.devShells.${system}.python;
+
+      # Container images (built by CI, pushed to registry)
+      packages.${system} = {
+        devcontainer = lib.mkDevContainer {
+          name = "ghcr.io/mrdavidlaing/wctf/devcontainer";
+          packages = sets.base ++ sets.nixTools ++ sets.devTools
+                  ++ sets.python ++ sets.pythonDev;
+        };
+
+        runtime = lib.mkRuntime {
+          name = "ghcr.io/mrdavidlaing/wctf/runtime";
+          packages = sets.base ++ sets.python;
+        };
+      };
+    };
 }
-```
-
-### Project .envrc
-
-```bash
-use flake
 ```
 
 ### Project devcontainer.json
 
 ```json
 {
-  "name": "My Python Project",
-  "image": "ghcr.io/yourorg/containers/devcontainer-base:latest",
-  "features": {
-    "ghcr.io/yourorg/devcontainer-features/python": {}
-  },
-  "postStartCommand": "nix develop --impure",
+  "name": "WCTF",
+  "image": "ghcr.io/mrdavidlaing/wctf/devcontainer:latest",
+  "postStartCommand": "direnv allow",
   "remoteUser": "vscode",
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
-  ]
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
 }
 ```
 
 ### Project CI
 
 ```yaml
+# .github/workflows/ci.yml
 name: CI
-on: [push, pull_request]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/yourorg/containers/devcontainer-base:latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: nix develop --impure --command make test
-      - run: nix develop --impure --command make build
-```
-
-## Production Deployment
-
-### Build Flow
-
-```
-DevShell (Layer 3)  -->  Build Stage (Layer 3)  -->  Production (Layer 1+2)
-     |                        |                            |
-  Write code              go build                    Your binary
-  Run tests               cargo build                 Python interp
-  Debug                   cobc compile                libcob
-                          bun build --compile
-```
-
-### Production Image Build
-
-```yaml
-# .github/workflows/release.yml
-name: Release
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+  pull_request:
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build production image
-        run: |
-          nix build .#containerImage
-          docker load < result
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Push to registry
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build devcontainer
+        run: nix build .#devcontainer -o devcontainer.tar.gz
+
+      - name: Build runtime
+        run: nix build .#runtime -o runtime.tar.gz
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images
         run: |
-          docker tag myapp:latest ghcr.io/yourorg/myapp:${{ github.ref_name }}
-          docker push ghcr.io/yourorg/myapp:${{ github.ref_name }}
+          docker load < devcontainer.tar.gz
+          docker push ghcr.io/mrdavidlaing/wctf/devcontainer:latest
+
+          docker load < runtime.tar.gz
+          docker push ghcr.io/mrdavidlaing/wctf/runtime:latest
 ```
 
-### Deployment Target (baljeet-style)
+## CVE Handling
 
-Production containers run on Docker hosts. The image contains:
-- Layer 1 (base)
-- Layer 2 subset (only needed runtimes)
-- Compiled application artifacts
+**Pure Nix approach with small channels**:
 
-No development tools, compilers, or Layer 3 components.
+1. **Primary defense**: Use `nixos-25.11-small` channel for fast upstream patches (hours vs days)
+2. **Automated updates**: Weekly `nix flake update` PRs in infra repo
+3. **Propagation**: Projects inherit updates via `nixpkgs.follows`
+4. **Scanning**: Run OSV Scanner in CI to detect known CVEs
+5. **Manual patches**: For Critical/High CVEs not yet in nixpkgs, add to `infra/overlays/cve-patches.nix`
+6. **Cleanup**: Remove local patches once upstream catches up
+
+**Update flow:**
+```
+infra: weekly flake update → new nixpkgs pin
+                ↓
+projects: CI detects new infra → rebuilds images
+                ↓
+new images pushed to registry with patched packages
+```
 
 ## Repository Structure
 
 ```
 laingville/
 ├── infra/
-│   ├── flake.nix              # All container images defined here
-│   ├── flake.lock             # Pinned nixpkgs version
+│   ├── flake.nix              # Package sets + builder functions
+│   ├── flake.lock             # Pinned nixpkgs (single source of truth)
 │   ├── overlays/
 │   │   ├── default.nix
 │   │   ├── cve-patches.nix
 │   │   ├── license-fixes.nix
 │   │   └── custom-builds.nix
-│   ├── devcontainer-features/
-│   │   └── src/
-│   │       ├── python/
-│   │       └── node/
-│   ├── templates/
-│   │   └── python-project/
 │   └── README.md
 ├── .github/
 │   └── workflows/
-│       ├── build-containers.yml   # nix build + docker push
-│       ├── build-features.yml
-│       ├── security-scan.yml
-│       └── update-nixpkgs.yml
+│       ├── update-nixpkgs.yml    # Weekly flake.lock update
+│       └── security-scan.yml     # Daily CVE scanning
+└── ...
+
+project-repo/  (e.g., wctf)
+├── flake.nix                     # Uses infra's package sets + builders
+├── flake.lock                    # Follows infra/nixpkgs
+├── .devcontainer/
+│   └── devcontainer.json         # Points to project's devcontainer image
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # Builds & pushes project's images
 └── ...
 ```
-
-**No Dockerfiles** - all container images defined in `infra/flake.nix` using `dockerTools.buildLayeredImage`.
 
 ## Decisions Summary
 
 | Area | Decision |
 |------|----------|
-| **Dependency source** | Pure Nix (all packages from nixpkgs) |
-| **Nixpkgs channel** | `nixos-25.11-small` (fast security updates) |
+| **Architecture** | Project-specific images built from shared package sets |
+| **Layer sharing** | All projects follow `infra/nixpkgs` for identical store paths |
+| **Package sets** | Composable building blocks defined in infra |
+| **Builder functions** | `mkDevContainer` and `mkRuntime` in infra |
 | **Image builder** | `dockerTools.buildLayeredImage` (no Dockerfiles) |
-| **Base image** | None - built from scratch |
-| **Nix management** | Flakes with flake.lock |
-| **Overlay structure** | Single overlays/ directory |
-| **Update cadence** | Automated weekly PRs, human review |
-| **CVE handling** | Small channel + OSV Scanner + manual patches for Critical/High |
-| **DevShell model** | Composable by domain via Features |
-| **Registry** | ghcr.io |
-| **Image tags** | Date-based + SHA + latest |
-| **CI structure** | Workflow per concern |
-| **Build triggers** | Main + tags (balanced) |
+| **Nixpkgs channel** | `nixos-25.11-small` (fast security updates) |
+| **Image ownership** | Projects build and push their own images |
+| **CI cache** | Docker registry (ubiquitous) + magic-nix-cache |
+| **CVE handling** | Small channel + weekly updates + overlays for critical |
 
-## License Considerations
+## Benefits
 
-- **Base image**: nixos/nix (MIT license)
-- **Nix packages**: Inherit upstream licenses
-- **Runtimes**: All permissive (Python PSF, Node MIT, Go BSD, Rust MIT/Apache)
-- **GnuCOBOL**: GPL (compiler), LGPL (runtime) - acceptable for teaching/training
-- **Avoid Berkeley DB** with GnuCOBOL to prevent source disclosure requirements
+1. **Docker caching works**: Shared nixpkgs = shared layers across all projects
+2. **Accurate SBOMs**: Each image = exact Nix closure
+3. **Minimal images**: Projects include only what they need
+4. **Fast developer onboarding**: Pre-built images, no nix at container start
+5. **Clear ownership**: Projects control their dependencies
+6. **Single update path**: Update infra → all projects get security fixes
 
 ## Future Considerations
 
-- GraalVM native-image for Java (eliminates JRE from runtime closure)
-- Nuitka/PyInstaller for Python (could eliminate interpreter from closure)
-- `pkgs.dockerTools.buildImage` for minimal production containers (no Debian base)
-- Cachix integration if ghcr.io Nix caching proves insufficient
-- Determinate Systems evaluation if SLA/compliance requirements emerge
-- nix-security-tracker adoption when it matures
+- Add more package sets (java, cobol, rust, go)
+- VS Code extensions in package sets (via DevContainer features or direct)
+- Multi-arch support (aarch64-linux)
+- Cachix/FlakeHub for faster CI if magic-nix-cache insufficient
+- SBOM generation from Nix closure for compliance
