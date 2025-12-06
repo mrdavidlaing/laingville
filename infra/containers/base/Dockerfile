@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create nix user
-RUN groupadd -r nix && useradd -r -g nix -d /nix -s /bin/bash nix
+# Create nix user with home directory
+RUN groupadd -r nix && useradd -r -g nix -d /home/nix -s /bin/bash -m nix
 RUN mkdir -p /nix && chown -R nix:nix /nix
 
 # Install Nix as single-user (simpler for containers)
@@ -25,6 +25,7 @@ RUN mkdir -p /home/nix/.config/nix
 COPY --chown=nix:nix nix.conf /home/nix/.config/nix/nix.conf
 
 # Add Nix to PATH
+ENV HOME="/home/nix"
 ENV PATH="/home/nix/.nix-profile/bin:${PATH}"
 ENV NIX_PATH="nixpkgs=channel:nixos-24.11"
 
