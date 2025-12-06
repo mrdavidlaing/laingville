@@ -102,73 +102,83 @@
         # Helper functions for user/config creation
         #############################################
 
-        # Create passwd file
-        mkPasswd = { name, uid, gid, home, shell }:
-          pkgs.writeTextDir "etc/passwd" "root:x:0:0:root:/root:${shell}\n${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}\n";
-
-        # Create group file
-        mkGroup = { name, gid }:
-          pkgs.writeTextDir "etc/group" "root:x:0:\nwheel:x:10:${name}\n${name}:x:${toString gid}:\n";
-
-        # Create shadow file
-        mkShadow = { name }:
-          pkgs.writeTextDir "etc/shadow" "root:!:1::::::\n${name}:!:1::::::\n";
-
-        # Create home and tmp directories
-        mkDirs = { home }:
-          pkgs.runCommand "dirs" {} ''
+        # Create a non-root user for containers
+        # Uses runCommand to create real files (not symlinks) to avoid
+        # "path escapes from parent" errors in Docker overlay filesystem
+        mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
+          pkgs.runCommand "user-${name}" {} ''
+            # Create directories
+            mkdir -p $out/etc/sudoers.d
             mkdir -p $out${home}
             mkdir -p $out/root
             mkdir -p $out/tmp
             chmod 1777 $out/tmp
-          '';
 
-        # Create sudoers
-        mkSudoers = { name }:
-          pkgs.runCommand "sudoers-${name}" {} ''
-            mkdir -p $out/etc/sudoers.d
+            # passwd file
+            cat > $out/etc/passwd << 'PASSWD'
+            root:x:0:0:root:/root:${shell}
+            ${name}:x:${toString uid}:${toString gid}:${name}:${home}:${shell}
+            PASSWD
+
+            # group file
+            cat > $out/etc/group << 'GROUP'
+            root:x:0:
+            wheel:x:10:${name}
+            ${name}:x:${toString gid}:
+            GROUP
+
+            # shadow file
+            cat > $out/etc/shadow << 'SHADOW'
+            root:!:1::::::
+            ${name}:!:1::::::
+            SHADOW
+            chmod 640 $out/etc/shadow
+
+            # sudoers
             echo "${name} ALL=(ALL) NOPASSWD:ALL" > $out/etc/sudoers.d/${name}
             chmod 440 $out/etc/sudoers.d/${name}
           '';
 
-        # Create a non-root user for containers
-        mkUser = { name, uid, gid, home, shell ? "${pkgs.bashInteractive}/bin/bash" }:
-          pkgs.symlinkJoin {
-            name = "user-${name}";
-            paths = [
-              (mkPasswd { inherit name uid gid home shell; })
-              (mkGroup { inherit name gid; })
-              (mkShadow { inherit name; })
-              (mkDirs { inherit home; })
-              (mkSudoers { inherit name; })
-            ];
-          };
-
-        # Nix configuration
-        mkNixConf = pkgs.writeTextDir "etc/nix/nix.conf" ''
+        # Nix configuration - real file, not symlink
+        mkNixConf = pkgs.runCommand "nix-conf" {} ''
+          mkdir -p $out/etc/nix
+          cat > $out/etc/nix/nix.conf << 'EOF'
           experimental-features = nix-command flakes
           accept-flake-config = true
+          EOF
         '';
 
-        # direnv configuration
-        mkDirenvConf = pkgs.writeTextDir "etc/direnv/direnvrc" ''
+        # direnv configuration - real file, not symlink
+        mkDirenvConf = pkgs.runCommand "direnv-conf" {} ''
+          mkdir -p $out/etc/direnv
+          cat > $out/etc/direnv/direnvrc << 'EOF'
           source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+          EOF
         '';
 
-        # bashrc with direnv hook
-        mkBashrc = user: pkgs.writeTextDir "home/${user}/.bashrc" ''
+        # bashrc with direnv hook - real file
+        mkBashrc = user: pkgs.runCommand "bashrc-${user}" {} ''
+          mkdir -p $out/home/${user}
+          cat > $out/home/${user}/.bashrc << 'EOF'
           eval "$(direnv hook bash)"
+          EOF
         '';
 
-        # User nix config
-        mkUserNixConf = user: pkgs.writeTextDir "home/${user}/.config/nix/nix.conf" ''
+        # User nix config - real file
+        mkUserNixConf = user: pkgs.runCommand "user-nix-conf-${user}" {} ''
+          mkdir -p $out/home/${user}/.config/nix
+          cat > $out/home/${user}/.config/nix/nix.conf << 'EOF'
           experimental-features = nix-command flakes
           accept-flake-config = true
+          EOF
         '';
 
-        # User direnv config
-        mkUserDirenvConf = user: pkgs.writeTextDir "home/${user}/.config/direnv/direnvrc" ''
+        # User direnv config - real file
+        mkUserDirenvConf = user: pkgs.runCommand "user-direnv-conf-${user}" {} ''
+          mkdir -p $out/home/${user}/.config/direnv
+          cat > $out/home/${user}/.config/direnv/direnvrc << 'EOF'
           source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+          EOF
         '';
 
         #############################################
