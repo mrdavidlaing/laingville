@@ -9,3 +9,5 @@
 dotfiles/*/.config/systemd/user/timers.target.wants/
 .gitmessage
 
+.claude/settings.local.json
+infra/result
