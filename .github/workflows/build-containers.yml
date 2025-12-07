@@ -23,6 +23,7 @@ jobs:
     strategy:
       matrix:
         image:
+          - laingville-devcontainer
           - example-python-devcontainer
           - example-python-runtime
           - example-node-devcontainer
@@ -69,7 +70,8 @@ jobs:
           docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}"
           docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest"
 
-          # Push all tags
+      - name: Push image
+        run: |
           docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}"
           docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}"
           docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest"
