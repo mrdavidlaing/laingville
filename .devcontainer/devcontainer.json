@@ -1,0 +1,12 @@
+{
+  "name": "Laingville",
+  "image": "ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:latest",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "jnoortheen.nix-ide"
+      ]
+    }
+  }
+}
