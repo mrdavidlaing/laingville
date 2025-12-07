@@ -12,8 +12,15 @@ on:
       - 'infra/overlays/**'
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
+  #############################################
+  # Nix-specific vulnerability scanning
+  #############################################
   vulnix-scan:
+    name: Vulnix (Nix CVE Scanner)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +49,244 @@ jobs:
         working-directory: infra
         run: |
           echo "Checking for Critical/High severity CVEs..."
-          # vulnix outputs CVEs to stdout
-          # This step would parse output and fail on Critical/High
-          # For now, just warn
           echo "::warning::Review vulnix output above for Critical/High CVEs"
+
+  #############################################
+  # Container image scanning
+  #############################################
+  trivy-scan:
+    name: Trivy (Container Scanner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write  # For SARIF upload
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - laingville-devcontainer
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: |
+          docker pull ${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest || echo "Image not found, skipping"
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.image }}.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          vuln-type: 'os,library'
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-${{ matrix.image }}.sarif'
+          category: 'trivy-${{ matrix.image }}'
+        continue-on-error: true
+
+      - name: Run Trivy (table output for logs)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+  grype-scan:
+    name: Grype (Anchore Scanner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - laingville-devcontainer
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: |
+          docker pull ${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest || echo "Image not found, skipping"
+        continue-on-error: true
+
+      - name: Run Grype scanner
+        uses: anchore/scan-action@v4
+        id: grype
+        with:
+          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          fail-build: false
+          severity-cutoff: high
+          output-format: sarif
+        continue-on-error: true
+
+      - name: Upload Grype SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: 'grype-${{ matrix.image }}'
+        continue-on-error: true
+
+  #############################################
+  # SBOM Generation
+  #############################################
+  syft-sbom:
+    name: Syft (SBOM Generator)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - laingville-devcontainer
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: |
+          docker pull ${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest || echo "Image not found, skipping"
+        continue-on-error: true
+
+      - name: Generate SBOM with Syft (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          format: spdx-json
+          output-file: 'sbom-${{ matrix.image }}-spdx.json'
+        continue-on-error: true
+
+      - name: Generate SBOM with Syft (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          format: cyclonedx-json
+          output-file: 'sbom-${{ matrix.image }}-cyclonedx.json'
+        continue-on-error: true
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.image }}
+          path: |
+            sbom-${{ matrix.image }}-spdx.json
+            sbom-${{ matrix.image }}-cyclonedx.json
+        continue-on-error: true
+
+  cdxgen-sbom:
+    name: cdxgen (CycloneDX SBOM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install cdxgen
+        run: npm install -g @cyclonedx/cdxgen
+
+      - name: Generate SBOM for repository
+        run: |
+          # Generate SBOM for the entire repository
+          cdxgen -o sbom-repo-cyclonedx.json -t universal .
+        continue-on-error: true
+
+      - name: Upload cdxgen SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cdxgen
+          path: sbom-repo-cyclonedx.json
+        continue-on-error: true
+
+  #############################################
+  # Secret Detection
+  #############################################
+  gitleaks-scan:
+    name: Gitleaks (Secret Scanner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for scanning all commits
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # Optional for extra features
+        continue-on-error: true
+
+  #############################################
+  # Summary job
+  #############################################
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [vulnix-scan, trivy-scan, grype-scan, syft-sbom, cdxgen-sbom, gitleaks-scan]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scanner | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnix (Nix CVEs) | ${{ needs.vulnix-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy (Container) | ${{ needs.trivy-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Grype (Anchore) | ${{ needs.grype-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Syft (SBOM) | ${{ needs.syft-sbom.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| cdxgen (SBOM) | ${{ needs.cdxgen-sbom.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Gitleaks (Secrets) | ${{ needs.gitleaks-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Notes" >> $GITHUB_STEP_SUMMARY
+          echo "- SARIF results uploaded to GitHub Security tab" >> $GITHUB_STEP_SUMMARY
+          echo "- SBOM artifacts available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Review individual job logs for detailed findings" >> $GITHUB_STEP_SUMMARY
