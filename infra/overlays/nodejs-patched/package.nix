@@ -48,8 +48,14 @@ let
 in
 stdenv.mkDerivation {
   pname = "nodejs-patched";
-  version = "${nodejs_22.version}-npm-11.6.4";
+  # Use original nodejs version for srcOnly compatibility (it derives source name from version)
+  inherit (nodejs_22) version;
 
+  # Source for srcOnly (used by npmHooks.npmConfigHook for node-gyp headers)
+  # buildNpmPackage's hooks use `srcOnly nodejs` to get nodejs source
+  inherit (nodejs_22) src;
+
+  # Don't unpack since we're just wrapping binaries
   dontUnpack = true;
 
   nativeBuildInputs = [ makeWrapper ];
@@ -92,10 +98,15 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  meta = {
-    description = "Node.js ${nodejs_22.version} with patched npm 11.6.4 (CVE-2025-64756 fix)";
-    homepage = "https://nodejs.org/";
-    license = lib.licenses.mit;
-    mainProgram = "node";
+  # Inherit meta from original nodejs so buildNpmPackage can access platforms
+  meta = nodejs_22.meta // {
+    description = "Node.js with patched npm 11.6.4 (CVE-2025-64756 fix)";
   };
+
+  # Pass through all attributes that buildNpmPackage and other tools expect
+  # This includes python (for node-gyp builds), pkgs (for nodePackages), etc.
+  passthru = nodejs_22.passthru or {};
+
+  # Expose python directly (buildNpmPackage accesses nodejs.python)
+  python = nodejs_22.python;
 }
