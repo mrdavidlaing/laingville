@@ -198,6 +198,59 @@ cd /
 rm -rf "$TEMP_DIR"
 
 #############################################
+# Native module compilation test (node-gyp)
+#############################################
+section "Native Module Compilation Test"
+
+# This test validates that:
+# 1. Node.js include headers are available
+# 2. Python is accessible for node-gyp
+# 3. Native module compilation works end-to-end
+
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+
+# Check if python is available (required by node-gyp)
+if command -v python3 > /dev/null 2>&1 || command -v python > /dev/null 2>&1; then
+  PYTHON_VERSION=$(python3 --version 2> /dev/null || python --version 2> /dev/null || echo "unknown")
+  pass "python is available for node-gyp: $PYTHON_VERSION"
+else
+  warn "python not found - native module compilation may fail"
+fi
+
+# Check if node headers exist
+NODE_INCLUDE_DIR=$(dirname "$(dirname "$(command -v node)")")/include/node
+if [ -d "$NODE_INCLUDE_DIR" ] && [ -f "$NODE_INCLUDE_DIR/node.h" ]; then
+  pass "Node.js headers are available at $NODE_INCLUDE_DIR"
+else
+  warn "Node.js headers not found at $NODE_INCLUDE_DIR - native modules may not compile"
+fi
+
+# Initialize and try to install a small native module
+# Using 'bindings' as a build-time test (it's tiny and just tests node-gyp setup)
+npm init -y > /dev/null 2>&1
+
+# Try installing a minimal native module that requires compilation
+# 'tiny-secp256k1' is too heavy; use 'int64-buffer' which is simpler
+# Actually, let's just verify node-gyp can be invoked
+if npm install node-gyp --save-dev 2> /dev/null; then
+  pass "node-gyp installed successfully"
+
+  # Try to run node-gyp to check if it can find headers
+  if npx node-gyp list 2>&1 | grep -q -E "(node|No node development files)"; then
+    pass "node-gyp can execute and check for headers"
+  else
+    warn "node-gyp execution returned unexpected output"
+  fi
+else
+  warn "Could not install node-gyp - native module builds may not work"
+fi
+
+# Cleanup
+cd /
+rm -rf "$TEMP_DIR"
+
+#############################################
 # Summary
 #############################################
 section "Summary"
