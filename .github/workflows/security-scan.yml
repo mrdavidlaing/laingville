@@ -4,12 +4,12 @@ name: Security Scan
 on:
   schedule:
     - cron: '0 6 * * *'  # Daily at 6am UTC
-  push:
+  # Trigger after Build Containers completes on main
+  # This prevents race conditions where we scan old images
+  workflow_run:
+    workflows: ["Build Containers"]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'infra/flake.nix'
-      - 'infra/flake.lock'
-      - 'infra/overlays/**'
   pull_request:
     paths:
       - 'infra/flake.nix'
