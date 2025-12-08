@@ -76,8 +76,9 @@
           ];
 
           # Language: Node
+          # Uses nodejs_22_patched with npm 11.6.4 to fix glob CVE-2025-64756
           node = with pkgs; [
-            nodejs_22        # Node.js 22 LTS runtime
+            nodejs_22_patched  # Node.js 22 LTS with patched npm
           ];
           nodeDev = with pkgs; [
             bun                                    # Fast JavaScript runtime/bundler
