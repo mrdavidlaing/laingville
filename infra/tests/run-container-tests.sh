@@ -21,110 +21,110 @@ NC='\033[0m'
 
 # Container configurations: name -> tests to run
 declare -A CONTAINER_TESTS=(
-    ["example-node-devcontainer"]="node"
-    ["example-node-runtime"]="node"
-    ["example-python-devcontainer"]="python"
-    ["example-python-runtime"]="python"
-    ["laingville-devcontainer"]="base"
+  ["example-node-devcontainer"]="node"
+  ["example-node-runtime"]="node"
+  ["example-python-devcontainer"]="python"
+  ["example-python-runtime"]="python"
+  ["laingville-devcontainer"]="base"
 )
 
 # Image registry
 REGISTRY="ghcr.io/mrdavidlaing/laingville"
 
 run_test() {
-    local container="$1"
-    local test_type="$2"
-    local image_ref="$3"
+  local container="$1"
+  local test_type="$2"
+  local image_ref="$3"
 
-    echo -e "${BLUE}Testing $container ($test_type)${NC}"
-    echo "Image: $image_ref"
-    echo "---"
+  echo -e "${BLUE}Testing $container ($test_type)${NC}"
+  echo "Image: $image_ref"
+  echo "---"
 
-    case "$test_type" in
-        node)
-            docker run --rm \
-                -v "$SCRIPT_DIR:/tests:ro" \
-                "$image_ref" \
-                bash /tests/test-node-environment.sh
-            ;;
-        python)
-            docker run --rm \
-                -v "$SCRIPT_DIR:/tests:ro" \
-                "$image_ref" \
-                bash /tests/test-python-environment.sh 2>/dev/null || \
-                echo -e "${YELLOW}Python tests not implemented yet${NC}"
-            ;;
-        base)
-            docker run --rm "$image_ref" bash -c 'echo "Container starts successfully"'
-            echo -e "${GREEN}PASS${NC}: Container starts and bash works"
-            ;;
-    esac
+  case "$test_type" in
+    node)
+      docker run --rm \
+        -v "$SCRIPT_DIR:/tests:ro" \
+        "$image_ref" \
+        bash /tests/test-node-environment.sh
+      ;;
+    python)
+      docker run --rm \
+        -v "$SCRIPT_DIR:/tests:ro" \
+        "$image_ref" \
+        bash /tests/test-python-environment.sh 2> /dev/null \
+        || echo -e "${YELLOW}Python tests not implemented yet${NC}"
+      ;;
+    base)
+      docker run --rm "$image_ref" bash -c 'echo "Container starts successfully"'
+      echo -e "${GREEN}PASS${NC}: Container starts and bash works"
+      ;;
+  esac
 
-    echo ""
+  echo ""
 }
 
 build_and_load_image() {
-    local container="$1"
-    echo -e "${BLUE}Building $container...${NC}"
+  local container="$1"
+  echo -e "${BLUE}Building $container...${NC}"
 
-    local result_link="/tmp/container-test-$container"
-    if nix build "$INFRA_DIR#$container" -o "$result_link" 2>&1; then
-        docker load < "$result_link" >/dev/null
-        # Get the loaded image name
-        docker images --format '{{.Repository}}:{{.Tag}}' | grep "$container" | head -1
-    else
-        echo ""
-        return 1
-    fi
+  local result_link="/tmp/container-test-$container"
+  if nix build "$INFRA_DIR#$container" -o "$result_link" 2>&1; then
+    docker load < "$result_link" > /dev/null
+    # Get the loaded image name
+    docker images --format '{{.Repository}}:{{.Tag}}' | grep "$container" | head -1
+  else
+    echo ""
+    return 1
+  fi
 }
 
 main() {
-    local filter="${1:-}"
-    local failed=0
-    local passed=0
+  local filter="${1:-}"
+  local failed=0
+  local passed=0
 
-    echo "========================================"
-    echo "Container Environment Validation Tests"
-    echo "========================================"
-    echo ""
+  echo "========================================"
+  echo "Container Environment Validation Tests"
+  echo "========================================"
+  echo ""
 
-    for container in "${!CONTAINER_TESTS[@]}"; do
-        local test_type="${CONTAINER_TESTS[$container]}"
+  for container in "${!CONTAINER_TESTS[@]}"; do
+    local test_type="${CONTAINER_TESTS[$container]}"
 
-        # Apply filter if provided
-        if [ -n "$filter" ]; then
-            if [[ ! "$container" =~ $filter ]] && [[ ! "$test_type" =~ $filter ]]; then
-                continue
-            fi
-        fi
-
-        # Build and load the image
-        local image_ref
-        image_ref=$(build_and_load_image "$container")
-
-        if [ -z "$image_ref" ]; then
-            echo -e "${RED}FAIL${NC}: Could not build $container"
-            failed=$((failed + 1))
-            continue
-        fi
-
-        # Run the tests
-        if run_test "$container" "$test_type" "$image_ref"; then
-            passed=$((passed + 1))
-        else
-            failed=$((failed + 1))
-        fi
-    done
-
-    echo "========================================"
-    echo "Summary"
-    echo "========================================"
-    echo "Containers passed: $passed"
-    echo "Containers failed: $failed"
-
-    if [ "$failed" -gt 0 ]; then
-        exit 1
+    # Apply filter if provided
+    if [ -n "$filter" ]; then
+      if [[ ! "$container" =~ $filter ]] && [[ ! "$test_type" =~ $filter ]]; then
+        continue
+      fi
     fi
+
+    # Build and load the image
+    local image_ref
+    image_ref=$(build_and_load_image "$container")
+
+    if [ -z "$image_ref" ]; then
+      echo -e "${RED}FAIL${NC}: Could not build $container"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    # Run the tests
+    if run_test "$container" "$test_type" "$image_ref"; then
+      passed=$((passed + 1))
+    else
+      failed=$((failed + 1))
+    fi
+  done
+
+  echo "========================================"
+  echo "Summary"
+  echo "========================================"
+  echo "Containers passed: $passed"
+  echo "Containers failed: $failed"
+
+  if [ "$failed" -gt 0 ]; then
+    exit 1
+  fi
 }
 
 main "$@"
