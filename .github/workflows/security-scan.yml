@@ -10,10 +10,17 @@ on:
       - 'infra/flake.nix'
       - 'infra/flake.lock'
       - 'infra/overlays/**'
+  pull_request:
+    paths:
+      - 'infra/flake.nix'
+      - 'infra/flake.lock'
+      - 'infra/overlays/**'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
+  # For PRs, build locally; for main/schedule, use registry
+  USE_LOCAL_BUILD: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   #############################################
@@ -73,22 +80,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # For PRs: Build image locally with Nix
+      - name: Install Nix
+        if: env.USE_LOCAL_BUILD == 'true'
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix cache
+        if: env.USE_LOCAL_BUILD == 'true'
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build image locally (PR)
+        if: env.USE_LOCAL_BUILD == 'true'
+        id: build-local
+        run: |
+          nix build ./infra#${{ matrix.image }} --out-link result
+          docker load < result
+          # Get the full image name from docker
+          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '${{ matrix.image }}' | head -1)
+          echo "image_ref=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      # For main/schedule: Pull from registry
       - name: Log in to Container Registry
+        if: env.USE_LOCAL_BUILD != 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image
+      - name: Pull image (main/schedule)
+        if: env.USE_LOCAL_BUILD != 'true'
+        id: pull-registry
         run: |
           docker pull ${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest || echo "Image not found, skipping"
+          echo "image_ref=${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest" >> $GITHUB_OUTPUT
         continue-on-error: true
+
+      - name: Set image reference
+        id: image
+        run: |
+          if [ "${{ env.USE_LOCAL_BUILD }}" == "true" ]; then
+            echo "ref=${{ steps.build-local.outputs.image_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ steps.pull-registry.outputs.image_ref }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          image-ref: '${{ steps.image.outputs.ref }}'
           format: 'sarif'
           output: 'trivy-${{ matrix.image }}.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -105,7 +145,7 @@ jobs:
       - name: Run Trivy (table output for logs)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          image-ref: '${{ steps.image.outputs.ref }}'
           format: 'table'
           severity: 'CRITICAL,HIGH'
         continue-on-error: true
@@ -129,23 +169,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # For PRs: Build image locally with Nix
+      - name: Install Nix
+        if: env.USE_LOCAL_BUILD == 'true'
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix cache
+        if: env.USE_LOCAL_BUILD == 'true'
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build image locally (PR)
+        if: env.USE_LOCAL_BUILD == 'true'
+        id: build-local
+        run: |
+          nix build ./infra#${{ matrix.image }} --out-link result
+          docker load < result
+          # Get the full image name from docker
+          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '${{ matrix.image }}' | head -1)
+          echo "image_ref=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      # For main/schedule: Pull from registry
       - name: Log in to Container Registry
+        if: env.USE_LOCAL_BUILD != 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image
+      - name: Pull image (main/schedule)
+        if: env.USE_LOCAL_BUILD != 'true'
+        id: pull-registry
         run: |
           docker pull ${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest || echo "Image not found, skipping"
+          echo "image_ref=${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest" >> $GITHUB_OUTPUT
         continue-on-error: true
+
+      - name: Set image reference
+        id: image
+        run: |
+          if [ "${{ env.USE_LOCAL_BUILD }}" == "true" ]; then
+            echo "ref=${{ steps.build-local.outputs.image_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ steps.pull-registry.outputs.image_ref }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run Grype scanner
         uses: anchore/scan-action@v4
         id: grype
         with:
-          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          image: '${{ steps.image.outputs.ref }}'
           fail-build: false
           severity-cutoff: high
           output-format: sarif
@@ -179,22 +252,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # For PRs: Build image locally with Nix
+      - name: Install Nix
+        if: env.USE_LOCAL_BUILD == 'true'
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix cache
+        if: env.USE_LOCAL_BUILD == 'true'
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build image locally (PR)
+        if: env.USE_LOCAL_BUILD == 'true'
+        id: build-local
+        run: |
+          nix build ./infra#${{ matrix.image }} --out-link result
+          docker load < result
+          # Get the full image name from docker
+          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '${{ matrix.image }}' | head -1)
+          echo "image_ref=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      # For main/schedule: Pull from registry
       - name: Log in to Container Registry
+        if: env.USE_LOCAL_BUILD != 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image
+      - name: Pull image (main/schedule)
+        if: env.USE_LOCAL_BUILD != 'true'
+        id: pull-registry
         run: |
           docker pull ${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest || echo "Image not found, skipping"
+          echo "image_ref=${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest" >> $GITHUB_OUTPUT
         continue-on-error: true
+
+      - name: Set image reference
+        id: image
+        run: |
+          if [ "${{ env.USE_LOCAL_BUILD }}" == "true" ]; then
+            echo "ref=${{ steps.build-local.outputs.image_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ steps.pull-registry.outputs.image_ref }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate SBOM with Syft (SPDX)
         uses: anchore/sbom-action@v0
         with:
-          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          image: '${{ steps.image.outputs.ref }}'
           format: spdx-json
           output-file: 'sbom-${{ matrix.image }}-spdx.json'
         continue-on-error: true
@@ -202,7 +308,7 @@ jobs:
       - name: Generate SBOM with Syft (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
-          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest'
+          image: '${{ steps.image.outputs.ref }}'
           format: cyclonedx-json
           output-file: 'sbom-${{ matrix.image }}-cyclonedx.json'
         continue-on-error: true
