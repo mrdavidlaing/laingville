@@ -109,6 +109,7 @@ main() {
     fi
 
     # Run the tests
+    # shellcheck disable=SC2310 # Intentional: we want to capture pass/fail, not exit on failure
     if run_test "$container" "$test_type" "$image_ref"; then
       passed=$((passed + 1))
     else
