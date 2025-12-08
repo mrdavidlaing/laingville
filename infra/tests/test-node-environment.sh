@@ -123,11 +123,11 @@ if [ -n "$GLOB_VERSION" ]; then
   echo "glob version in npm: $GLOB_VERSION"
 
   # glob 10.4.5 and earlier are vulnerable
-  # glob 10.5.0+ or 11.x+ or 13.x+ are fixed
+  # glob 10.5.0+ or 11.x+ are fixed
   MAJOR=$(echo "$GLOB_VERSION" | cut -d. -f1)
   MINOR=$(echo "$GLOB_VERSION" | cut -d. -f2)
 
-  if [ "$MAJOR" -ge 11 ] || [ "$MAJOR" -ge 13 ]; then
+  if [ "$MAJOR" -ge 11 ]; then
     pass "glob version $GLOB_VERSION is not vulnerable to CVE-2025-64756"
   elif [ "$MAJOR" -eq 10 ] && [ "$MINOR" -ge 5 ]; then
     pass "glob version $GLOB_VERSION is not vulnerable to CVE-2025-64756"

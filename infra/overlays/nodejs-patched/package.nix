@@ -17,6 +17,7 @@
 
 let
   # npm 11.6.4 tarball from npm registry
+  # Hash obtained via: nix-prefetch-url https://registry.npmjs.org/npm/-/npm-11.6.4.tgz --type sha256
   npmTarball = fetchurl {
     url = "https://registry.npmjs.org/npm/-/npm-11.6.4.tgz";
     hash = "sha256-nAftyhKFPN2/T+1ONySFqmDAZPm/PkzRV6LbVRiheSs=";
@@ -73,8 +74,10 @@ stdenv.mkDerivation {
       ln -s ${nodejs_22}/bin/corepack $out/bin/corepack
     fi
 
-    # Copy include directory if present
-    cp -r ${nodejs_22}/include/* $out/include/ 2>/dev/null || true
+    # Copy include directory if present (needed for native module compilation)
+    if [ -d "${nodejs_22}/include" ] && [ "$(ls -A ${nodejs_22}/include 2>/dev/null)" ]; then
+      cp -r ${nodejs_22}/include/* $out/include/
+    fi
 
     # Don't copy share/man from original nodejs as it contains symlinks to
     # the bundled npm which we're replacing. npm 11.6.4 doesn't include man pages.

@@ -19,13 +19,21 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Container configurations: name -> tests to run
-declare -A CONTAINER_TESTS=(
-  ["example-node-devcontainer"]="node"
-  ["example-node-runtime"]="node"
-  ["example-python-devcontainer"]="python"
-  ["example-python-runtime"]="python"
-  ["laingville-devcontainer"]="base"
+# Container configurations using parallel arrays (bash 3.2+ compatible)
+# Associative arrays require bash 4+, but macOS ships with bash 3.2
+CONTAINER_NAMES=(
+  "example-node-devcontainer"
+  "example-node-runtime"
+  "example-python-devcontainer"
+  "example-python-runtime"
+  "laingville-devcontainer"
+)
+CONTAINER_TEST_TYPES=(
+  "node"
+  "node"
+  "python"
+  "python"
+  "base"
 )
 
 # Image registry
@@ -88,8 +96,9 @@ main() {
   echo "========================================"
   echo ""
 
-  for container in "${!CONTAINER_TESTS[@]}"; do
-    local test_type="${CONTAINER_TESTS[$container]}"
+  for i in "${!CONTAINER_NAMES[@]}"; do
+    local container="${CONTAINER_NAMES[$i]}"
+    local test_type="${CONTAINER_TEST_TYPES[$i]}"
 
     # Apply filter if provided
     if [ -n "$filter" ]; then
