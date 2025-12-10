@@ -1,5 +1,6 @@
 # Patched pyright package with esbuild 0.25+ to fix Go stdlib CVEs
 # CVE-2025-22871, CVE-2024-24790, CVE-2023-24531, and related vulnerabilities
+# Also uses nodejs_22_patched to fix glob CVE-2025-64756
 # Remove this overlay once nixpkgs updates pyright with fixed esbuild
 {
   lib,
@@ -7,6 +8,7 @@
   fetchFromGitHub,
   runCommand,
   jq,
+  nodejs_22_patched,
 }:
 
 let
@@ -37,6 +39,7 @@ let
   pyright-root = buildNpmPackage {
     pname = "pyright-root";
     inherit version src;
+    nodejs = nodejs_22_patched;  # Use patched nodejs with npm 11.6.4 (glob CVE fix)
     sourceRoot = "${src.name}"; # required for update.sh script
     npmDepsHash = "sha256-4DVWWoLnNXoJ6eWeQuOzAVjcvo75Y2nM/HwQvAEN4ME=";
     dontNpmBuild = true;
@@ -54,6 +57,7 @@ let
   pyright-internal = buildNpmPackage {
     pname = "pyright-internal";
     inherit version src;
+    nodejs = nodejs_22_patched;  # Use patched nodejs with npm 11.6.4 (glob CVE fix)
     sourceRoot = "${src.name}/packages/pyright-internal";
     # Updated hash for esbuild-loader 4.4.0 -> esbuild 0.25.12
     npmDepsHash = "sha256-79OIVzxstTneuk3Xh7rVlNCtfye0lNkgH2N6MiO2jds=";
@@ -72,6 +76,7 @@ in
 buildNpmPackage rec {
   pname = "pyright";
   inherit version src;
+  nodejs = nodejs_22_patched;  # Use patched nodejs with npm 11.6.4 (glob CVE fix)
 
   sourceRoot = "${src.name}/packages/pyright";
   npmDepsHash = "sha256-NyZAvboojw9gTj52WrdNIL2Oyy2wtpVnb5JyxKLJqWM=";

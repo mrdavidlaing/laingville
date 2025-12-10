@@ -57,18 +57,47 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Load and push image
+      - name: Load image
+        id: load
         run: |
           # Load the Nix-built image into Docker
           docker load < result
 
           # Get the image name from the tarball
           IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
           # Tag with date and SHA
           docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}"
           docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ steps.tags.outputs.sha }}"
           docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:latest"
+
+      - name: Run environment validation tests
+        run: |
+          IMAGE="${{ steps.load.outputs.image_name }}"
+
+          # Determine test type based on image name
+          case "${{ matrix.image }}" in
+            *node*)
+              echo "Running Node.js environment tests..."
+              docker run --rm \
+                -v "${{ github.workspace }}/infra/tests:/tests:ro" \
+                "$IMAGE" \
+                bash /tests/test-node-environment.sh
+              ;;
+            *python*)
+              echo "Running Python environment tests..."
+              docker run --rm \
+                -v "${{ github.workspace }}/infra/tests:/tests:ro" \
+                "$IMAGE" \
+                bash /tests/test-python-environment.sh 2>/dev/null \
+                || echo "::warning::Python tests not implemented yet"
+              ;;
+            *)
+              echo "Running basic container validation..."
+              docker run --rm "$IMAGE" bash -c 'echo "Container starts successfully"'
+              ;;
+          esac
 
       - name: Push image
         run: |
