@@ -1,0 +1,35 @@
+--- a/.github/workflows/build-containers.yml
++++ b/.github/workflows/build-containers.yml
+@@ -62,6 +62,32 @@ jobs:
+           # Load the Nix-built image into Docker
+           docker load < result
+
++      - name: Get test script for image
++        id: test-script
++        run: |
++          # Determine which test script to use based on image name
++          case "${{ matrix.image }}" in
++            *node*)
++              echo "script=test-node-environment.sh" >> $GITHUB_OUTPUT
++              ;;
++            *python*)
++              echo "script=test-python-environment.sh" >> $GITHUB_OUTPUT
++              ;;
++            laingville-devcontainer)
++              # Main devcontainer has Node.js
++              echo "script=test-node-environment.sh" >> $GITHUB_OUTPUT
++              ;;
++            *)
++              echo "script=" >> $GITHUB_OUTPUT
++              ;;
++          esac
++
++      - name: Test container environment
++        if: steps.test-script.outputs.script != ''
++        run: |
++          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
++          docker run --rm -v "$(pwd)/infra/tests/${{ steps.test-script.outputs.script }}:/tmp/test.sh:ro" "$IMAGE_NAME" bash /tmp/test.sh
++
+           # Get the image name from the tarball
+           IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
+
