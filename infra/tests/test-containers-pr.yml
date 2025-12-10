@@ -1,12 +1,15 @@
-# .github/workflows/test-containers-pr.yml
+# test-containers-pr.yml
 #
 # This workflow implements Option A from Issue #15:
 # Build and test containers on PR with path filtering
 #
-# NOTE: This is a template file. To use it:
-# 1. Rename this file to remove the .template extension
-# 2. Commit it to the .github/workflows/ directory
-# 3. The workflow will automatically run on matching PRs
+# ACTIVATION: Copy this file to .github/workflows/test-containers-pr.yml
+#
+# This workflow:
+# - Triggers on PRs that modify container-related files
+# - Builds containers with Nix
+# - Runs environment validation tests
+# - Posts results as PR comments
 
 name: Test Containers on PR
 
