@@ -1,5 +1,10 @@
-# Patched pyright package with esbuild 0.25+ to fix Go stdlib CVEs
-# CVE-2025-22871, CVE-2024-24790, CVE-2023-24531, and related vulnerabilities
+# Patched pyright package with esbuild 0.27.1 to fix Go stdlib CVEs
+# esbuild 0.27.0+ is compiled with Go 1.25.4 which fixes:
+# - CVE-2025-61729 (HIGH): HostnameError.Error() resource exhaustion
+# - CVE-2025-58187 (HIGH): x509 name constraint checking DoS
+# - CVE-2025-58186 (HIGH): HTTP cookie parsing memory exhaustion
+# - CVE-2025-58183 (HIGH): archive/tar sparse map allocation
+# - Plus ~20 additional medium severity Go stdlib CVEs
 # Also uses nodejs_22_patched to fix glob CVE-2025-64756
 # Remove this overlay once nixpkgs updates pyright with fixed esbuild
 {
@@ -28,11 +33,14 @@ let
       ' ${src}/package.json > $out
   '';
 
-  # Patch pyright-internal's package.json to use esbuild-loader 4.4.0
-  # This pulls in esbuild 0.25+ which is built with Go 1.23.7+ (CVE fixes)
+  # Patch pyright-internal's package.json to use esbuild 0.27.1 (Go 1.25.4)
+  # esbuild-loader 4.4.0 declares ^0.25.0 which only allows 0.25.x due to
+  # npm's semver handling of 0.x versions. We add esbuild 0.27.1 directly
+  # to override the transitive dependency with the CVE-fixed version.
   patchedInternalPackageJSON = runCommand "pyright-internal-package.json" { } ''
     ${jq}/bin/jq '
       .devDependencies["esbuild-loader"] = "^4.4.0"
+      | .devDependencies["esbuild"] = "0.27.1"
       ' ${src}/packages/pyright-internal/package.json > $out
   '';
 
@@ -59,8 +67,8 @@ let
     inherit version src;
     nodejs = nodejs_22_patched;  # Use patched nodejs with npm 11.6.4 (glob CVE fix)
     sourceRoot = "${src.name}/packages/pyright-internal";
-    # Updated hash for esbuild-loader 4.4.0 -> esbuild 0.25.12
-    npmDepsHash = "sha256-79OIVzxstTneuk3Xh7rVlNCtfye0lNkgH2N6MiO2jds=";
+    # Updated hash for esbuild 0.27.1 (Go 1.25.4 with CVE fixes)
+    npmDepsHash = "sha256-cZY8oCxL7CoJCIPUB4lx5kxfUk1qUPHTCoEQR/lEuMA=";
     dontNpmBuild = true;
     postPatch = ''
       cp ${patchedInternalPackageJSON} ./package.json
@@ -92,7 +100,7 @@ buildNpmPackage rec {
 
   meta = {
     changelog = "https://github.com/Microsoft/pyright/releases/tag/${src.tag}";
-    description = "Type checker for the Python language (patched with esbuild 0.25+ for CVE fixes)";
+    description = "Type checker for the Python language (patched with esbuild 0.27.1 for CVE fixes)";
     homepage = "https://github.com/Microsoft/pyright";
     license = lib.licenses.mit;
     mainProgram = "pyright";
