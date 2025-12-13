@@ -17,13 +17,10 @@ fi
 # Terminal color support
 [ -z "$COLORTERM" ] && export COLORTERM=truecolor
 
-# Additional eza aliases (extending Omarchy defaults)
+# Personal eza aliases (extending Omarchy defaults)
 if command -v eza &>/dev/null; then
-  alias ll='eza -la --icons --group-directories-first'
-  alias la='eza -a --icons'
-  alias lt3='eza --tree --icons --level=3'
-  alias lm='eza -la --icons --sort=modified'
-  alias lsize='eza -la --icons --sort=size'
+  alias ll='ls'  # Muscle memory - same as Omarchy's ls
+  alias lt3='eza --tree --level=3 --long --icons --git'  # Like Omarchy's lt but level 3
 fi
 
 # Direnv (critical for devcontainer workflow)
