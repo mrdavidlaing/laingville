@@ -19,6 +19,9 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export PNPM_HOME="$HOME/.local/share/pnpm"
 export PATH="$PNPM_HOME:$PATH"
 
+# Ensure programs installed with bun add -g <name> are available in the path
+export PATH="$HOME/.cache/.bun/bin:$PATH"
+
 # Add Scoop shims to PATH when available (Git Bash on Windows)
 if [ -d "$HOME/scoop/shims" ]; then
     export PATH="$HOME/scoop/shims:$PATH"
