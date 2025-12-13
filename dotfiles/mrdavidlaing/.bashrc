@@ -21,6 +21,7 @@ fi
 if command -v eza &>/dev/null; then
   alias ll='ls'  # Muscle memory - same as Omarchy's ls
   alias lt3='eza --tree --level=3 --long --icons --git'  # Like Omarchy's lt but level 3
+  alias lta3='lt3 -a'  # Like Omarchy's lta but level 3
 fi
 
 # Direnv (critical for devcontainer workflow)
