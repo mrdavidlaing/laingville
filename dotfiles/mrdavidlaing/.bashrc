@@ -17,6 +17,15 @@ fi
 # Terminal color support
 [ -z "$COLORTERM" ] && export COLORTERM=truecolor
 
+# Additional eza aliases (extending Omarchy defaults)
+if command -v eza &>/dev/null; then
+  alias ll='eza -la --icons --group-directories-first'
+  alias la='eza -a --icons'
+  alias lt3='eza --tree --icons --level=3'
+  alias lm='eza -la --icons --sort=modified'
+  alias lsize='eza -la --icons --sort=size'
+fi
+
 # Direnv (critical for devcontainer workflow)
 command -v direnv &>/dev/null && eval "$(direnv hook bash)"
 
