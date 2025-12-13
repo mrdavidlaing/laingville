@@ -1,0 +1,5 @@
+source ~/.local/share/omarchy-compat/shell/shell.bash
+source ~/.local/share/omarchy-compat/shell/aliases.bash
+source ~/.local/share/omarchy-compat/shell/functions.bash
+source ~/.local/share/omarchy-compat/shell/init.bash
+[[ $- == *i* ]] && bind -f ~/.local/share/omarchy-compat/shell/inputrc 2>/dev/null || true

@@ -1,6 +1,17 @@
 # Package configuration for mrdavidlaing
 # Defines which packages to install for each platform
 
+# Omarchy Linux - minimal packages (Omarchy provides desktop environment)
+omarchy:
+  yay:
+    - 1password-cli
+    - direnv  # Critical for devcontainer workflow
+  custom:
+    - install_claude_code
+    - install_happy_cli
+    - install_beads
+    - configure_tailscale
+
 # Arch Linux - full desktop environment
 arch:
   pacman:

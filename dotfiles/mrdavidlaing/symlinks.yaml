@@ -1,6 +1,45 @@
 # Symlink configuration for mrdavidlaing
 # Defines which dotfiles to symlink for each platform
 
+# Omarchy Linux - override-only (Omarchy provides defaults)
+omarchy:
+  # Shell (sources real Omarchy defaults)
+  - .bashrc
+  - .profile
+
+  # Git identity
+  - .gitconfig
+  - .gitmessage
+
+  # Hyprland overrides only
+  - .config/hypr/input.conf
+  - .config/hypr/bindings.conf
+  - .config/hypr/monitors.conf
+  - .config/hypr/looknfeel.conf
+  - .config/hypr/autostart.conf
+
+  # Tool overrides
+  - .config/ghostty/config
+  - .config/lazygit/config.yml
+  - .config/starship.toml
+  - .config/nvim/lua/plugins/
+
+  # Claude Code orchestrator
+  - source: .claude/CLAUDE.md
+    target: ~/.claude/CLAUDE.md
+  - source: .claude/commands
+    target: ~/.claude/commands
+  - source: .claude/scripts/claude-code-bash-direnv-wrapper.bash
+    target: ~/.local/bin/claude-code-bash-direnv-wrapper
+  - source: .claude/wrappers
+    target: ~/.claude/wrappers
+
+  # Personal scripts
+  - source: .local/bin/git-identity
+    target: ~/.local/bin/git-identity
+  - source: .local/bin/fetch-api-key
+    target: ~/.local/bin/fetch-api-key
+
 # Arch Linux - full desktop environment
 arch:
   # Shell configs

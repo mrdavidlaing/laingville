@@ -997,6 +997,16 @@ handle_packages_from_file() {
   fi
 
   case "${platform}" in
+    "omarchy")
+      # Omarchy provides most packages - just install AUR extras
+      # Install yay if needed
+      install_yay "${dry_run}"
+
+      # Extract and install yay packages only (Omarchy provides everything else)
+      local yay_packages
+      yay_packages=$(extract_packages_from_yaml "${platform}" "yay" "${packages_file}")
+      install_yay_packages "${yay_packages}" "${dry_run}"
+      ;;
     "arch")
       # Refresh mirrors first for fastest downloads
       refresh_arch_mirrors "${dry_run}"

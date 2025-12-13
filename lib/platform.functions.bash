@@ -43,6 +43,9 @@ detect_platform() {
         echo "freshtomato"
       elif grep -qi "microsoft\|wsl" /proc/version 2> /dev/null; then
         echo "wsl"
+      elif [[ -d "$HOME/.local/share/omarchy" ]]; then
+        # Omarchy Linux (Arch-based with Omarchy defaults)
+        echo "omarchy"
       elif command -v pacman > /dev/null 2>&1; then
         echo "arch"
       elif command -v nix > /dev/null 2>&1; then
