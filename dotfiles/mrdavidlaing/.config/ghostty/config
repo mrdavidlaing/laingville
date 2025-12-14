@@ -1,0 +1,13 @@
+# Ghostty configuration with conditional base loading
+#
+# Note: `config-file` entries are loaded after the file they're defined in,
+# so we load base configs first, then personal overrides last.
+
+# Try Omarchy base config (only exists on Omarchy Linux)
+config-file = ?"~/.local/share/omarchy/config/ghostty/config"
+
+# Try omarchy-compat base config (only exists on macOS/Arch)
+config-file = ?"~/.local/share/omarchy-compat/ghostty/config"
+
+# Personal overrides (all platforms)
+config-file = ?"~/.config/ghostty/overrides.conf"

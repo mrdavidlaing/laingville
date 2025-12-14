@@ -1,7 +1,0 @@
-# Load Omarchy base config (provided by the distribution)
-config-file = ~/.local/share/omarchy/config/ghostty/config
-
-# === Personal overrides ===
-
-# Testing override (base is 9)
-font-size = 20

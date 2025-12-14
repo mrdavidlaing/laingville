@@ -1,5 +1,0 @@
-# Load omarchy-compat base configuration.
-#
-# Note: `config-file` entries are loaded after the file they're defined in, so
-# personal overrides must live in a file loaded *by* the base config.
-config-file = ~/.local/share/omarchy-compat/ghostty/config

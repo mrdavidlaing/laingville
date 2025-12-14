@@ -1,5 +1,0 @@
-# Load omarchy-compat base configuration (theme will be skipped on Arch)
-config-file = ~/.local/share/omarchy-compat/ghostty/config
-
-# === Personal overrides ===
-# (add any personal customizations here)
