@@ -4,7 +4,8 @@
 # Can handle single files or batches of files
 # Usage: ./scripts/format-files.sh [--check] [--batch] <file_path> [file_path2 ...]
 
-set -e
+# Temporarily disable set -e to debug PowerShell CRLF issues
+# set -e
 
 # Global variables
 CHECK_MODE=false
@@ -64,16 +65,51 @@ ensure_single_newline_crlf() {
   local ps_file_path="$2" # Windows path if needed for WSL
   local pwsh_cmd="$3"
 
-  # Remove trailing whitespace but preserve CRLF (combined operations)
-  sed -i -e 's/[ \t]\+\r$/\r/' -e 's/[ \t]\+$//' "$file"
+  echo "DEBUG [ensure_single_newline_crlf]: Called for file: $file" >&2
+  echo "DEBUG [ensure_single_newline_crlf]: ps_file_path=$ps_file_path" >&2
+  echo "DEBUG [ensure_single_newline_crlf]: pwsh_cmd=$pwsh_cmd" >&2
+  
+  [[ "$VERBOSE_MODE" == "true" ]] && echo "  Converting line endings to CRLF for: $file" >&2
 
-  # Use PowerShell to ensure exactly one CRLF at end
-  # Match any trailing newlines (LF or CRLF) and replace with single CRLF
-  $pwsh_cmd -NoProfile -Command "
-    \$content = Get-Content '$ps_file_path' -Raw
-    \$content = \$content -replace '[\r\n]+$', \"\`r\`n\"
-    [System.IO.File]::WriteAllText('$ps_file_path', \$content)
-  " 2> /dev/null
+  # Get the path to the PowerShell script - use absolute path resolution
+  local script_dir
+  if [[ -n "${BASH_SOURCE[0]}" ]]; then
+    script_dir="$(cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd)"
+  else
+    script_dir="$(cd "$(dirname "$(dirname "$0")")" && pwd)"
+  fi
+  local ps_script="$script_dir/lib/ensure-crlf.ps1"
+  
+  # Verify script exists
+  if [[ ! -f "$ps_script" ]]; then
+    echo "Error: PowerShell script not found: $ps_script" >&2
+    return 1
+  fi
+  
+  # Convert script path for WSL if needed
+  local ps_script_path="$ps_script"
+  if [[ "$pwsh_cmd" == "pwsh.exe" ]] && command -v wslpath > /dev/null 2>&1; then
+    ps_script_path=$(wslpath -w "$ps_script")
+  fi
+
+  # Call the PowerShell script file (avoids all escaping issues)
+  # Capture output and exit code for debugging
+  local ps_output
+  local ps_exitcode
+  ps_output=$($pwsh_cmd -NoProfile -File "$ps_script_path" -FilePath "$ps_file_path" 2>&1)
+  ps_exitcode=$?
+  
+  if [[ $ps_exitcode -ne 0 ]]; then
+    echo "Error: Failed to convert line endings to CRLF for: $file" >&2
+    echo "PowerShell exit code: $ps_exitcode" >&2
+    [[ -n "$ps_output" ]] && echo "PowerShell output: $ps_output" >&2
+    return 1
+  fi
+  
+  # Show output if verbose
+  [[ "$VERBOSE_MODE" == "true" && -n "$ps_output" ]] && echo "  PowerShell: $ps_output" >&2
+
+  return 0
 }
 
 # === File Formatting Functions ===
@@ -252,14 +288,22 @@ format_powershell_file() {
       try {
         \$content = Get-Content '$ps_file_path' -Raw
         \$formatted = Invoke-Formatter -ScriptDefinition \$content
-        \$formatted | Out-File '$ps_file_path' -Encoding UTF8
+        # Write back to file as UTF8 without BOM (use bytes to avoid line ending conversion)
+        \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+        \$bytes = \$utf8NoBom.GetBytes(\$formatted)
+        [System.IO.File]::WriteAllBytes('$ps_file_path', \$bytes)
       } catch {
         Write-Error \"Failed to format PowerShell file: \$_\"
         exit 1
       }
     " 2> /dev/null; then
-      # Post-process: Out-File adds CRLF, ensure file ends with exactly one CRLF
-      ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"
+      # Post-process: Convert all line endings to CRLF and ensure exactly one at end
+      echo "DEBUG: About to call ensure_single_newline_crlf for: $file_path" >&2
+      if ensure_single_newline_crlf "$file_path" "$ps_file_path" "$pwsh_cmd"; then
+        echo "DEBUG: ensure_single_newline_crlf SUCCESS for: $file_path" >&2
+      else
+        echo "DEBUG: ensure_single_newline_crlf FAILED for: $file_path (exit code: $?)" >&2
+      fi
       return 0
     else
       echo "Error: Failed to format PowerShell file: $file_path" >&2
@@ -343,7 +387,10 @@ batch_format_powershell_files() {
         try {
           \$content = Get-Content \$file -Raw
           \$formatted = Invoke-Formatter -ScriptDefinition \$content
-          \$formatted | Out-File \$file -Encoding UTF8
+          # Write back to file as UTF8 without BOM (use bytes to avoid line ending conversion)
+          \$utf8NoBom = New-Object System.Text.UTF8Encoding(\$false)
+          \$bytes = \$utf8NoBom.GetBytes(\$formatted)
+          [System.IO.File]::WriteAllBytes(\$file, \$bytes)
         } catch {
           Write-Error \"Failed to format \$file\"
           \$errors++
