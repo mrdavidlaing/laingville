@@ -19,7 +19,8 @@ omarchy:
   - .config/hypr/autostart.conf
 
   # Tool overrides
-  - .config/ghostty/config
+  - source: .config/ghostty/config.omarchy
+    target: ~/.config/ghostty/config
   - .config/lazygit/config.yml
   - .config/starship.toml
   - .config/nvim/lua/plugins/
@@ -49,7 +50,14 @@ arch:
   - .bashrc_git_learning
   - .gitconfig
   - .gitmessage
+  # Omarchy-compat portable defaults (provides Omarchy-like UX on Arch)
+  - source: ../shared/omarchy-compat/shell
+    target: ~/.local/share/omarchy-compat/shell
+  - source: ../shared/omarchy-compat/ghostty
+    target: ~/.local/share/omarchy-compat/ghostty
   # Terminal tools
+  - source: .config/ghostty/config.arch
+    target: ~/.config/ghostty/config
   - .config/tmux
   - .config/navi
   - .config/starship.toml
@@ -179,7 +187,8 @@ macos:
   - source: ../shared/omarchy-compat/ghostty
     target: ~/.local/share/omarchy-compat/ghostty
   # Terminal tools
-  - .config/ghostty/config
+  - source: .config/ghostty/config.macos
+    target: ~/.config/ghostty/config
   - .config/ghostty/overrides.conf
   - .config/tmux
   - .config/navi
