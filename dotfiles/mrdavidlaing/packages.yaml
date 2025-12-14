@@ -195,47 +195,34 @@ windows:
     - configure_tailscale_windows
 
 # macOS - Unix tools and GUI apps
+# Dev tools (LSPs, build tools, project CLIs) belong in devcontainers
 macos:
   homebrew:
+    # Shell experience
     - direnv
-    - make
+    - zoxide
+    - starship
+    - fzf
+    - eza
+    - bat
+    # Swiss army knife
+    - gh
+    - jq
+    - ripgrep
+    - fd
+    - tree
+    # Git UX
     - git
     - git-lfs
     - tig
     - lazygit
-    - gh
+    # System tools
+    - make
     - rsync
     - neovim
-    - yarn
-    - lua-language-server
-    - bash-language-server
-    - marksman
-    - rust  # Required for cargo install nil
-    - terraform-ls
-    - gopls
-    - yaml-language-server
-    - dockerfile-language-server
-    - jq
-    - tree
-    - zoxide
-    - bat
-    - eza
-    - starship
-    - fd
-    - fzf
-    - ripgrep
     - tmux
     - navi
     - laio
-    - shellcheck
-    - just
-    - shellspec
-    - shfmt
-    - glow
-    - navi
-    - k9s
-    - gnumake
-    - clang
     - tailscale
   cask:
     - ghostty
