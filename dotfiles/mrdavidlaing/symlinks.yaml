@@ -173,6 +173,11 @@ macos:
   - .bashrc_git_learning
   - .gitconfig
   - .gitmessage
+  # Omarchy-compat portable defaults (provides Omarchy-like UX on macOS)
+  - source: ../shared/omarchy-compat/shell
+    target: ~/.local/share/omarchy-compat/shell
+  - source: ../shared/omarchy-compat/ghostty/config
+    target: ~/.config/ghostty/config
   # Terminal tools
   - .config/tmux
   - .config/navi

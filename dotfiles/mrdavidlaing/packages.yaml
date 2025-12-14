@@ -237,6 +237,8 @@ macos:
     - gnumake
     - clang
     - tailscale
+  cask:
+    - ghostty
   custom:
     - install_claude_code
     - install_happy_cli
