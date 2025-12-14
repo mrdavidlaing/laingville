@@ -224,6 +224,10 @@ macos:
     - navi
     - laio
     - tailscale
+    - yarn  # Required for install_happy_cli
+    - shellcheck  # Required for pre-push hook linting
+    - shfmt  # Required for pre-push hook formatting
+    - shellspec  # Required for pre-push hook tests
   cask:
     - ghostty
   custom:
