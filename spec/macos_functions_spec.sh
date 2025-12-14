@@ -159,8 +159,38 @@ EOF
       
                             The status should be failure
                         # Expect stderr to contain security validation messages
-                            The stderr should include "SECURITY"
+                        The stderr should include "SECURITY"
                             The stderr should include "INVALID_PLATFORM"
+                          End
+
+                          It "generates tap entries before brew entries"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  tap:
+    - steveyegge/beads
+    - homebrew/cask-fonts
+  homebrew:
+    - git
+    - bd
+  cask:
+    - alacritty
+EOF
+
+                            When call generate_brewfile "$TEST_PACKAGES_FILE" "macos" false
+
+                            The status should be success
+      # Check that a Brewfile path is returned
+                            The output should match pattern "*/laingville_brewfile.*"
+      # Read the generated Brewfile and check tap entries
+                            brewfile_path="$(generate_brewfile "$TEST_PACKAGES_FILE" "macos" false 2>/dev/null)"
+                            The path "$brewfile_path" should be file
+                            The contents of file "$brewfile_path" should include 'tap "steveyegge/beads"'
+                            The contents of file "$brewfile_path" should include 'tap "homebrew/cask-fonts"'
+                            The contents of file "$brewfile_path" should include 'brew "bd"'
+      # Verify taps come before brew entries (check order by line numbers)
+                            tap_line=$(grep -n '^tap' "$brewfile_path" | head -1 | cut -d: -f1)
+                            brew_line=$(grep -n '^brew' "$brewfile_path" | head -1 | cut -d: -f1)
+                            Assert [ "$tap_line" -lt "$brew_line" ]
                           End
                         End
 
@@ -184,6 +214,27 @@ EOF
                                 The status should be success
                                 The output should include "install via homebrew: git, neovim"
                                 The output should include "install via cask: alacritty, docker-desktop"
+                              End
+
+                              It "shows taps in dry-run output"
+      cat > "$TEST_PACKAGES_FILE" << 'EOF'
+macos:
+  tap:
+    - steveyegge/beads
+    - homebrew/cask-fonts
+  homebrew:
+    - git
+    - bd
+  cask:
+    - alacritty
+EOF
+
+                                When call install_packages_with_brewfile "$TEST_PACKAGES_FILE" "macos" true
+
+                                The status should be success
+                                The output should include "add tap: steveyegge/beads, homebrew/cask-fonts"
+                                The output should include "install via homebrew: git, bd"
+                                The output should include "install via cask: alacritty"
                               End
 
                               It "handles empty packages in dry-run mode"

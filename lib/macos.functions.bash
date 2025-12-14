@@ -116,6 +116,10 @@ generate_brewfile() {
     return 1
   }
 
+  # Get tap repositories (must be added first)
+  local tap_packages
+  tap_packages=$(extract_packages_from_yaml "${platform}" "tap" "${packages_file}")
+
   # Get homebrew packages (formulae)
   local homebrew_packages
   homebrew_packages=$(extract_packages_from_yaml "${platform}" "homebrew" "${packages_file}")
@@ -129,6 +133,21 @@ generate_brewfile() {
     echo "# Generated Brewfile for ${platform} packages"
     echo "# Created: $(date)"
     echo ""
+
+    # Add taps first (must come before formulae that depend on them)
+    if [[ -n "${tap_packages}" ]]; then
+      echo "# Homebrew taps"
+      while IFS= read -r pkg; do
+        [[ -z "${pkg}" ]] && continue
+        if validate_package_name "${pkg}"; then
+          printf 'tap "%s"\n' "${pkg}"
+        else
+          log_security_event "INVALID_PACKAGE" "Rejected invalid tap name: ${pkg}"
+          log_warning "Skipping invalid tap: ${pkg}" >&2
+        fi
+      done <<< "${tap_packages}"
+      echo ""
+    fi
 
     # Add homebrew packages as brew entries
     if [[ -n "${homebrew_packages}" ]]; then
@@ -176,9 +195,30 @@ install_packages_with_brewfile() {
 
   # In dry-run mode, just show what would be installed
   if [[ "${dry_run}" = true ]]; then
-    local homebrew_packages cask_packages
+    local tap_packages homebrew_packages cask_packages
+    tap_packages=$(extract_packages_from_yaml "${platform}" "tap" "${packages_file}")
     homebrew_packages=$(extract_packages_from_yaml "${platform}" "homebrew" "${packages_file}")
     cask_packages=$(extract_packages_from_yaml "${platform}" "cask" "${packages_file}")
+
+    if [[ -n "${tap_packages}" ]]; then
+      local valid_taps=()
+      while IFS= read -r pkg; do
+        [[ -z "${pkg}" ]] && continue
+        if validate_package_name "${pkg}"; then
+          valid_taps+=("${pkg}")
+        else
+          log_security_event "INVALID_PACKAGE" "Rejected invalid tap name: ${pkg}"
+          log_warning "Skipping invalid tap: ${pkg}" >&2
+        fi
+      done <<< "${tap_packages}"
+
+      if [[ ${#valid_taps[@]} -gt 0 ]]; then
+        local pkg_list
+        pkg_list=$(printf '%s, ' "${valid_taps[@]}")
+        pkg_list=${pkg_list%, }
+        log_dry_run "add tap: ${pkg_list}"
+      fi
+    fi
 
     if [[ -n "${homebrew_packages}" ]]; then
       local valid_homebrew=()
@@ -224,7 +264,7 @@ install_packages_with_brewfile() {
   fi
 
   # Check if Brewfile has any packages
-  if [[ ! -s "${brewfile}" ]] || ! grep -q "^brew\|^cask" "${brewfile}"; then
+  if [[ ! -s "${brewfile}" ]] || ! grep -q "^tap\|^brew\|^cask" "${brewfile}"; then
     log_info "No packages to install"
     rm -f "${brewfile}"
     return 0
