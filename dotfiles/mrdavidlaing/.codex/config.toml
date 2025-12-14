@@ -1,0 +1,31 @@
+disable_response_storage = true
+show_reasoning_content = true
+model = "gpt-5.2"
+model_reasoning_effort = "medium"
+
+# YOLO mode: disable approval prompts and sandbox restrictions
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[model_providers.local]
+name = "local"
+base_url = "http://localhost:11434/v1"
+
+[projects."/Users/mrdavidlaing/workspace/laingville"]
+trust_level = "trusted"
+
+[projects."/Users/mrdavidlaing/workspace/pensive"]
+trust_level = "trusted"
+
+[projects."/Users/mrdavidlaing/mo-inator-workspace/pensive"]
+trust_level = "trusted"
+
+[projects."/Users/mrdavidlaing/mo-inator-workspace/wellmaintained-skills"]
+trust_level = "trusted"
+
+[projects."/Users/mrdavidlaing/mo-inator-workspace/laingville"]
+trust_level = "trusted"
+
+[notice]
+hide_gpt5_1_migration_prompt = true
+"hide_gpt-5.1-codex-max_migration_prompt" = true
