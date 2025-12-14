@@ -159,7 +159,7 @@ EOF
       
                             The status should be failure
                         # Expect stderr to contain security validation messages
-                        The stderr should include "SECURITY"
+                            The stderr should include "SECURITY"
                             The stderr should include "INVALID_PLATFORM"
                           End
 
