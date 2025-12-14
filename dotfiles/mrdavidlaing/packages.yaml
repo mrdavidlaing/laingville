@@ -231,7 +231,7 @@ macos:
     - shellcheck  # Required for pre-push hook linting
     - shfmt  # Required for pre-push hook formatting
     - shellspec  # Required for pre-push hook tests
-    - bd  # beads issue tracker (from steveyegge/beads tap)
+    - steveyegge/beads/bd  # beads issue tracker (from steveyegge/beads tap)
   cask:
     - ghostty
     - aerospace
@@ -240,3 +240,4 @@ macos:
     - install_claude_code
     - install_happy_cli
     - configure_tailscale
+    - cleanup_old_beads_install

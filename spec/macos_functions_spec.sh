@@ -171,7 +171,7 @@ macos:
     - homebrew/cask-fonts
   homebrew:
     - git
-    - bd
+    - steveyegge/beads/bd
   cask:
     - alacritty
 EOF
@@ -186,7 +186,7 @@ EOF
                             The path "$brewfile_path" should be file
                             The contents of file "$brewfile_path" should include 'tap "steveyegge/beads"'
                             The contents of file "$brewfile_path" should include 'tap "homebrew/cask-fonts"'
-                            The contents of file "$brewfile_path" should include 'brew "bd"'
+                            The contents of file "$brewfile_path" should include 'brew "steveyegge/beads/bd"'
       # Verify taps come before brew entries (check order by line numbers)
                             tap_line=$(grep -n '^tap' "$brewfile_path" | head -1 | cut -d: -f1)
                             brew_line=$(grep -n '^brew' "$brewfile_path" | head -1 | cut -d: -f1)
@@ -224,7 +224,7 @@ macos:
     - homebrew/cask-fonts
   homebrew:
     - git
-    - bd
+    - steveyegge/beads/bd
   cask:
     - alacritty
 EOF
@@ -233,7 +233,7 @@ EOF
 
                                 The status should be success
                                 The output should include "add tap: steveyegge/beads, homebrew/cask-fonts"
-                                The output should include "install via homebrew: git, bd"
+                                The output should include "install via homebrew: git, steveyegge/beads/bd"
                                 The output should include "install via cask: alacritty"
                               End
 
