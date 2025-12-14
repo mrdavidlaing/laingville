@@ -176,9 +176,10 @@ macos:
   # Omarchy-compat portable defaults (provides Omarchy-like UX on macOS)
   - source: ../shared/omarchy-compat/shell
     target: ~/.local/share/omarchy-compat/shell
-  - source: ../shared/omarchy-compat/ghostty/config
-    target: ~/.config/ghostty/config
+  - source: ../shared/omarchy-compat/ghostty
+    target: ~/.local/share/omarchy-compat/ghostty
   # Terminal tools
+  - .config/ghostty/config
   - .config/tmux
   - .config/navi
   - .config/wezterm
