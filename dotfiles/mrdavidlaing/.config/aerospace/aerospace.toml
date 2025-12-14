@@ -1,0 +1,68 @@
+# AeroSpace configuration (macOS tiling WM)
+# Goal: Hyprland-like, keyboard-driven workflow using HYPER (Caps Lock)
+#
+# SUPER is implemented as macOS Command (Cmd).
+# NOTE: Cmd is heavily used by macOS/apps; some bindings may conflict or be
+# swallowed by apps/system shortcuts. If that happens, either choose different
+# keys or reintroduce a dedicated modifier via Karabiner.
+
+start-at-login = true
+
+default-root-container-layout = "tiles"
+default-root-container-orientation = "auto"
+
+enable-normalization-flatten-containers = true
+enable-normalization-opposite-orientation-for-nested-containers = true
+
+on-focused-monitor-changed = ["move-mouse monitor-lazy-center"]
+
+[gaps]
+inner.horizontal = 8
+inner.vertical = 8
+outer.left = 8
+outer.bottom = 8
+outer.top = 8
+outer.right = 8
+
+[mode.main.binding]
+# Focus (arrow keys)
+cmd-left = "focus left"
+cmd-down = "focus down"
+cmd-up = "focus up"
+cmd-right = "focus right"
+
+# Workspace switching (1-9)
+cmd-1 = "workspace 1"
+cmd-2 = "workspace 2"
+cmd-3 = "workspace 3"
+cmd-4 = "workspace 4"
+cmd-5 = "workspace 5"
+cmd-6 = "workspace 6"
+cmd-7 = "workspace 7"
+cmd-8 = "workspace 8"
+cmd-9 = "workspace 9"
+
+# Move window (Hyprland: SUPER+SHIFT+arrows)
+cmd-shift-left = "move left"
+cmd-shift-down = "move down"
+cmd-shift-up = "move up"
+cmd-shift-right = "move right"
+
+# Send window to workspace (Hyprland: SUPER+SHIFT+[1-9])
+cmd-shift-1 = "move-node-to-workspace 1"
+cmd-shift-2 = "move-node-to-workspace 2"
+cmd-shift-3 = "move-node-to-workspace 3"
+cmd-shift-4 = "move-node-to-workspace 4"
+cmd-shift-5 = "move-node-to-workspace 5"
+cmd-shift-6 = "move-node-to-workspace 6"
+cmd-shift-7 = "move-node-to-workspace 7"
+cmd-shift-8 = "move-node-to-workspace 8"
+cmd-shift-9 = "move-node-to-workspace 9"
+
+# Window actions
+cmd-f = "fullscreen"
+# Toggle split direction for the current container (Hyprland-style togglesplit)
+cmd-j = "layout horizontal vertical"
+
+# App launcher basics (kept minimal; expand later)
+cmd-enter = "exec-and-forget open -na Ghostty"

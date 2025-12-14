@@ -5,12 +5,13 @@
 omarchy:
   yay:
     - 1password-cli
+    - beads-git
     - direnv  # Critical for devcontainer workflow
   custom:
     - install_claude_code
     - install_happy_cli
-    - install_beads
     - configure_tailscale
+    - remove_rectangle_config
 
 # Arch Linux - full desktop environment
 arch:
@@ -87,12 +88,12 @@ arch:
     - ttf-jetbrains-mono-nerd
     - vivaldi
     - 1password-cli
+    - beads-git
   yay_cleanup:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
     - install_happy_cli
-    - install_beads
     - configure_tailscale
 
 # WSL - terminal-focused, no GUI
@@ -154,12 +155,12 @@ wsl:
     - speedtest-cli
     - opencode-bin
     - wslu  # WSL Utilities - provides wslview for opening URLs in Windows browser
+    - beads-git
   yay_cleanup:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
     - install_happy_cli
-    - install_beads
     - configure_tailscale
 
 # Windows - GUI applications
@@ -197,6 +198,8 @@ windows:
 # macOS - Unix tools and GUI apps
 # Dev tools (LSPs, build tools, project CLIs) belong in devcontainers
 macos:
+  tap:
+    - steveyegge/beads
   homebrew:
     # Shell experience
     - direnv
@@ -228,10 +231,12 @@ macos:
     - shellcheck  # Required for pre-push hook linting
     - shfmt  # Required for pre-push hook formatting
     - shellspec  # Required for pre-push hook tests
+    - bd  # beads issue tracker (from steveyegge/beads tap)
   cask:
     - ghostty
+    - aerospace
+    - karabiner-elements
   custom:
     - install_claude_code
     - install_happy_cli
-    - install_beads
     - configure_tailscale
