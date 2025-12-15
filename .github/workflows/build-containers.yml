@@ -14,9 +14,9 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-images:
-    name: Build (per-arch)
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm64' || 'ubuntu-latest' }}
+  build-images-amd64:
+    name: Build (amd64)
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -29,7 +29,6 @@ jobs:
           - example-python-runtime
           - example-node-devcontainer
           - example-node-runtime
-        arch: [amd64, arm64]
 
     steps:
       - uses: actions/checkout@v4
@@ -83,12 +82,12 @@ jobs:
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
           # Always push per-arch tags (used for multi-arch manifest creation).
-          ARCH_TAG="${{ steps.tags.outputs.tag_base }}-${{ matrix.arch }}"
+          ARCH_TAG="${{ steps.tags.outputs.tag_base }}-amd64"
           docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${ARCH_TAG}"
 
           # Stable tags only on main branch pushes (avoid collisions for workflow_dispatch experiments).
           if [ "${{ steps.tags.outputs.publish_stable }}" = "true" ]; then
-            docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ matrix.arch }}"
+            docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-amd64"
           fi
 
       - name: Run environment validation tests
@@ -120,17 +119,133 @@ jobs:
 
       - name: Push image
         run: |
-          ARCH_TAG="${{ steps.tags.outputs.tag_base }}-${{ matrix.arch }}"
+          ARCH_TAG="${{ steps.tags.outputs.tag_base }}-amd64"
           docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${ARCH_TAG}"
 
           if [ "${{ steps.tags.outputs.publish_stable }}" = "true" ]; then
-            docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ matrix.arch }}"
+            docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-amd64"
+          fi
+
+  build-images-arm64:
+    name: Build (arm64)
+    runs-on: ubuntu-24.04-arm64
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      # ARM runners can be capacity constrained; avoid queueing a pile of jobs.
+      max-parallel: 1
+      matrix:
+        image:
+          - laingville-devcontainer
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Generate image tags
+        id: tags
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          SHA=$(git rev-parse --short HEAD)
+          # Unique per run to avoid collisions across parallel workflows/agents.
+          RUN_UNIQUE="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          TAG_BASE="${SHA}-${RUN_UNIQUE}"
+
+          # Only publish stable tags on main branch pushes.
+          PUBLISH_STABLE=false
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            PUBLISH_STABLE=true
+          fi
+
+          echo "date=${DATE}" >> $GITHUB_OUTPUT
+          echo "sha=${SHA}" >> $GITHUB_OUTPUT
+          echo "tag_base=${TAG_BASE}" >> $GITHUB_OUTPUT
+          echo "publish_stable=${PUBLISH_STABLE}" >> $GITHUB_OUTPUT
+
+      - name: Build ${{ matrix.image }} image with Nix
+        run: |
+          nix build ./infra#${{ matrix.image }} --out-link result
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load image
+        id: load
+        run: |
+          # Load the Nix-built image into Docker
+          IMAGE_NAME="$(docker load < result | sed -n 's/^Loaded image: //p' | tail -1)"
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "::error::Failed to determine loaded image name from docker load output"
+            exit 1
+          fi
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
+          # Always push per-arch tags (used for multi-arch manifest creation).
+          ARCH_TAG="${{ steps.tags.outputs.tag_base }}-arm64"
+          docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${ARCH_TAG}"
+
+          # Stable tags only on main branch pushes (avoid collisions for workflow_dispatch experiments).
+          if [ "${{ steps.tags.outputs.publish_stable }}" = "true" ]; then
+            docker tag "$IMAGE_NAME" "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-arm64"
+          fi
+
+      - name: Run environment validation tests
+        run: |
+          IMAGE="${{ steps.load.outputs.image_name }}"
+
+          # Determine test type based on image name
+          case "${{ matrix.image }}" in
+            *node*)
+              echo "Running Node.js environment tests..."
+              docker run --rm \
+                -v "${{ github.workspace }}/infra/tests:/tests:ro" \
+                "$IMAGE" \
+                bash /tests/test-node-environment.sh
+              ;;
+            *python*)
+              echo "Running Python environment tests..."
+              docker run --rm \
+                -v "${{ github.workspace }}/infra/tests:/tests:ro" \
+                "$IMAGE" \
+                bash /tests/test-python-environment.sh 2>/dev/null \
+                || echo "::warning::Python tests not implemented yet"
+              ;;
+            *)
+              echo "Running basic container validation..."
+              docker run --rm "$IMAGE" bash -c 'echo "Container starts successfully"'
+              ;;
+          esac
+
+      - name: Push image
+        run: |
+          ARCH_TAG="${{ steps.tags.outputs.tag_base }}-arm64"
+          docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${ARCH_TAG}"
+
+          if [ "${{ steps.tags.outputs.publish_stable }}" = "true" ]; then
+            docker push "${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-arm64"
           fi
 
   publish-manifests:
     name: Publish multi-arch manifests
     runs-on: ubuntu-latest
-    needs: build-images
+    needs:
+      - build-images-amd64
+      - build-images-arm64
     permissions:
       contents: read
       packages: write
@@ -199,9 +314,9 @@ jobs:
             docker buildx imagetools create -t "$LATEST_REF" "$AMD64_REF" "$ARM64_REF"
           fi
 
-  validate-multiarch:
-    name: Validate multi-arch pull/run
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm64' || 'ubuntu-latest' }}
+  validate-multiarch-amd64:
+    name: Validate multi-arch pull/run (amd64)
+    runs-on: ubuntu-latest
     needs: publish-manifests
     permissions:
       contents: read
@@ -215,7 +330,6 @@ jobs:
           - example-python-runtime
           - example-node-devcontainer
           - example-node-runtime
-        arch: [amd64, arm64]
 
     steps:
       - uses: actions/checkout@v4
@@ -238,15 +352,64 @@ jobs:
           EXP_REF="${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:exp-${{ steps.tags.outputs.tag_base }}"
 
           EXPECTED="x86_64"
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            EXPECTED="aarch64"
-          fi
 
           ACTUAL="$(docker run --rm "$EXP_REF" uname -m)"
           echo "Expected uname -m: $EXPECTED"
           echo "Actual uname -m:   $ACTUAL"
           if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Architecture mismatch for $EXP_REF on runner arch=${{ matrix.arch }}"
+            echo "::error::Architecture mismatch for $EXP_REF on amd64 runner"
+            exit 1
+          fi
+
+          # Basic devcontainer assumptions
+          docker run --rm "$EXP_REF" bash -lc 'test -x /usr/bin/env'
+          docker run --rm "$EXP_REF" bash -lc 'nix --version'
+          docker run --rm "$EXP_REF" bash -lc 'direnv --version'
+
+  validate-multiarch-arm64:
+    name: Validate multi-arch pull/run (arm64)
+    runs-on: ubuntu-24.04-arm64
+    needs: publish-manifests
+    permissions:
+      contents: read
+      packages: read
+
+    strategy:
+      max-parallel: 1
+      matrix:
+        image:
+          - laingville-devcontainer
+          - example-python-devcontainer
+          - example-python-runtime
+          - example-node-devcontainer
+          - example-node-runtime
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate tag (must match build job)
+        id: tags
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          RUN_UNIQUE="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          TAG_BASE="${SHA}-${RUN_UNIQUE}"
+          echo "tag_base=${TAG_BASE}" >> $GITHUB_OUTPUT
+
+      - name: Pull multi-arch manifest tag
+        run: |
+          EXP_REF="${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:exp-${{ steps.tags.outputs.tag_base }}"
+          docker pull "$EXP_REF"
+
+      - name: Validate selected architecture and basics
+        run: |
+          EXP_REF="${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:exp-${{ steps.tags.outputs.tag_base }}"
+
+          EXPECTED="aarch64"
+          ACTUAL="$(docker run --rm "$EXP_REF" uname -m)"
+          echo "Expected uname -m: $EXPECTED"
+          echo "Actual uname -m:   $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Architecture mismatch for $EXP_REF on arm64 runner"
             exit 1
           fi
 
