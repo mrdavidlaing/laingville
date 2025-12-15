@@ -323,6 +323,7 @@ jobs:
       packages: read
 
     strategy:
+      fail-fast: false
       matrix:
         image:
           - laingville-devcontainer
@@ -361,10 +362,19 @@ jobs:
             exit 1
           fi
 
-          # Basic devcontainer assumptions
+          # Basic assumptions
           docker run --rm "$EXP_REF" bash -lc 'test -x /usr/bin/env'
-          docker run --rm "$EXP_REF" bash -lc 'nix --version'
-          docker run --rm "$EXP_REF" bash -lc 'direnv --version'
+
+          # Devcontainers include Nix + direnv; runtimes may not.
+          case "${{ matrix.image }}" in
+            *-runtime)
+              echo "Runtime image: skipping nix/direnv checks"
+              ;;
+            *)
+              docker run --rm "$EXP_REF" bash -lc 'nix --version'
+              docker run --rm "$EXP_REF" bash -lc 'direnv --version'
+              ;;
+          esac
 
   validate-multiarch-arm64:
     name: Validate multi-arch pull/run (arm64)
@@ -376,6 +386,7 @@ jobs:
 
     strategy:
       max-parallel: 1
+      fail-fast: false
       matrix:
         image:
           - laingville-devcontainer
@@ -413,7 +424,16 @@ jobs:
             exit 1
           fi
 
-          # Basic devcontainer assumptions
+          # Basic assumptions
           docker run --rm "$EXP_REF" bash -lc 'test -x /usr/bin/env'
-          docker run --rm "$EXP_REF" bash -lc 'nix --version'
-          docker run --rm "$EXP_REF" bash -lc 'direnv --version'
+
+          # Devcontainers include Nix + direnv; runtimes may not.
+          case "${{ matrix.image }}" in
+            *-runtime)
+              echo "Runtime image: skipping nix/direnv checks"
+              ;;
+            *)
+              docker run --rm "$EXP_REF" bash -lc 'nix --version'
+              docker run --rm "$EXP_REF" bash -lc 'direnv --version'
+              ;;
+          esac
