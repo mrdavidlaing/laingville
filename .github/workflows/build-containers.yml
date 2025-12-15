@@ -47,7 +47,7 @@ jobs:
           SHA=$(git rev-parse --short HEAD)
           # Unique per run to avoid collisions across parallel workflows/agents.
           RUN_UNIQUE="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          TAG_BASE="${DATE}-${SHA}-${RUN_UNIQUE}"
+          TAG_BASE="${SHA}-${RUN_UNIQUE}"
 
           # Only publish stable tags on main branch pushes.
           PUBLISH_STABLE=false
@@ -153,7 +153,7 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           SHA=$(git rev-parse --short HEAD)
           RUN_UNIQUE="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          TAG_BASE="${DATE}-${SHA}-${RUN_UNIQUE}"
+          TAG_BASE="${SHA}-${RUN_UNIQUE}"
 
           PUBLISH_STABLE=false
           if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
@@ -223,10 +223,9 @@ jobs:
       - name: Generate tag (must match build job)
         id: tags
         run: |
-          DATE=$(date +%Y-%m-%d)
           SHA=$(git rev-parse --short HEAD)
           RUN_UNIQUE="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          TAG_BASE="${DATE}-${SHA}-${RUN_UNIQUE}"
+          TAG_BASE="${SHA}-${RUN_UNIQUE}"
           echo "tag_base=${TAG_BASE}" >> $GITHUB_OUTPUT
 
       - name: Pull multi-arch manifest tag
