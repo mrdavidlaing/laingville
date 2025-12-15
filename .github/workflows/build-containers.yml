@@ -128,7 +128,7 @@ jobs:
 
   build-images-arm64:
     name: Build (arm64)
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -368,7 +368,7 @@ jobs:
 
   validate-multiarch-arm64:
     name: Validate multi-arch pull/run (arm64)
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm
     needs: publish-manifests
     permissions:
       contents: read
