@@ -1,6 +1,11 @@
-[user]
-	name = David Laing
-	email = david@mechanical-orchard.com
+# Identity defaults (personal).
+[include]
+	path = ~/.gitconfig-mrdavidlaing
+
+# Optional platform-specific GitHub routing (1Password multi-identity setup).
+# On macOS, this is symlinked to `.gitconfig-github-1password.macos`.
+[include]
+	path = ~/.gitconfig-github-1password
 
 [credential "https://github.com"]
 	helper =

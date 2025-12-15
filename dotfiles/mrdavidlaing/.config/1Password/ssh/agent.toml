@@ -1,0 +1,15 @@
+# 1Password SSH Agent Configuration
+# Docs: https://developer.1password.com/docs/ssh/agent/config
+
+# Work GitHub account - for MO repos (mrdavidlaing-mo)
+# Listed first since most repos are work repos
+[[ssh-keys]]
+account = "Mechanical Orchard"
+vault = "Employee"
+item = "mrdavidlaing-mo@github"
+
+# Personal GitHub account - for personal repos (mrdavidlaing)
+[[ssh-keys]]
+account = "Laing Family"
+vault = "Private"
+item = "mrdavidlaing@github"

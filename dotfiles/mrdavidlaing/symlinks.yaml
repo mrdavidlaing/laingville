@@ -9,6 +9,8 @@ omarchy:
 
   # Git identity
   - .gitconfig
+  - .gitconfig-mrdavidlaing
+  - .gitconfig-github-1password
   - .gitmessage
 
   # Hyprland overrides only
@@ -49,6 +51,8 @@ arch:
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
+  - .gitconfig-mrdavidlaing
+  - .gitconfig-github-1password
   - .gitmessage
   # Omarchy-compat portable defaults (provides Omarchy-like UX on Arch)
   - source: ../shared/omarchy-compat/shell
@@ -101,6 +105,8 @@ wsl:
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
+  - .gitconfig-mrdavidlaing
+  - .gitconfig-github-1password
   - .gitmessage
   # Terminal tools (tmux and navi work great in WSL!)
   - .config/tmux
@@ -137,6 +143,9 @@ windows:
   - .bash_profile
   - .bashrc
   - .gitconfig
+  - .gitconfig-mrdavidlaing
+  - source: .gitconfig-github-1password
+    target: $USERPROFILE/.gitconfig-github-1password
   - .gitmessage
   # PowerShell Profile
   - source: .config/PowerShell/Microsoft.PowerShell_profile.ps1
@@ -180,7 +189,20 @@ macos:
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
+  - .gitconfig-mrdavidlaing
+  - .gitconfig-mrdavidlaing-mo
+  - source: .gitconfig-github-1password.macos
+    target: ~/.gitconfig-github-1password
   - .gitmessage
+  # 1Password SSH Agent
+  - .config/1Password/ssh/agent.toml
+  # SSH config snippets for GitHub multi-account (1Password SSH Agent)
+  - source: .ssh/github-1password.conf
+    target: ~/.ssh/github-1password.conf
+  - source: .ssh/github-mrdavidlaing-mo.pub
+    target: ~/.ssh/github-mrdavidlaing-mo.pub
+  - source: .ssh/github-mrdavidlaing.pub
+    target: ~/.ssh/github-mrdavidlaing.pub
   # Omarchy-compat portable defaults (provides Omarchy-like UX on macOS)
   - source: ../shared/omarchy-compat/shell
     target: ~/.local/share/omarchy-compat/shell
@@ -240,6 +262,10 @@ macos:
 macos_cleanup:
   - .config/alacritty  # Removed 2025-09-30, switched to wezterm
   - .config/rectangle  # Removed 2025-12-14, replaced by AeroSpace
+  # Previously mis-linked by symlinks.functions.bash default target rules (no .ssh handling)
+  - github-1password.conf
+  - github-mrdavidlaing-mo.pub
+  - github-mrdavidlaing.pub
   - source: .local/bin/workday-countdown.applescript
     target: ~/.local/bin/workday-countdown.applescript
   - source: .local/bin/workday-suspend.sh
@@ -255,6 +281,8 @@ nix:
   - .bashrc
   - .bashrc_git_learning
   - .gitconfig
+  - .gitconfig-mrdavidlaing
+  - .gitconfig-github-1password
   - .gitmessage
   # Terminal tools
   - .config/tmux

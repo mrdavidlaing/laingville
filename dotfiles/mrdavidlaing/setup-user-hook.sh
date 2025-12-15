@@ -9,6 +9,23 @@ if [[ -x "$SCRIPT_DIR/.claude/generate-settings.sh" ]]; then
   "$SCRIPT_DIR/.claude/generate-settings.sh"
 fi
 
+# Ensure SSH includes GitHub multi-account config (1Password SSH Agent).
+# This keeps private keys in 1Password while letting OpenSSH pick a specific
+# key using the corresponding public key in IdentityFile.
+ssh_include_file="$HOME/.ssh/github-1password.conf"
+ssh_config_file="$HOME/.ssh/config"
+ssh_include_line="Include ~/.ssh/github-1password.conf"
+if [[ -f "$ssh_include_file" ]]; then
+  mkdir -p "$HOME/.ssh"
+  touch "$ssh_config_file"
+  if ! grep -Fxq "$ssh_include_line" "$ssh_config_file"; then
+    tmp="$(mktemp)"
+    printf "%s\n\n" "$ssh_include_line" > "$tmp"
+    cat "$ssh_config_file" >> "$tmp"
+    mv "$tmp" "$ssh_config_file"
+  fi
+fi
+
 # macOS: Load workday LaunchAgents on mo-inator only
 if [[ "$(uname)" == "Darwin" ]]; then
   hostname_short=$(scutil --get ComputerName 2> /dev/null || hostname -s 2> /dev/null || echo "unknown")
