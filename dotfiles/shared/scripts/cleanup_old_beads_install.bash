@@ -27,12 +27,12 @@ if [[ "${DRY_RUN}" = true ]]; then
 fi
 
 # Only perform cleanup if Homebrew-managed bd exists
-if ! command -v brew >/dev/null 2>&1; then
+if ! command -v brew > /dev/null 2>&1; then
   echo "Skipping beads cleanup (brew not found)."
   exit 0
 fi
 
-if ! brew list --formula --quiet steveyegge/beads/bd >/dev/null 2>&1; then
+if ! brew list --formula --quiet steveyegge/beads/bd > /dev/null 2>&1; then
   # Homebrew bd not installed; don't delete anything.
   echo "Skipping beads cleanup (Homebrew bd not installed)."
   exit 0

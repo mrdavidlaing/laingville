@@ -28,12 +28,12 @@ if [[ "${DRY_RUN}" = true ]]; then
   exit 0
 fi
 
-osascript -e 'tell application "Rectangle" to quit' 2>/dev/null || true
+osascript -e 'tell application "Rectangle" to quit' 2> /dev/null || true
 
 # Remove persisted defaults for the domain (ignore if already absent)
-defaults delete "${domain}" 2>/dev/null || true
+defaults delete "${domain}" 2> /dev/null || true
 
 # Remove preference plist if present (ignore if absent)
-rm -f "${plist}" 2>/dev/null || true
+rm -f "${plist}" 2> /dev/null || true
 
 echo "Rectangle configuration removed (if present)."
