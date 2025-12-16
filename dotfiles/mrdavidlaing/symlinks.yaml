@@ -221,6 +221,12 @@ macos:
   # Window management (Hyprland-like tiling on macOS)
   - .config/aerospace/aerospace.toml
   - .config/karabiner/karabiner.json
+  # Omarchy-style desktop enhancements
+  - .config/borders
+  - .config/sketchybar
+  # Hammerspoon (always-on-top for floating windows)
+  - source: .config/hammerspoon/init.lua
+    target: ~/.hammerspoon/init.lua
   # VS Code
   - source: .config/Code/User/settings.macos.json
     target: ~/.config/Code/User/settings.json

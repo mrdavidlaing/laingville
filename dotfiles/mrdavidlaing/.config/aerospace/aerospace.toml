@@ -8,6 +8,17 @@
 
 start-at-login = true
 
+# Launch JankyBorders and Sketchybar with AeroSpace
+after-startup-command = [
+    'exec-and-forget borders',
+    'exec-and-forget sketchybar'
+]
+
+# Notify Sketchybar when workspace changes (for indicator updates)
+exec-on-workspace-change = ['/bin/bash', '-c',
+    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
+]
+
 default-root-container-layout = "tiles"
 default-root-container-orientation = "auto"
 
@@ -21,7 +32,7 @@ inner.horizontal = 8
 inner.vertical = 8
 outer.left = 8
 outer.bottom = 8
-outer.top = 8
+outer.top = 44  # 36px Sketchybar height + 8px gap
 outer.right = 8
 
 [mode.main.binding]
@@ -69,6 +80,18 @@ cmd-enter = "exec-and-forget open -na Ghostty"
 
 # Toggle floating for current window
 cmd-shift-space = "layout floating tiling"
+
+# Move workspace to monitor (Hyprland: SUPER+CTRL+arrows)
+cmd-ctrl-left = "move-workspace-to-monitor --wrap-around prev"
+cmd-ctrl-right = "move-workspace-to-monitor --wrap-around next"
+
+# Focus monitor directly (Hyprland: SUPER+comma/period)
+cmd-alt-left = "focus-monitor --wrap-around prev"
+cmd-alt-right = "focus-monitor --wrap-around next"
+
+# Move window to monitor (send window without moving workspace)
+cmd-alt-shift-left = "move-node-to-monitor --wrap-around prev"
+cmd-alt-shift-right = "move-node-to-monitor --wrap-around next"
 
 # =============================================================================
 # Floating window rules

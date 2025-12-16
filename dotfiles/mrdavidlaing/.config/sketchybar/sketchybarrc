@@ -1,0 +1,115 @@
+#!/bin/bash
+# Sketchybar configuration - Minimal Omarchy/Hyprland-inspired setup
+# Matches Waybar color scheme: dark background with blue accent
+
+PLUGIN_DIR="$CONFIG_DIR/plugins"
+
+# Bar appearance - Plasma/Waybar inspired
+sketchybar --bar \
+    position=top \
+    height=36 \
+    color=0xf0232629 \
+    border_width=0 \
+    shadow=on \
+    sticky=on \
+    padding_left=8 \
+    padding_right=8 \
+    notch_width=200
+
+# Default item settings
+sketchybar --default \
+    icon.font="JetBrainsMono Nerd Font:Bold:14.0" \
+    icon.color=0xffbdc3c7 \
+    label.font="JetBrainsMono Nerd Font:Regular:13.0" \
+    label.color=0xffeff0f1 \
+    padding_left=4 \
+    padding_right=4
+
+# =============================================================================
+# Workspace indicators (left side)
+# =============================================================================
+# Create workspace items for workspaces 1-12
+for i in $(seq 1 12); do
+    sketchybar --add item workspace.$i left \
+        --set workspace.$i \
+            icon="$i" \
+            icon.font="JetBrainsMono Nerd Font:Bold:14.0" \
+            icon.color=0xff6c6c6c \
+            icon.padding_left=8 \
+            icon.padding_right=8 \
+            icon.y_offset=2 \
+            label.drawing=off \
+            background.height=28 \
+            background.corner_radius=0 \
+            background.border_width=0 \
+            background.drawing=off \
+            click_script="aerospace workspace $i" \
+            script="$PLUGIN_DIR/aerospace.sh"
+done
+
+# Subscribe to aerospace workspace changes
+sketchybar --add event aerospace_workspace_change
+
+for i in $(seq 1 12); do
+    sketchybar --subscribe workspace.$i aerospace_workspace_change
+done
+
+# Separators between monitor groups (positioned dynamically by aerospace.sh)
+for i in 1 2; do
+    sketchybar --add item separator.$i left \
+        --set separator.$i \
+            icon="│" \
+            icon.font="JetBrainsMono Nerd Font:Regular:16.0" \
+            icon.color=0xff6c6c6c \
+            icon.padding_left=4 \
+            icon.padding_right=4 \
+            background.drawing=off \
+            label.drawing=off \
+            icon.drawing=off
+done
+
+# =============================================================================
+# Clock (center)
+# =============================================================================
+sketchybar --add item clock center \
+    --set clock \
+        icon="" \
+        icon.color=0xffeff0f1 \
+        label.color=0xffeff0f1 \
+        background.drawing=off \
+        update_freq=30 \
+        script="$PLUGIN_DIR/clock.sh"
+
+# =============================================================================
+# Volume indicators (right side)
+# =============================================================================
+# Output volume (speakers/headphones)
+sketchybar --add item volume_output right \
+    --set volume_output \
+        icon="" \
+        icon.color=0xffbdc3c7 \
+        label.color=0xffeff0f1 \
+        background.drawing=off \
+        update_freq=5 \
+        click_script="open x-apple.systempreferences:com.apple.Sound-Settings.extension" \
+        script="$PLUGIN_DIR/volume_output.sh"
+
+# Input volume (microphone)
+sketchybar --add item volume_input right \
+    --set volume_input \
+        icon="" \
+        icon.color=0xffbdc3c7 \
+        label.color=0xffeff0f1 \
+        background.drawing=off \
+        update_freq=5 \
+        click_script="open x-apple.systempreferences:com.apple.Sound-Settings.extension" \
+        script="$PLUGIN_DIR/volume_input.sh"
+
+# =============================================================================
+# Initialize
+# =============================================================================
+# Force update all items on startup
+sketchybar --update
+
+# Trigger initial workspace highlight
+$PLUGIN_DIR/aerospace.sh

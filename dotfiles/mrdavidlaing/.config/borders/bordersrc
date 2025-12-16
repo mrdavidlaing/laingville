@@ -1,0 +1,15 @@
+#!/bin/bash
+# JankyBorders configuration
+# Colors match Hyprland border scheme for consistency across platforms
+
+options=(
+    style=round
+    width=3.0
+    hidpi=on
+    active_color=0xff05acff    # Cyan - Hyprland active border
+    inactive_color=0xff003673  # Dark blue - Hyprland inactive border
+    order=above
+    blacklist="sketchybar"     # Don't draw borders on sketchybar
+)
+
+borders "${options[@]}"
