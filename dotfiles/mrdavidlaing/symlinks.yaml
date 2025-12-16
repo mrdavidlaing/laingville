@@ -22,7 +22,8 @@ omarchy:
 
   # Tool overrides
   - .config/ghostty/config
-  - .config/ghostty/overrides.conf
+  - source: .config/ghostty/overrides-omarchy.conf
+    target: ~/.config/ghostty/overrides.conf
   - .config/lazygit/config.yml
   - .config/starship.toml
   - .config/nvim/lua/plugins/
@@ -61,7 +62,8 @@ arch:
     target: ~/.local/share/omarchy-compat/ghostty
   # Terminal tools
   - .config/ghostty/config
-  - .config/ghostty/overrides.conf
+  - source: .config/ghostty/overrides-omarchy.conf
+    target: ~/.config/ghostty/overrides.conf
   - .config/tmux
   - .config/navi
   - .config/starship.toml
@@ -210,7 +212,8 @@ macos:
     target: ~/.local/share/omarchy-compat/ghostty
   # Terminal tools
   - .config/ghostty/config
-  - .config/ghostty/overrides.conf
+  - source: .config/ghostty/overrides-macos.conf
+    target: ~/.config/ghostty/overrides.conf
   - .config/tmux
   - .config/navi
   - .config/wezterm

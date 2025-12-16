@@ -9,5 +9,5 @@ config-file = ?"~/.local/share/omarchy/config/ghostty/config"
 # Try omarchy-compat base config (only exists on macOS/Arch)
 config-file = ?"~/.local/share/omarchy-compat/ghostty/config"
 
-# Personal overrides (all platforms)
+# Personal overrides (platform-specific via symlink)
 config-file = ?"~/.config/ghostty/overrides.conf"
