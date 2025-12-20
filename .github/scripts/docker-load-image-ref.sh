@@ -35,5 +35,3 @@ if [ -z "$IMAGE_REF" ]; then
 fi
 
 echo "$IMAGE_REF"
-
-
