@@ -66,3 +66,28 @@ cmd-j = "layout horizontal vertical"
 
 # App launcher basics (kept minimal; expand later)
 cmd-enter = "exec-and-forget open -na Ghostty"
+
+# Toggle floating for current window
+cmd-shift-space = "layout floating tiling"
+
+# =============================================================================
+# Floating window rules
+# =============================================================================
+# Apps that should always float (not tiled)
+
+[[on-window-detected]]
+if.app-id = "com.1password.1password"
+run = "layout floating"
+
+[[on-window-detected]]
+if.app-id = "com.apple.systempreferences"
+run = "layout floating"
+
+[[on-window-detected]]
+if.app-id = "com.apple.calculator"
+run = "layout floating"
+
+# Finder dialogs (Save As, Open, etc.)
+[[on-window-detected]]
+if.app-id = "com.apple.finder"
+run = "layout floating"

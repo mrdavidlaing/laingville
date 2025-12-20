@@ -173,3 +173,93 @@ Or explicitly:
 ```bash
 nix develop
 ```
+
+## Building Containers Locally on macOS (M2/ARM64)
+
+To build `aarch64-linux` containers locally on M2 Mac with native performance, we use **Colima** - a lightweight container runtime that provides both Docker and a Linux VM.
+
+### Prerequisites
+
+1. **Install Colima:**
+   ```bash
+   brew install colima docker
+   ```
+
+2. **Create the Nix builder VM:**
+   ```bash
+   ./infra/scripts/colima-vm create
+   ```
+
+### Building Containers
+
+Use the `build-in-colima` script:
+
+```bash
+# Build and push to Cachix (default)
+./infra/scripts/build-in-colima laingville-devcontainer local
+./infra/scripts/build-in-colima example-python-runtime dev
+
+# Build without pushing (for quick iteration)
+./infra/scripts/build-in-colima --no-push laingville-devcontainer local
+```
+
+The script:
+1. Configures Cachix in the VM using your macOS credentials
+2. Builds the container inside the Colima VM (native aarch64-linux)
+3. Pulls dependencies from `cache.nixos.org` + `mo-private.cachix.org`
+4. Pushes custom packages to Cachix (for faster future builds)
+5. Streams the result back to macOS
+6. Loads it into Docker and tags it
+
+### Using the Built Image
+
+```bash
+# Run the container
+docker run --rm -it ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:local bash
+
+# Use in devcontainer.json
+{
+  "image": "ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:local"
+}
+```
+
+### Managing the VM
+
+```bash
+./infra/scripts/colima-vm status   # Check status
+./infra/scripts/colima-vm stop     # Stop VM (preserves data)
+./infra/scripts/colima-vm start    # Start VM
+./infra/scripts/colima-vm ssh      # SSH into VM
+./infra/scripts/colima-vm delete   # Delete VM completely
+```
+
+### Cachix Binary Cache
+
+The build script uses Cachix to cache and share Nix build artifacts:
+
+| Cache | Purpose |
+|-------|---------|
+| `cache.nixos.org` | Standard nixpkgs packages |
+| `mo-private.cachix.org` | Custom packages (devcontainer layers, etc.) |
+
+**Setup (one-time on macOS):**
+```bash
+nix profile install nixpkgs#cachix
+cachix authtoken <your-token>
+cachix use mo-private
+```
+
+The build script reads your credentials from `~/.config/cachix/cachix.dhall` and configures the VM automatically.
+
+**For cache hits on custom packages**, commit your changes before building - a dirty Git tree changes derivation hashes.
+
+### Why Colima?
+
+- **Native ARM64**: Uses Apple Virtualization framework for native aarch64-linux performance
+- **Docker replacement**: Can replace Docker Desktop entirely (free, MIT licensed)
+- **Unified solution**: Same VM for Docker runtime and Nix builds
+- **Filesystem mount**: macOS filesystem is mounted at the same paths inside the VM
+
+### Note
+
+The GitHub Actions workflow builds containers on Linux runners for CI/CD. The local Colima setup is for fast iteration during development.

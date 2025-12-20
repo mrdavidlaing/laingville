@@ -51,6 +51,8 @@
             fzf              # Fuzzy finder
             bat              # cat with syntax highlighting
             diffutils        # diff, cmp, sdiff for file comparison
+            gnumake          # Build automation tool
+            just             # Command runner (justfile)
             shadow           # User management (useradd, passwd, etc.)
             sudo             # Privilege escalation
             starship         # Cross-shell prompt

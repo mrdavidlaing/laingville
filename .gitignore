@@ -12,3 +12,7 @@ dotfiles/*/.config/systemd/user/timers.target.wants/
 .claude/settings.local.json
 infra/result
 result*
+
+# Local VM/builder artifacts
+keys/
+*.qcow2
