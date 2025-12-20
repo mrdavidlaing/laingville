@@ -43,7 +43,7 @@
 
           # Development tools (for devcontainers)
           devTools = with pkgs; [
-            git              # Version control
+            gitMinimal       # Version control (smaller closure than full git)
             curl             # HTTP client
             jq               # JSON processor
             ripgrep          # Fast grep alternative (rg)
