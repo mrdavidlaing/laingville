@@ -7,6 +7,13 @@
 #   2) Then, if needed, adding a targeted Nix overlay/patch
 # - Open a PR with the minimal change set that closes the alerts
 #
+# Automation
+# This command can run automatically via the `Claude Security Fix` GitHub Actions workflow:
+# - Runs weekly on Mondays at 9am UTC
+# - Can be manually triggered via workflow_dispatch
+# - Automatically creates PRs with security fixes
+# See: .github/workflows/claude-security-fix.yml
+#
 # Important repo rules
 # - Use `bd` (beads) for tracking work. Prefer `bd ready --json`, `bd create ... --json`, `bd update ... --json`.
 # - Keep PRs tight: infra changes in `infra/` and scanner/workflow changes in `.github/workflows/`.
