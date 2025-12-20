@@ -60,11 +60,9 @@ jobs:
       - name: Load image
         id: load
         run: |
-          # Load the Nix-built image into Docker
-          docker load < result
+          # Load the Nix-built image into Docker and derive the exact image ref
+          IMAGE_NAME="$(bash .github/scripts/docker-load-image-ref.sh result | tail -n 1)"
 
-          # Get the image name from the tarball
-          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
           # Tag with date and SHA
