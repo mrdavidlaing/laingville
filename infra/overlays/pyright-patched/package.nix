@@ -33,14 +33,15 @@ let
       ' ${src}/package.json > $out
   '';
 
-  # Patch pyright-internal's package.json to use esbuild 0.27.1 (Go 1.25.4)
-  # esbuild-loader 4.4.0 declares ^0.25.0 which only allows 0.25.x due to
-  # npm's semver handling of 0.x versions. We add esbuild 0.27.1 directly
-  # to override the transitive dependency with the CVE-fixed version.
+# Patch pyright-internal's package.json to use esbuild 0.27.1 (Go 1.25.4).
+# NOTE: `esbuild-loader` pins `esbuild` to ^0.25.0 (0.25.x only), which pulls in
+# a vulnerable Go stdlib via `@esbuild/*` gobinaries and gets flagged by container
+# scanners even though we don't run the build pipeline in Nix (`dontNpmBuild=true`).
+# We remove `esbuild-loader` entirely to keep the runtime closure CVE-free.
   patchedInternalPackageJSON = runCommand "pyright-internal-package.json" { } ''
     ${jq}/bin/jq '
-      .devDependencies["esbuild-loader"] = "^4.4.0"
-      | .devDependencies["esbuild"] = "0.27.1"
+      .devDependencies["esbuild"] = "0.27.1"
+      | del(.devDependencies["esbuild-loader"])
       ' ${src}/packages/pyright-internal/package.json > $out
   '';
 
@@ -67,8 +68,8 @@ let
     inherit version src;
     nodejs = nodejs_22_patched;  # Use patched nodejs with npm 11.6.4 (glob CVE fix)
     sourceRoot = "${src.name}/packages/pyright-internal";
-    # Updated hash for esbuild 0.27.1 (Go 1.25.4 with CVE fixes)
-    npmDepsHash = "sha256-cZY8oCxL7CoJCIPUB4lx5kxfUk1qUPHTCoEQR/lEuMA=";
+    # Updated hash after removing esbuild-loader (drops vulnerable Go gobinaries)
+    npmDepsHash = "sha256-xx9GPRW46Q9w6x92kk3Wkyh2fzf1rTubUKOIqqrn30E=";
     dontNpmBuild = true;
     postPatch = ''
       cp ${patchedInternalPackageJSON} ./package.json

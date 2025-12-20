@@ -5,6 +5,11 @@
 # This overlay wraps the original nodejs_22 and replaces its npm with 11.6.4.
 # Used for container images where we need CVE-free npm but don't need nodePackages.
 #
+# Important: do NOT leave runtime symlinks back to the original nodejs_22 output.
+# If we do, the original nodejs_22 store path (and its bundled vulnerable npm)
+# remains in the container closure and gets scanned. We copy the node binary
+# (and headers) instead.
+#
 # Remove once nixpkgs updates nodejs with npm containing fixed glob.
 # Track: https://github.com/npm/cli/releases - glob should be >= 10.5.0
 {
@@ -66,13 +71,9 @@ stdenv.mkDerivation {
 
     mkdir -p $out/bin $out/lib/node_modules $out/share/man $out/include
 
-    # Symlink node binary from original nodejs
-    ln -s ${nodejs_22}/bin/node $out/bin/node
-
-    # Symlink corepack if present
-    if [ -e "${nodejs_22}/bin/corepack" ]; then
-      ln -s ${nodejs_22}/bin/corepack $out/bin/corepack
-    fi
+    # Copy node binary from original nodejs (avoid runtime reference to nodejs_22)
+    # shellcheck disable=SC2154
+    install -m 0755 ${nodejs_22}/bin/node $out/bin/node
 
     # Copy include directory if present (needed for native module compilation)
     if [ -d "${nodejs_22}/include" ] && [ "$(ls -A ${nodejs_22}/include 2>/dev/null)" ]; then
@@ -82,10 +83,9 @@ stdenv.mkDerivation {
     # Don't copy share/man from original nodejs as it contains symlinks to
     # the bundled npm which we're replacing. npm 11.6.4 doesn't include man pages.
 
-    # Symlink corepack module from original
-    if [ -d "${nodejs_22}/lib/node_modules/corepack" ]; then
-      ln -s ${nodejs_22}/lib/node_modules/corepack $out/lib/node_modules/corepack
-    fi
+    # Note: we intentionally do NOT include corepack in containers.
+    # It adds a lot of extra JS dependencies (and scanners flag them) while
+    # being unnecessary for our devcontainers/runtimes.
 
     # Use our patched npm instead of the bundled one
     cp -r ${npmPackage}/lib/node_modules/npm $out/lib/node_modules/npm
