@@ -63,7 +63,6 @@
           nixTools = with pkgs; [
             nix              # Nix package manager
             direnv           # Directory-based environment switching
-            nix-direnv       # Fast nix integration for direnv
           ];
 
           # Language: Python
@@ -198,7 +197,16 @@ EOF
 
               # direnv config
               cat > ./etc/direnv/direnvrc <<EOF
-source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+# nix-direnv integration (optional)
+# If you install nix-direnv (e.g. via nix profile), enable it here.
+# Common locations:
+# - /nix/var/nix/profiles/default/share/nix-direnv/direnvrc
+# - $HOME/.nix-profile/share/nix-direnv/direnvrc
+if [ -f /nix/var/nix/profiles/default/share/nix-direnv/direnvrc ]; then
+  source /nix/var/nix/profiles/default/share/nix-direnv/direnvrc
+elif [ -f "$HOME/.nix-profile/share/nix-direnv/direnvrc" ]; then
+  source "$HOME/.nix-profile/share/nix-direnv/direnvrc"
+fi
 EOF
 
               # user bashrc
@@ -243,7 +251,13 @@ EOF
 
               # user direnv config
               cat > .${home}/.config/direnv/direnvrc <<EOF
-source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+# nix-direnv integration (optional)
+# If you install nix-direnv (e.g. via nix profile), enable it here.
+if [ -f /nix/var/nix/profiles/default/share/nix-direnv/direnvrc ]; then
+  source /nix/var/nix/profiles/default/share/nix-direnv/direnvrc
+elif [ -f "$HOME/.nix-profile/share/nix-direnv/direnvrc" ]; then
+  source "$HOME/.nix-profile/share/nix-direnv/direnvrc"
+fi
 EOF
 
               # Fix ownership
@@ -352,7 +366,6 @@ EOF
             packages = with pkgs; [
               git
               direnv
-              nix-direnv
             ];
           };
 

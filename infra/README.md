@@ -84,8 +84,8 @@ docker load < result
 | Set | Contents |
 |-----|----------|
 | `base` | bash, coreutils, findutils, grep, sed, cacert, tzdata |
-| `devTools` | git, curl, jq, ripgrep, fd, fzf, bat, shadow, sudo |
-| `nixTools` | nix, direnv, nix-direnv |
+| `devTools` | gitMinimal, curl, jq, ripgrep, fd, fzf, bat, diffutils, make, just, shadow, sudo, starship, openssh |
+| `nixTools` | nix, direnv |
 | `python` | python312 |
 | `pythonDev` | pip, virtualenv, uv, ruff, pyright |
 | `node` | nodejs_22 |
@@ -94,6 +94,14 @@ docker load < result
 | `goDev` | gopls, golangci-lint |
 | `rust` | rustc, cargo |
 | `rustDev` | rust-analyzer, clippy, rustfmt |
+
+### Optional: nix-direnv integration
+
+`nix-direnv` is intentionally **not** included in `nixTools` by default (to keep devcontainers smaller). If you want faster `direnv` + flakes integration (e.g. `use flake`), install it explicitly:
+
+```bash
+nix profile install nixpkgs#nix-direnv
+```
 
 ## Builder Functions
 
