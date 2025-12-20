@@ -61,10 +61,23 @@ jobs:
         id: load
         run: |
           # Load the Nix-built image into Docker
-          docker load < result
+          LOAD_OUTPUT="$(docker load < result)"
+          echo "$LOAD_OUTPUT"
 
-          # Get the image name from the tarball
-          IMAGE_NAME=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
+          # Extract the loaded image reference from docker output.
+          #
+          # docker load typically prints:
+          #   Loaded image: <repo>:<tag>
+          #
+          # Avoid `docker images | head -1` as it can select the wrong image
+          # when multiple images exist on the runner (including from other jobs).
+          IMAGE_NAME="$(echo "$LOAD_OUTPUT" | sed -n 's/^Loaded image: //p' | tail -n 1)"
+
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "::error::Could not determine loaded image name from docker load output"
+            exit 1
+          fi
+
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
           # Tag with date and SHA
