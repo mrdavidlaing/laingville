@@ -83,13 +83,15 @@
           node = with pkgs; [
             nodejs_22_patched  # Node.js 22 LTS with patched npm
           ];
-          # nodeDev: Removed nixpkgs' nodePackages.* (typescript, eslint, prettier)
-          # because they bundle their own node_modules with glob 10.4.5 (CVE-2025-64756).
-          # Users should install these tools via npm at runtime:
-          #   npm install -g typescript typescript-language-server eslint prettier
-          # This keeps the container closure CVE-free while allowing version flexibility.
+          # nodeDev: Uses patched nodePackages.* rebuilt with nodejs_22_patched.
+          # The overlay rebuilds nodePackages with npm 11.6.4 (glob 13.0.0, fixed),
+          # ensuring they're CVE-free while keeping the convenience of nixpkgs packages.
           nodeDev = with pkgs; [
-            bun  # Fast JavaScript runtime/bundler (doesn't bundle glob)
+            bun                                    # Fast JavaScript runtime/bundler
+            nodePackages.typescript                # TypeScript compiler (patched)
+            nodePackages.typescript-language-server  # TypeScript language server (patched)
+            nodePackages.prettier                  # Code formatter (patched)
+            nodePackages.eslint                    # JavaScript linter (patched)
           ];
 
           # Language: Go
