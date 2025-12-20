@@ -196,7 +196,7 @@ accept-flake-config = true
 EOF
 
               # direnv config
-              cat > ./etc/direnv/direnvrc <<EOF
+              cat > ./etc/direnv/direnvrc <<'EOF'
 # nix-direnv integration (optional)
 # If you install nix-direnv (e.g. via nix profile), enable it here.
 # Common locations:
@@ -250,7 +250,7 @@ accept-flake-config = true
 EOF
 
               # user direnv config
-              cat > .${home}/.config/direnv/direnvrc <<EOF
+              cat > .${home}/.config/direnv/direnvrc <<'EOF'
 # nix-direnv integration (optional)
 # If you install nix-direnv (e.g. via nix profile), enable it here.
 if [ -f /nix/var/nix/profiles/default/share/nix-direnv/direnvrc ]; then
