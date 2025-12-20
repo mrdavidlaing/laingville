@@ -83,12 +83,15 @@
           node = with pkgs; [
             nodejs_22_patched  # Node.js 22 LTS with patched npm
           ];
+          # nodeDev: Uses patched nodePackages.* rebuilt with nodejs_22_patched.
+          # The overlay rebuilds nodePackages with npm 11.6.4 (glob 13.0.0, fixed),
+          # ensuring they're CVE-free while keeping the convenience of nixpkgs packages.
           nodeDev = with pkgs; [
             bun                                    # Fast JavaScript runtime/bundler
-            nodePackages.typescript                # TypeScript compiler
-            nodePackages.typescript-language-server  # TypeScript language server
-            nodePackages.prettier                  # Code formatter
-            nodePackages.eslint                    # JavaScript linter
+            nodePackages.typescript                # TypeScript compiler (patched)
+            nodePackages.typescript-language-server  # TypeScript language server (patched)
+            nodePackages.prettier                  # Code formatter (patched)
+            nodePackages.eslint                    # JavaScript linter (patched)
           ];
 
           # Language: Go

@@ -37,7 +37,8 @@ let
 # NOTE: `esbuild-loader` pins `esbuild` to ^0.25.0 (0.25.x only), which pulls in
 # a vulnerable Go stdlib via `@esbuild/*` gobinaries and gets flagged by container
 # scanners even though we don't run the build pipeline in Nix (`dontNpmBuild=true`).
-# We remove `esbuild-loader` entirely to keep the runtime closure CVE-free.
+# We use npm `overrides` to force esbuild 0.27.1 everywhere, allowing us to keep
+# `esbuild-loader` while ensuring the runtime closure uses the patched esbuild.
   # Why pin `esbuild` to an exact version (not ^0.27.1)?
   # - Reproducibility: this derivation is driven by `package-lock.json` + `npmDepsHash`.
   #   Allowing semver ranges makes it easier to accidentally regenerate locks/hashes with
@@ -51,7 +52,35 @@ let
   patchedInternalPackageJSON = runCommand "pyright-internal-package.json" { } ''
     ${jq}/bin/jq '
       .devDependencies["esbuild"] = "0.27.1"
-      | del(.devDependencies["esbuild-loader"])
+      | .overrides = {
+          "esbuild": "0.27.1",
+          "@esbuild/aix-ppc64": "0.27.1",
+          "@esbuild/android-arm": "0.27.1",
+          "@esbuild/android-arm64": "0.27.1",
+          "@esbuild/android-x64": "0.27.1",
+          "@esbuild/darwin-arm64": "0.27.1",
+          "@esbuild/darwin-x64": "0.27.1",
+          "@esbuild/freebsd-arm64": "0.27.1",
+          "@esbuild/freebsd-x64": "0.27.1",
+          "@esbuild/linux-arm": "0.27.1",
+          "@esbuild/linux-arm64": "0.27.1",
+          "@esbuild/linux-ia32": "0.27.1",
+          "@esbuild/linux-loong64": "0.27.1",
+          "@esbuild/linux-mips64el": "0.27.1",
+          "@esbuild/linux-ppc64": "0.27.1",
+          "@esbuild/linux-riscv64": "0.27.1",
+          "@esbuild/linux-s390x": "0.27.1",
+          "@esbuild/linux-x64": "0.27.1",
+          "@esbuild/netbsd-arm64": "0.27.1",
+          "@esbuild/netbsd-x64": "0.27.1",
+          "@esbuild/openbsd-arm64": "0.27.1",
+          "@esbuild/openbsd-x64": "0.27.1",
+          "@esbuild/openharmony-arm64": "0.27.1",
+          "@esbuild/sunos-x64": "0.27.1",
+          "@esbuild/win32-arm64": "0.27.1",
+          "@esbuild/win32-ia32": "0.27.1",
+          "@esbuild/win32-x64": "0.27.1"
+        }
       ' ${src}/packages/pyright-internal/package.json > $out
   '';
 
@@ -78,8 +107,9 @@ let
     inherit version src;
     nodejs = nodejs_22_patched;  # Use patched nodejs with npm 11.6.4 (glob CVE fix)
     sourceRoot = "${src.name}/packages/pyright-internal";
-    # Updated hash after removing esbuild-loader (drops vulnerable Go gobinaries)
-    npmDepsHash = "sha256-xx9GPRW46Q9w6x92kk3Wkyh2fzf1rTubUKOIqqrn30E=";
+    # Updated hash after adding overrides to force esbuild 0.27.1 (CVE fixes)
+    # Hash calculated from package-lock.json with npm overrides for esbuild 0.27.1
+    npmDepsHash = "sha256-/SQyEJZ9pCkHx+7ZJkmLsNUfcyxjDNXjvQI6ZI9qrGE=";
     dontNpmBuild = true;
     postPatch = ''
       cp ${patchedInternalPackageJSON} ./package.json
