@@ -14,6 +14,10 @@ See AGENTS.md for workflow details.
 - `commands/` - Custom slash commands (symlinked to ~/.claude/commands)
 - `scripts/` - Helper scripts like the bash-direnv-wrapper
 
+## Slash Commands
+
+- `/security-fix` - Playbook for identifying the highest-impact GitHub code-scanning alerts and fixing them via nixpkgs bump first, then infra overlays (`.claude/commands/security-fix.md`).
+
 ## Scripts
 
 ### claude-code-bash-direnv-wrapper.bash
