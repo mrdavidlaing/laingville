@@ -162,6 +162,37 @@ When Claude finds security issues to fix:
 4. Merge if changes look good
 5. Security scans will re-run on main after merge
 
+### 5. Cost Estimation
+
+The Claude Security Fix workflow uses the Anthropic API, which incurs costs:
+
+**Per-run cost estimate:** $0.15 - $0.50
+- Simple nixpkgs bump: ~$0.15
+- Complex overlay patches: ~$0.30-$0.50
+- Depends on: number of security alerts, conversation length, model used
+
+**Monthly cost estimate (default schedule):**
+- Weekly runs: 4 runs/month
+- Estimated: $0.60 - $2.00/month
+- Plus on-demand manual triggers
+
+**Cost optimization tips:**
+1. Use `claude-sonnet` (default) for routine fixes
+2. Use `claude-opus` only for complex security issues
+3. Monitor workflow runs to avoid unnecessary triggers
+4. Set concurrency limits (already configured)
+5. Review API usage in Anthropic Console
+
+**Model pricing (as of 2025):**
+- Claude Sonnet: ~$3/MTok input, ~$15/MTok output
+- Claude Opus: ~$15/MTok input, ~$75/MTok output
+- Typical /security-fix run: 50-150k tokens total
+
+**To monitor costs:**
+- Check Anthropic Console: https://console.anthropic.com/settings/usage
+- Review workflow artifacts for token usage
+- Set up budget alerts in Anthropic Console
+
 ## Workflow Dependencies
 
 ```
@@ -184,7 +215,7 @@ Security Scan (on PR)
 
 ```bash
 # Install Nix
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate systems.com/nix | sh -s -- install
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate-systems.com/nix | sh -s -- install
 
 # Build a container image
 cd infra

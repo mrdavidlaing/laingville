@@ -7,11 +7,25 @@ on:
     - cron: '0 9 * * 1'
   # Allow manual trigger
   workflow_dispatch:
-  # Optionally trigger after security scans find issues
+    inputs:
+      model:
+        description: 'Claude model to use'
+        required: false
+        default: 'claude-sonnet-4-5-20250929'
+        type: choice
+        options:
+          - claude-sonnet-4-5-20250929
+          - claude-opus-4-5-20251101
+  # Trigger after security scans find issues (only on success)
   workflow_run:
     workflows: ["Security Scan"]
     types: [completed]
     branches: [main]
+
+# Prevent multiple concurrent runs to avoid duplicate PRs and API waste
+concurrency:
+  group: claude-security-fix
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -23,14 +37,24 @@ jobs:
   claude-security-fix:
     name: Run Claude /security-fix Command
     runs-on: ubuntu-latest
-    # Only run if we have the API key configured
-    if: vars.ANTHROPIC_API_KEY != '' || secrets.ANTHROPIC_API_KEY != ''
+    # Only run if workflow_run succeeded (or not from workflow_run)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
 
     steps:
+      - name: Validate API key
+        run: |
+          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not configured"
+            echo "Please add your Anthropic API key to repository secrets"
+            echo "See: .github/workflows/README.md for setup instructions"
+            exit 1
+          fi
+          echo "✓ API key is configured"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1  # Shallow clone is sufficient
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Claude CLI
@@ -46,52 +70,86 @@ jobs:
       - name: Create feature branch
         id: branch
         run: |
-          # Generate unique branch name with timestamp
-          BRANCH="claude/security-fix-$(date +%Y%m%d-%H%M%S)"
+          # Generate unique branch name with high-precision timestamp and random suffix
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          RANDOM_SUFFIX=$(openssl rand -hex 3)
+          BRANCH="claude/security-fix-${TIMESTAMP}-${RANDOM_SUFFIX}"
           echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
           git checkout -b "$BRANCH"
 
       - name: Run Claude /security-fix
+        id: claude
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ inputs.model || 'claude-sonnet-4-5-20250929' }}
         run: |
           # Run Claude with the /security-fix slash command
           # Using stream-json for better visibility in logs
+          set +e  # Don't exit on error
           claude -p "/security-fix" \
             --output-format stream-json \
             --max-turns 20 \
-            --model claude-sonnet-4-5-20250929 \
-        continue-on-error: true
+            --model "$CLAUDE_MODEL" 2>&1 | tee claude-output.log
+          CLAUDE_EXIT_CODE=$?
+          set -e
+
+          echo "exit_code=$CLAUDE_EXIT_CODE" >> $GITHUB_OUTPUT
+
+          if [ $CLAUDE_EXIT_CODE -ne 0 ]; then
+            echo "::warning::Claude CLI exited with code $CLAUDE_EXIT_CODE"
+            echo "::warning::Check logs above for details"
+          fi
 
       - name: Check for changes
         id: changes
         run: |
-          if git diff --quiet && git diff --cached --quiet; then
+          # Check for any changes in tracked or untracked files
+          if [ -z "$(git status --porcelain)" ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "No changes made by Claude"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected"
+            echo "Changes detected:"
+            git status --short
+          fi
+
+      - name: Validate and stage changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          # Only stage files in expected directories for security fixes
+          # This prevents accidentally committing unintended files
+          git add --all \
+            infra/ \
+            .github/workflows/ \
+            .beads/ \
+            .claude/commands/ || true
+
+          # Show what will be committed
+          echo "Files to be committed:"
+          git diff --cached --name-status
+
+          # Double-check we have changes to commit
+          if git diff --cached --quiet; then
+            echo "::warning::Changes detected but not in expected directories"
+            echo "::warning::Only infra/, .github/workflows/, .beads/, .claude/commands/ are committed"
+            echo "Untracked/unexpected files:"
+            git status --short
+            exit 1
           fi
 
       - name: Commit changes
         if: steps.changes.outputs.has_changes == 'true'
         run: |
-          # Stage all changes
-          git add -A
-
-          # Check if there are staged changes
-          if git diff --cached --quiet; then
-            echo "No staged changes to commit"
-            exit 0
-          fi
-
           # Create commit with detailed message
           git commit -m "chore: security fixes via Claude /security-fix" \
                      -m "Automated security remediation by Claude Code CLI" \
-                     -m "- Analyzed GitHub security alerts" \
+                     -m "" \
+                     -m "Changes applied:" \
+                     -m "- Analyzed GitHub security code-scanning alerts" \
                      -m "- Applied fixes per /security-fix playbook" \
                      -m "- Review changes and test before merging" \
+                     -m "" \
+                     -m "Claude CLI exit code: ${{ steps.claude.outputs.exit_code }}" \
                      -m "" \
                      -m "Co-Authored-By: Claude <noreply@anthropic.com>"
 
@@ -112,6 +170,10 @@ jobs:
 
           This PR was automatically generated by the Claude CLI running the `/security-fix` command.
 
+          **Model used:** ${{ env.CLAUDE_MODEL }}
+          **Triggered by:** ${{ github.event_name }}
+          **Claude CLI exit code:** ${{ steps.claude.outputs.exit_code }}
+
           ### What was done
           - Analyzed open GitHub security code-scanning alerts
           - Identified highest-impact vulnerabilities (CRITICAL/HIGH severity + broad blast radius)
@@ -125,6 +187,7 @@ jobs:
           - [ ] Check that no unintended changes were made
           - [ ] Ensure tests pass in CI
           - [ ] Confirm security scans show improvement
+          - [ ] Check Claude CLI logs for any warnings/errors
 
           ### Next Steps
           1. Review the changes carefully
@@ -142,25 +205,46 @@ jobs:
           🤖 Generated by [Claude Code](https://claude.ai/code) via GitHub Actions
           📋 Slash command: `/security-fix`
           ⏰ Triggered: ${{ github.event_name }}
+
+          **Cost estimate:** ~$0.15-0.50 per run (depends on complexity)
           EOF
           )" \
             --base main \
             --head ${{ steps.branch.outputs.branch_name }} \
             --label "security,automated"
 
+      - name: Upload Claude output logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-output-${{ steps.branch.outputs.branch_name }}
+          path: claude-output.log
+          retention-days: 30
+
       - name: Summary
         if: always()
         run: |
           echo "## Claude Security Fix Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Exit code status
+          if [ "${{ steps.claude.outputs.exit_code }}" == "0" ]; then
+            echo "✅ Claude CLI completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Claude CLI exited with code ${{ steps.claude.outputs.exit_code }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Changes status
           if [ "${{ steps.changes.outputs.has_changes }}" == "true" ]; then
-            echo "✅ **Security fixes applied**" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Security fixes applied" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- Branch: \`${{ steps.branch.outputs.branch_name }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Branch:** \`${{ steps.branch.outputs.branch_name }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Model:** \`${{ env.CLAUDE_MODEL }}\`" >> $GITHUB_STEP_SUMMARY
             echo "- Pull Request created with proposed fixes" >> $GITHUB_STEP_SUMMARY
             echo "- Review the PR and merge if changes look good" >> $GITHUB_STEP_SUMMARY
           else
-            echo "ℹ️ **No changes needed**" >> $GITHUB_STEP_SUMMARY
+            echo "### ℹ️ No changes needed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Claude analyzed the repository and found:" >> $GITHUB_STEP_SUMMARY
             echo "- No actionable security issues, or" >> $GITHUB_STEP_SUMMARY
@@ -168,4 +252,6 @@ jobs:
             echo "- Issues require manual intervention" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Check the job logs above for Claude's detailed analysis." >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Details" >> $GITHUB_STEP_SUMMARY
+          echo "- Check the [Claude output artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for full logs" >> $GITHUB_STEP_SUMMARY
+          echo "- Estimated API cost: \$0.15-0.50 per run" >> $GITHUB_STEP_SUMMARY
