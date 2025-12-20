@@ -45,6 +45,24 @@ if [ -f "$HOME/.config/env.secrets.local" ]; then
     . "$HOME/.config/env.secrets.local"
 fi
 
+# 1Password SSH Agent configuration
+# Set SSH_AUTH_SOCK based on OS for 1Password SSH agent integration
+if [ -z "$SSH_AUTH_SOCK" ]; then
+    # macOS
+    if [ "$(uname)" = "Darwin" ]; then
+        op_sock="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+        if [ -S "$op_sock" ]; then
+            export SSH_AUTH_SOCK="$op_sock"
+        fi
+    # Linux (including WSL)
+    elif [ "$(uname)" = "Linux" ]; then
+        op_sock="$HOME/.1password/agent.sock"
+        if [ -S "$op_sock" ]; then
+            export SSH_AUTH_SOCK="$op_sock"
+        fi
+    fi
+fi
+
 # WSL-specific configuration for scripts and shells
 if [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; then
     # Configure Git to use Windows SSH for 1Password agent integration
