@@ -56,6 +56,8 @@
             shadow           # User management (useradd, passwd, etc.)
             sudo             # Privilege escalation
             starship         # Cross-shell prompt
+            openssh          # SSH client for Git over SSH and remote access
+            gnupg            # GPG for commit signing and encrypted communication
           ];
 
           # Nix tooling (for containers that need nix develop)
