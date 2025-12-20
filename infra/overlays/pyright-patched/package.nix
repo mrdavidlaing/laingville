@@ -38,6 +38,16 @@ let
 # a vulnerable Go stdlib via `@esbuild/*` gobinaries and gets flagged by container
 # scanners even though we don't run the build pipeline in Nix (`dontNpmBuild=true`).
 # We remove `esbuild-loader` entirely to keep the runtime closure CVE-free.
+  # Why pin `esbuild` to an exact version (not ^0.27.1)?
+  # - Reproducibility: this derivation is driven by `package-lock.json` + `npmDepsHash`.
+  #   Allowing semver ranges makes it easier to accidentally regenerate locks/hashes with
+  #   a newer esbuild, causing non-obvious hash mismatches and CI-only failures.
+  # - Security determinism: esbuild ships platform-specific Go gobinaries (@esbuild/*).
+  #   Pinning keeps the embedded Go stdlib version (and the CVE surface) predictable.
+  #
+  # If you bump esbuild:
+  # - Regenerate `pyright-internal-package-lock.json`
+  # - Update `npmDepsHash` in this file
   patchedInternalPackageJSON = runCommand "pyright-internal-package.json" { } ''
     ${jq}/bin/jq '
       .devDependencies["esbuild"] = "0.27.1"
