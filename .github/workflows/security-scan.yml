@@ -94,18 +94,7 @@ jobs:
         id: build-local
         run: |
           nix build ./infra#${{ matrix.image }} --out-link result
-          LOAD_OUTPUT="$(docker load < result)"
-          echo "$LOAD_OUTPUT"
-
-          # docker load typically prints:
-          #   Loaded image: <repo>:<tag>
-          # Avoid guessing via `docker images | grep ...` which can select the wrong image.
-          IMAGE_NAME="$(echo "$LOAD_OUTPUT" | sed -n 's/^Loaded image: //p' | tail -n 1)"
-
-          if [ -z "$IMAGE_NAME" ]; then
-            echo "::error::Could not determine loaded image name from docker load output"
-            exit 1
-          fi
+          IMAGE_NAME="$(bash .github/scripts/docker-load-image-ref.sh result | tail -n 1)"
           echo "image_ref=${IMAGE_NAME}" >> $GITHUB_OUTPUT
 
       # For main/schedule: Pull from registry
@@ -192,18 +181,7 @@ jobs:
         id: build-local
         run: |
           nix build ./infra#${{ matrix.image }} --out-link result
-          LOAD_OUTPUT="$(docker load < result)"
-          echo "$LOAD_OUTPUT"
-
-          # docker load typically prints:
-          #   Loaded image: <repo>:<tag>
-          # Avoid guessing via `docker images | grep ...` which can select the wrong image.
-          IMAGE_NAME="$(echo "$LOAD_OUTPUT" | sed -n 's/^Loaded image: //p' | tail -n 1)"
-
-          if [ -z "$IMAGE_NAME" ]; then
-            echo "::error::Could not determine loaded image name from docker load output"
-            exit 1
-          fi
+          IMAGE_NAME="$(bash .github/scripts/docker-load-image-ref.sh result | tail -n 1)"
           echo "image_ref=${IMAGE_NAME}" >> $GITHUB_OUTPUT
 
       # For main/schedule: Pull from registry
@@ -284,18 +262,7 @@ jobs:
         id: build-local
         run: |
           nix build ./infra#${{ matrix.image }} --out-link result
-          LOAD_OUTPUT="$(docker load < result)"
-          echo "$LOAD_OUTPUT"
-
-          # docker load typically prints:
-          #   Loaded image: <repo>:<tag>
-          # Avoid guessing via `docker images | grep ...` which can select the wrong image.
-          IMAGE_NAME="$(echo "$LOAD_OUTPUT" | sed -n 's/^Loaded image: //p' | tail -n 1)"
-
-          if [ -z "$IMAGE_NAME" ]; then
-            echo "::error::Could not determine loaded image name from docker load output"
-            exit 1
-          fi
+          IMAGE_NAME="$(bash .github/scripts/docker-load-image-ref.sh result | tail -n 1)"
           echo "image_ref=${IMAGE_NAME}" >> $GITHUB_OUTPUT
 
       # For main/schedule: Pull from registry
