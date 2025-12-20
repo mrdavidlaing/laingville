@@ -200,7 +200,7 @@ windows:
 macos:
   tap:
     - steveyegge/beads
-    - FelixKratz/formulae  # Sketchybar and JankyBorders
+    - FelixKratz/formulae  # JankyBorders
   homebrew:
     # Shell experience
     - direnv
@@ -234,13 +234,14 @@ macos:
     - shellspec  # Required for pre-push hook tests
     - steveyegge/beads/bd  # beads issue tracker (from steveyegge/beads tap)
     # Omarchy-style desktop enhancements (from FelixKratz/formulae tap)
-    - FelixKratz/formulae/sketchybar  # Status bar replacement
     - FelixKratz/formulae/borders  # JankyBorders - window border highlighting
   cask:
     - ghostty
     - aerospace
     - karabiner-elements
     - hammerspoon  # For always-on-top floating windows
+  homebrew_cleanup:
+    - sketchybar  # Removed 2025-12-20, clock hidden behind notch, not worth the complexity
   custom:
     - install_claude_code
     - install_happy_cli

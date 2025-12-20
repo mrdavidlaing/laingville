@@ -8,15 +8,9 @@
 
 start-at-login = true
 
-# Launch JankyBorders and Sketchybar with AeroSpace
+# Launch JankyBorders with AeroSpace
 after-startup-command = [
-    'exec-and-forget borders',
-    'exec-and-forget sketchybar'
-]
-
-# Notify Sketchybar when workspace changes (for indicator updates)
-exec-on-workspace-change = ['/bin/bash', '-c',
-    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
+    'exec-and-forget borders'
 ]
 
 default-root-container-layout = "tiles"
@@ -32,7 +26,7 @@ inner.horizontal = 8
 inner.vertical = 8
 outer.left = 8
 outer.bottom = 8
-outer.top = 44  # 36px Sketchybar height + 8px gap
+outer.top = 8  # Sketchybar lives in menu bar area, just need gap
 outer.right = 8
 
 [mode.main.binding]
