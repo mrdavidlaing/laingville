@@ -90,7 +90,7 @@ Server package configurations follow the same format but are located in `servers
 
 **CRITICAL: All bash scripts must be compatible with bash 3.2+**
 
-macOS ships with bash 3.2 as `/bin/sh`, and the Makefile uses this shell by default. Scripts must avoid bash 4+ features to ensure cross-platform compatibility.
+macOS ships with bash 3.2 as `/bin/sh`, and the Justfile uses this shell by default. Scripts must avoid bash 4+ features to ensure cross-platform compatibility.
 
 #### Forbidden Features (bash 4+ only)
 - **Associative arrays**: `declare -A array` - Use parallel arrays instead
@@ -138,7 +138,7 @@ bash --version  # Check current version
 /bin/sh --version  # Check system sh (usually bash 3.2 on macOS)
 ```
 
-**Why this matters**: The Makefile runs scripts through `/bin/sh`, which is bash 3.2 on macOS. Using bash 4+ features will cause `make` to fail with cryptic errors like "invalid option" or "operand expected".
+**Why this matters**: The Justfile runs scripts through `/bin/sh`, which is bash 3.2 on macOS. Using bash 4+ features will cause `just` to fail with cryptic errors like "invalid option" or "operand expected".
 
 ## Git Commit Guidelines
 

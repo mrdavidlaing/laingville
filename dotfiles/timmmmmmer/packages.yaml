@@ -10,7 +10,6 @@ arch:
     - gnome-console
     - gimp
     - base-devel
-    - make
     - bash
     - git
     - github-cli

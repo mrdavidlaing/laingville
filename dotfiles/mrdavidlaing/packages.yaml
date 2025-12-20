@@ -29,7 +29,6 @@ arch:
     - qt5-wayland
     - nodejs-lts-jod  # Node.js 22.x LTS (Jod) - includes npm
     - base-devel
-    - make
     - bash
     - git
     - git-lfs
@@ -100,7 +99,6 @@ arch:
 wsl:
   pacman:
     - base-devel
-    - make
     - bash
     - git
     - git-lfs
@@ -221,7 +219,6 @@ macos:
     - tig
     - lazygit
     # System tools
-    - make
     - rsync
     - neovim
     - tmux

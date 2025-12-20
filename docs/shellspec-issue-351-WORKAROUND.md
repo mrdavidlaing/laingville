@@ -79,7 +79,7 @@ shellspec spec/format_line_endings.reporter-bug_spec.sh
 shellspec spec/format_whitespace.reporter-bug_spec.sh
 
 # Or run all tests
-make test-bash
+just test-bash
 ```
 
 ## Why Not Always Use Windows PowerShell?
@@ -95,7 +95,7 @@ make test-bash
 Even without installing native PowerShell, the sidecar file approach (`*.reporter-bug_spec.sh`) works:
 
 1. Problematic tests isolated in separate files
-2. Run with error suppression in Makefile
+2. Run with error suppression in Justfile
 3. Tests still validate functionality, just suppress reporter errors
 
 However, **installing native Linux PowerShell is the better solution** as it:

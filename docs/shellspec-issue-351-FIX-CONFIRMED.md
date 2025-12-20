@@ -80,7 +80,7 @@ Finished in 2.95 seconds
 ### Main Test Suite
 
 ```bash
-$ make test-bash
+$ just test-bash
 
 Running: /usr/sbin/bash [bash 5.3.3(1)-release]
 ...........................................
@@ -124,7 +124,7 @@ No need for `wslpath` conversions - native Linux paths work directly.
 
 ### Test Infrastructure
 - No sidecar files needed (can move tests back to main specs)
-- No error suppression needed (can simplify Makefile)
+- No error suppression needed (can simplify Justfile)
 - Cleaner CI/CD pipeline
 
 ## Current Test Failures
@@ -149,17 +149,17 @@ Since the reporter bug is fixed, we can optionally move tests back:
 # spec/format_whitespace.reporter-bug_spec.sh → spec/format_whitespace_spec.sh
 ```
 
-### 2. Simplify Makefile (Optional)
+### 2. Simplify Justfile (Optional)
 
 Remove error suppression logic since it's no longer needed:
 
-```makefile
+```justfile
 # Before: Complex handling of reporter-bug files
-reporter_bug_specs=$(find spec -name '*.reporter-bug_spec.sh' ...)
-output=$(shellspec "$spec" 2>&1 | sed -e 's/, aborted by an unexpected error$//' ...)
+# (if any error suppression was added)
 
 # After: Simple normal test execution
-shellspec spec/*_spec.sh
+test-bash:
+    shellspec spec/*_spec.sh
 ```
 
 ### 3. Fix Formatting Issues
