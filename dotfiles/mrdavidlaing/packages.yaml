@@ -7,6 +7,7 @@ omarchy:
     - 1password-cli
     - beads-git
     - direnv  # Critical for devcontainer workflow
+    - just  # Command runner (replaces make)
   custom:
     - install_claude_code
     - install_happy_cli
@@ -225,6 +226,7 @@ macos:
     - navi
     - laio
     - tailscale
+    - just  # Command runner (replaces make)
     - yarn  # Required for install_happy_cli
     - shellcheck  # Required for pre-push hook linting
     - shfmt  # Required for pre-push hook formatting
