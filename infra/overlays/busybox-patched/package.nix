@@ -1,5 +1,5 @@
 # Busybox 1.37.0 to fix CVEs included in upstream release
-# The nixpkgs nixos-25.11-small includes busybox 1.36.1 with backported patches,
+# The nixpkgs nixpkgs-unstable includes busybox 1.36.1 with backported patches,
 # but scanners still flag it based on version number.
 #
 # 1.37.0 includes all CVE fixes upstream:

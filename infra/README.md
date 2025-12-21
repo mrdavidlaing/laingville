@@ -55,7 +55,7 @@ docker load < result
 ┌─────────────────────────────────────────────────────────────────────┐
 │  infra/flake.nix (single source of truth)                           │
 │                                                                     │
-│  nixpkgs pinned @ nixos-25.11-small (weekly updates via CI)         │
+│  nixpkgs pinned @ nixpkgs-unstable (weekly updates via CI)          │
 │                                                                     │
 │  Package Sets:                    Builder Functions:                │
 │  ├── base                         ├── mkDevContainer { packages }   │
