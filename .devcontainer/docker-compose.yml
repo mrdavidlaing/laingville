@@ -1,0 +1,14 @@
+services:
+  devcontainer:
+    image: ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:latest
+    # Multi-arch image (amd64 + arm64) - Docker will select the right architecture
+    volumes:
+      - ..:/workspaces/laingville:cached
+      # SSH agent forwarding:
+      # - macOS (Colima/Docker Desktop): uses /run/host-services/ssh-auth.sock (default)
+      # - Linux: set DEVCONTAINER_SSH_SOCK=$SSH_AUTH_SOCK before opening devcontainer
+      - ${DEVCONTAINER_SSH_SOCK:-/run/host-services/ssh-auth.sock}:/ssh-agent:ro
+    environment:
+      SSH_AUTH_SOCK: /ssh-agent
+    # Keep container running
+    command: sleep infinity

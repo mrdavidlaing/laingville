@@ -232,6 +232,10 @@ macos:
     - shfmt  # Required for pre-push hook formatting
     - shellspec  # Required for pre-push hook tests
     - steveyegge/beads/bd  # beads issue tracker (from steveyegge/beads tap)
+    # Container runtime
+    - colima  # Docker-compatible container runtime (Docker Desktop alternative)
+    - docker  # Docker CLI (works with colima)
+    - lazydocker  # Terminal UI for docker/colima container management
     # Omarchy-style desktop enhancements (from FelixKratz/formulae tap)
     - FelixKratz/formulae/borders  # JankyBorders - window border highlighting
   cask:
