@@ -121,6 +121,7 @@
             shellcheck       # Shell script static analysis tool
             shellspec        # BDD testing framework for shell scripts
             shfmt            # Shell script formatter
+            kcov             # Code coverage tool (used by ShellSpec --kcov)
           ];
         };
 
