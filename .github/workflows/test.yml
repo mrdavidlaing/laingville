@@ -162,6 +162,7 @@ jobs:
         echo "🎨 Checking formatting on ${{ matrix.platform }}..."
         files_to_check=$(find . -type f \( -name "*.sh" -o -name "*.bash" -o -name "*.ps1" \) \
           -not -path "./.git/*" \
+          -not -path "./.worktrees/*" \
           -not -path "./dotfiles/*/.*" \
           -not -path "./spec/fixtures/*" \
           2>/dev/null)
@@ -172,8 +173,8 @@ jobs:
           ./scripts/format-files.sh --check --batch $all_files
         fi
 
-        echo "🔍 Linting scripts on ${{ matrix.platform }}..."
-        make lint
+        echo "🔍 Linting bash scripts on ${{ matrix.platform }}..."
+        ./scripts/lint-bash.sh
         
     - name: Run shellspec tests with coverage (Linux)
       if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
@@ -401,10 +402,10 @@ jobs:
         Import-Module PSScriptAnalyzer -Force
 
     - name: Run linting
-      shell: bash
+      shell: pwsh
       run: |
-        echo "🔍 Running linting on ${{ matrix.os }}..."
-        make lint
+        Write-Host "🔍 Linting PowerShell scripts on ${{ matrix.os }}..." -ForegroundColor Cyan
+        pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/lint-powershell.ps1
 
     - name: Run Pester tests with coverage
       shell: pwsh
