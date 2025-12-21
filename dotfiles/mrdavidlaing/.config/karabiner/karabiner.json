@@ -23,6 +23,125 @@
         },
         "rules": [
           {
+            "description": "Cmd+Caps Lock+3/4/5 → Cmd+Ctrl+3/4/5 (for Aerospace)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "simultaneous": [
+                    {
+                      "key_code": "caps_lock"
+                    },
+                    {
+                      "key_code": "3",
+                      "modifiers": {
+                        "mandatory": ["command"]
+                      }
+                    }
+                  ],
+                  "simultaneous_options": {
+                    "detect_key_down_uninterruptedly": false,
+                    "key_down_order": "insensitive",
+                    "key_up_order": "insensitive",
+                    "key_up_when": "any"
+                  }
+                },
+                "to": [
+                  {
+                    "key_code": "3",
+                    "modifiers": [
+                      "left_command",
+                      "left_control"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "simultaneous": [
+                    {
+                      "key_code": "caps_lock"
+                    },
+                    {
+                      "key_code": "4",
+                      "modifiers": {
+                        "mandatory": ["command"]
+                      }
+                    }
+                  ],
+                  "simultaneous_options": {
+                    "detect_key_down_uninterruptedly": false,
+                    "key_down_order": "insensitive",
+                    "key_up_order": "insensitive",
+                    "key_up_when": "any"
+                  }
+                },
+                "to": [
+                  {
+                    "key_code": "4",
+                    "modifiers": [
+                      "left_command",
+                      "left_control"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "simultaneous": [
+                    {
+                      "key_code": "caps_lock"
+                    },
+                    {
+                      "key_code": "5",
+                      "modifiers": {
+                        "mandatory": ["command"]
+                      }
+                    }
+                  ],
+                  "simultaneous_options": {
+                    "detect_key_down_uninterruptedly": false,
+                    "key_down_order": "insensitive",
+                    "key_up_order": "insensitive",
+                    "key_up_when": "any"
+                  }
+                },
+                "to": [
+                  {
+                    "key_code": "5",
+                    "modifiers": [
+                      "left_command",
+                      "left_control"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Caps Lock: Disable normal behavior (alone does nothing)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "caps_lock"
+                },
+                "to_if_alone": [
+                  {
+                    "key_code": "vk_none"
+                  }
+                ],
+                "to_if_held_down": [
+                  {
+                    "key_code": "vk_none"
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "description": "Disable Cmd+H (Hide) and Cmd+M (Minimize)",
             "manipulators": [
               {

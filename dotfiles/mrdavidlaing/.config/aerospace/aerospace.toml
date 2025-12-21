@@ -1,10 +1,13 @@
 # AeroSpace configuration (macOS tiling WM)
-# Goal: Hyprland-like, keyboard-driven workflow using HYPER (Caps Lock)
+# Goal: Hyprland-like, keyboard-driven workflow
 #
 # SUPER is implemented as macOS Command (Cmd).
 # NOTE: Cmd is heavily used by macOS/apps; some bindings may conflict or be
 # swallowed by apps/system shortcuts. If that happens, either choose different
 # keys or reintroduce a dedicated modifier via Karabiner.
+#
+# Workspaces 3-5 use Cmd+Caps Lock instead of Cmd+Shift to avoid macOS screenshot conflicts
+# Caps Lock alone sends Escape (configured in Karabiner, useful for vim/terminal)
 
 start-at-login = true
 
@@ -22,12 +25,12 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 on-focused-monitor-changed = ["move-mouse monitor-lazy-center"]
 
 [gaps]
-inner.horizontal = 8
-inner.vertical = 8
-outer.left = 8
-outer.bottom = 8
-outer.top = 8  # Sketchybar lives in menu bar area, just need gap
-outer.right = 8
+inner.horizontal = 12
+inner.vertical = 12
+outer.left = 12
+outer.bottom = 12
+outer.top = 12  # Sketchybar lives in menu bar area, just need gap
+outer.right = 12
 
 [mode.main.binding]
 # Focus (arrow keys)
@@ -54,11 +57,12 @@ cmd-shift-up = "move up"
 cmd-shift-right = "move right"
 
 # Send window to workspace (Hyprland: SUPER+SHIFT+[1-9])
+# Note: Workspaces 3-5 use Cmd+Ctrl (mapped from Cmd+Caps Lock via Karabiner) to avoid macOS screenshot conflicts
 cmd-shift-1 = "move-node-to-workspace 1"
 cmd-shift-2 = "move-node-to-workspace 2"
-cmd-shift-3 = "move-node-to-workspace 3"
-cmd-shift-4 = "move-node-to-workspace 4"
-cmd-shift-5 = "move-node-to-workspace 5"
+cmd-ctrl-3 = "move-node-to-workspace 3"
+cmd-ctrl-4 = "move-node-to-workspace 4"
+cmd-ctrl-5 = "move-node-to-workspace 5"
 cmd-shift-6 = "move-node-to-workspace 6"
 cmd-shift-7 = "move-node-to-workspace 7"
 cmd-shift-8 = "move-node-to-workspace 8"
@@ -67,7 +71,7 @@ cmd-shift-9 = "move-node-to-workspace 9"
 # Window actions
 cmd-f = "fullscreen"
 # Toggle split direction for the current container (Hyprland-style togglesplit)
-cmd-j = "layout horizontal vertical"
+cmd-j = "layout tiles horizontal vertical"
 
 # App launcher basics (kept minimal; expand later)
 cmd-enter = "exec-and-forget open -na Ghostty"
