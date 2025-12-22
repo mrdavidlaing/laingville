@@ -29,7 +29,7 @@ Comprehensive security scanning of container images and repository code.
 - Table output in job logs for CRITICAL/HIGH findings
 
 #### `claude-security-fix.yml` - Automated Security Remediation
-Uses Claude CLI to automatically identify and fix security vulnerabilities.
+Uses the Claude Code Action to automatically identify and fix security vulnerabilities.
 
 **Triggers:**
 - Weekly on Mondays at 9am UTC (schedule)
@@ -37,7 +37,7 @@ Uses Claude CLI to automatically identify and fix security vulnerabilities.
 - Manual trigger
 
 **What it does:**
-1. Runs the `/security-fix` slash command via Claude CLI
+1. Runs the `/security-fix` slash command via the official Claude Code Action
 2. Analyzes GitHub security code-scanning alerts
 3. Applies fixes following the security-fix playbook:
    - First attempts nixpkgs upstream update
@@ -45,8 +45,8 @@ Uses Claude CLI to automatically identify and fix security vulnerabilities.
 4. Creates a PR with the proposed fixes
 
 **Requirements:**
-- `ANTHROPIC_API_KEY` secret must be configured in repository settings
-- See [Setup Guide](#setting-up-claude-cli-automation) below
+- `CLAUDE_CODE_OAUTH_TOKEN` secret must be configured in repository settings
+- See [Setup Guide](#setting-up-claude-code-automation) below
 
 **Branch naming:** `claude/security-fix-<timestamp>`
 
@@ -120,25 +120,24 @@ Uses Claude to review pull requests.
 #### `claude.yml` - Claude Integration
 General Claude Code integration for various automated tasks.
 
-## Setting Up Claude CLI Automation
+## Setting Up Claude Code Automation
 
 To use the `claude-security-fix.yml` workflow, you need to configure authentication:
 
-### 1. Get an Anthropic API Key
+### 1. Get a Claude Code OAuth Token
 
-1. Go to [Anthropic Console](https://console.anthropic.com)
-2. Sign in or create an account
-3. Navigate to API Keys section
-4. Generate a new API key
-5. Copy the key securely
+1. Install the Claude CLI locally: `npm install -g @anthropic/claude-cli`
+2. Run `claude login` and follow the instructions
+3. Once logged in, you can find your token in the Claude configuration file (usually `~/.claude/config.json`) or by running `claude auth token` (if available).
+4. Alternatively, if the repository has the Claude Code GitHub App installed, follow the app-specific instructions for obtaining a token.
 
 ### 2. Add Secret to GitHub Repository
 
 1. Go to your repository on GitHub
 2. Navigate to: **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
-4. Name: `ANTHROPIC_API_KEY`
-5. Value: Paste your Anthropic API key
+4. Name: `CLAUDE_CODE_OAUTH_TOKEN`
+5. Value: Paste your Claude Code OAuth token
 6. Click **Add secret**
 
 ### 3. Test the Workflow
@@ -256,9 +255,9 @@ pwsh.exe -NoProfile -Command "Invoke-Pester -Path ./spec/powershell"
 
 ### Claude Security Fix Issues
 
-**Problem:** Workflow skips execution
-- **Cause:** `ANTHROPIC_API_KEY` not configured
-- **Solution:** Follow [setup guide](#setting-up-claude-cli-automation)
+**Problem:** Workflow fails at "Validate secrets" step
+- **Cause:** `CLAUDE_CODE_OAUTH_TOKEN` not configured
+- **Solution:** Follow [setup guide](#setting-up-claude-code-automation)
 
 **Problem:** Claude makes no changes
 - **Possible reasons:**
