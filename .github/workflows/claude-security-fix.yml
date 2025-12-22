@@ -42,6 +42,15 @@ jobs:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
 
     steps:
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not configured"
+            echo "Please add your Claude Code OAuth token to repository secrets"
+            echo "See: .github/workflows/README.md for setup instructions"
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -80,7 +89,7 @@ jobs:
             Follow the playbook in .claude/commands/security-fix.md.
             You have access to 'nix' and standard bash tools.
             Do not commit changes; the workflow handles committing.
-          claude_args: '--model ${{ inputs.model || 'claude-sonnet-4-5-20250929' }} --allowed-tools "Bash"'
+          claude_args: '--model ${{ inputs.model || 'claude-sonnet-4-5-20250929' }} --allowed-tools "Bash,Read,Edit,Write,Glob,Grep"'
 
       - name: Check for changes
         id: changes
