@@ -3,7 +3,7 @@
   description = "Nix container infrastructure for laingville";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -259,7 +259,7 @@ EOF
                 "HOME=${home}"
                 "USER=${user}"
                 "PATH=${home}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
-                "NIX_PATH=nixpkgs=channel:nixos-25.11-small"
+                "NIX_PATH=nixpkgs=channel:nixpkgs-unstable"
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 # VS Code Remote compatibility - provide libraries via LD_LIBRARY_PATH
                 # This allows VS Code's node binary to find glibc and libstdc++ without patching
