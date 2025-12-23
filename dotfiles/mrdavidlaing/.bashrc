@@ -3,6 +3,12 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
+# Source universal shell environment (PATH, EDITOR, etc.)
+# This ensures VS Code terminals (non-login interactive shells) get all environment variables
+if [[ -f ~/.profile ]]; then
+    source ~/.profile
+fi
+
 # Source omarchy defaults (real or compat based on platform)
 if [ -f ~/.local/share/omarchy/default/bash/rc ]; then
   # Real Omarchy

@@ -12,7 +12,7 @@
 #
 # Environment:
 #   COLIMA_INSTANCE  - Colima instance name (default: ntt-7842)
-#   CACHIX_NAME      - Cachix cache name (default: mo-private)
+#   CACHIX_NAME      - Cachix cache name (default: mrdavidlaing)
 #   CACHIX_AUTH_TOKEN - Override Cachix token (default: read from ~/.config/cachix/cachix.dhall)
 
 set -euo pipefail
@@ -31,7 +31,7 @@ fi
 COLIMA_INSTANCE="${COLIMA_INSTANCE:-nix-builder}"
 PACKAGE="${1:-laingville-devcontainer}"
 TAG="${2:-latest}"
-CACHIX_NAME="${CACHIX_NAME:-mo-private}"
+CACHIX_NAME="${CACHIX_NAME:-mrdavidlaing}"
 
 # Get Cachix auth token from Mac's config if not set
 if [ -z "${CACHIX_AUTH_TOKEN:-}" ]; then

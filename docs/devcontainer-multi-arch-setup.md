@@ -88,14 +88,14 @@ The `build-in-colima` script handles everything:
 **What it does:**
 1. Checks if Colima is running
 2. Configures Cachix in the VM (using your macOS auth token)
-3. SSHs into VM and runs `nix build` (pulls from cache.nixos.org + mo-private)
+3. SSHs into VM and runs `nix build` (pulls from cache.nixos.org + mrdavidlaing)
 4. Pushes build results to Cachix (default, speeds up future builds)
 5. Streams the tarball to `docker load`
 6. Tags the image
 
 **Environment variables:**
 - `COLIMA_INSTANCE` - Override the instance name (default: `nix-builder`)
-- `CACHIX_NAME` - Cache name (default: `mo-private`)
+- `CACHIX_NAME` - Cache name (default: `mrdavidlaing`)
 - `CACHIX_AUTH_TOKEN` - Override token (default: read from `~/.config/cachix/cachix.dhall`)
 
 ## Cachix Integration
@@ -106,10 +106,10 @@ The build script automatically uses your private Cachix cache for faster builds.
 
 1. **Downloads from caches:**
    - `cache.nixos.org` - Standard nixpkgs packages (python, bash, etc.)
-   - `mo-private.cachix.org` - Your custom packages
+   - `mrdavidlaing.cachix.org` - Your custom packages
 
 2. **Pushes after build:**
-   - All custom derivations are pushed to `mo-private`
+   - All custom derivations are pushed to `mrdavidlaing`
    - Next build (same commit) fetches instead of rebuilds
 
 ### Prerequisites
@@ -122,7 +122,7 @@ nix profile install nixpkgs#cachix
 cachix authtoken <your-token>
 
 # Configure nix to use your cache
-cachix use mo-private
+cachix use mrdavidlaing
 ```
 
 The build script reads your token from `~/.config/cachix/cachix.dhall` and your cache config from `~/.config/nix/nix.conf`.
