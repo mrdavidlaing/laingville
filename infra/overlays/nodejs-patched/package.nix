@@ -18,7 +18,6 @@
   fetchurl,
   nodejs_22,
   makeWrapper,
-  nukeReferences,
 }:
 
 let
@@ -54,7 +53,10 @@ let
 
 in
 stdenv.mkDerivation {
-  pname = "nodejs-patched";
+  # Use short name to match original nodejs_22 path length for binary patching
+  # Original: /nix/store/xxxxx-nodejs-22.21.1 (58 chars)
+  # This:     /nix/store/xxxxx-node22-22.21.1 (58 chars)
+  pname = "node22";
   # Use original nodejs version for srcOnly compatibility (it derives source name from version)
   inherit (nodejs_22) version;
 
@@ -65,27 +67,49 @@ stdenv.mkDerivation {
   # Don't unpack since we're just wrapping binaries
   dontUnpack = true;
 
-  nativeBuildInputs = [ makeWrapper nukeReferences ];
+  nativeBuildInputs = [ makeWrapper ];
 
   installPhase = ''
     runHook preInstall
 
     mkdir -p $out/bin $out/lib/node_modules $out/share/man $out/include
 
-    # Copy node binary from original nodejs (avoid runtime reference to nodejs_22)
+    # Copy node binary from original nodejs
     # shellcheck disable=SC2154
     install -m 0755 ${nodejs_22}/bin/node $out/bin/node
 
-    # Nuke references to the original nodejs_22 store path to ensure it
-    # doesn't remain in the container closure and trigger security scans.
-    # The node binary is mostly self-contained and should still work as
-    # its shared library dependencies (glibc, openssl, etc.) are in
-    # their own separate store paths.
-    nuke-refs $out/bin/node
+    # Replace the embedded node_prefix path to point to our output instead of
+    # the original nodejs_22. This prevents the vulnerable npm (which we don't use)
+    # from appearing in the container closure.
+    #
+    # The node_prefix is used by node to find bundled npm/corepack. Since we
+    # provide our own patched npm, we want node to find it in $out, not in the
+    # original nodejs_22 which contains the vulnerable npm.
+    #
+    # IMPORTANT: Both paths must be the same length to avoid corrupting the binary.
+    # We use pname="node22" to match "nodejs" length (6 chars each).
+    original_prefix="${nodejs_22}"
+    original_len=''${#original_prefix}
+    out_len=''${#out}
+    if [ "$original_len" != "$out_len" ]; then
+      echo "ERROR: Path length mismatch! Cannot safely patch binary."
+      echo "  Original: $original_prefix ($original_len chars)"
+      echo "  Output:   $out ($out_len chars)"
+      echo "  Adjust pname to match the original path length."
+      exit 1
+    fi
+    # Replace store path in the binary - safe because we're only changing path strings
+    sed -i "s|$original_prefix|$out|g" $out/bin/node
 
     # Copy include directory if present (needed for native module compilation)
     if [ -d "${nodejs_22}/include" ] && [ "$(ls -A ${nodejs_22}/include 2>/dev/null)" ]; then
       cp -r ${nodejs_22}/include/* $out/include/
+      # Make files writable for patching (they're read-only from nix store)
+      chmod -R u+w $out/include/
+      # Patch config.gypi to remove reference to original nodejs
+      if [ -f "$out/include/node/config.gypi" ]; then
+        sed -i "s|$original_prefix|$out|g" $out/include/node/config.gypi
+      fi
     fi
 
     # Don't copy share/man from original nodejs as it contains symlinks to
