@@ -6,7 +6,7 @@
 # swallowed by apps/system shortcuts. If that happens, either choose different
 # keys or reintroduce a dedicated modifier via Karabiner.
 #
-# Workspaces 3-5 use Cmd+Caps Lock instead of Cmd+Shift to avoid macOS screenshot conflicts
+# Move window to workspace: Cmd+Caps Lock+<number> (Caps Lock → Control via Karabiner)
 # Caps Lock alone sends Escape (configured in Karabiner, useful for vim/terminal)
 
 start-at-login = true
@@ -56,17 +56,16 @@ cmd-shift-down = "move down"
 cmd-shift-up = "move up"
 cmd-shift-right = "move right"
 
-# Send window to workspace (Hyprland: SUPER+SHIFT+[1-9])
-# Note: Workspaces 3-5 use Cmd+Ctrl (mapped from Cmd+Caps Lock via Karabiner) to avoid macOS screenshot conflicts
-cmd-shift-1 = "move-node-to-workspace 1"
-cmd-shift-2 = "move-node-to-workspace 2"
+# Send window to workspace: Cmd+Caps Lock+<number> (Caps Lock → Control via Karabiner)
+cmd-ctrl-1 = "move-node-to-workspace 1"
+cmd-ctrl-2 = "move-node-to-workspace 2"
 cmd-ctrl-3 = "move-node-to-workspace 3"
 cmd-ctrl-4 = "move-node-to-workspace 4"
 cmd-ctrl-5 = "move-node-to-workspace 5"
-cmd-shift-6 = "move-node-to-workspace 6"
-cmd-shift-7 = "move-node-to-workspace 7"
-cmd-shift-8 = "move-node-to-workspace 8"
-cmd-shift-9 = "move-node-to-workspace 9"
+cmd-ctrl-6 = "move-node-to-workspace 6"
+cmd-ctrl-7 = "move-node-to-workspace 7"
+cmd-ctrl-8 = "move-node-to-workspace 8"
+cmd-ctrl-9 = "move-node-to-workspace 9"
 
 # Window actions
 cmd-f = "fullscreen"
