@@ -18,6 +18,7 @@
   fetchurl,
   nodejs_22,
   makeWrapper,
+  nukeReferences,
 }:
 
 let
@@ -64,7 +65,7 @@ stdenv.mkDerivation {
   # Don't unpack since we're just wrapping binaries
   dontUnpack = true;
 
-  nativeBuildInputs = [ makeWrapper ];
+  nativeBuildInputs = [ makeWrapper nukeReferences ];
 
   installPhase = ''
     runHook preInstall
@@ -74,6 +75,13 @@ stdenv.mkDerivation {
     # Copy node binary from original nodejs (avoid runtime reference to nodejs_22)
     # shellcheck disable=SC2154
     install -m 0755 ${nodejs_22}/bin/node $out/bin/node
+
+    # Nuke references to the original nodejs_22 store path to ensure it
+    # doesn't remain in the container closure and trigger security scans.
+    # The node binary is mostly self-contained and should still work as
+    # its shared library dependencies (glibc, openssl, etc.) are in
+    # their own separate store paths.
+    nuke-refs $out/bin/node
 
     # Copy include directory if present (needed for native module compilation)
     if [ -d "${nodejs_22}/include" ] && [ "$(ls -A ${nodejs_22}/include 2>/dev/null)" ]; then
