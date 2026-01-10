@@ -13,7 +13,7 @@ PROFILES_DIR="$OPENCODE_CONFIG_DIR/profiles"
 if [[ "${DRY_RUN}" = "true" ]]; then
   echo "[oh-my-opencode] [DRY RUN] Would register oh-my-opencode@${OMO_VERSION} plugin in opencode.json"
   echo "[oh-my-opencode] [DRY RUN] Would symlink oh-my-opencode.json to profiles/value.json"
-  echo "[oh-my-opencode] [DRY RUN] Would run 'bun install' in opencode config directory"
+  echo "[oh-my-opencode] [DRY RUN] Would run 'bun install' and 'bun update' in opencode config directory"
   exit 0
 fi
 
@@ -76,7 +76,7 @@ elif [[ -f "$OMO_JSON" ]]; then
   echo "[oh-my-opencode] [OK] oh-my-opencode.json file already exists (not a symlink)"
 fi
 
-# Step 3: Run bun install in opencode config directory to install plugins
+# Step 3: Run bun install and update in opencode config directory to install plugins
 echo "Installing plugins via bun in $OPENCODE_CONFIG_DIR..."
 cd "$OPENCODE_CONFIG_DIR"
 
@@ -112,11 +112,19 @@ else
   fi
 fi
 
-# Run bun install to install all plugins in package.json
+# Run bun install to resolve dependencies
 if bun install; then
-  echo "[oh-my-opencode] [OK] Installed plugins via bun"
+  echo "[oh-my-opencode] [OK] Resolved dependencies via bun install"
 else
   echo "[oh-my-opencode] [ERROR] bun install failed"
+  exit 1
+fi
+
+# Run bun update to install binaries (oh-my-opencode CLI)
+if bun update oh-my-opencode; then
+  echo "[oh-my-opencode] [OK] Installed binaries via bun update"
+else
+  echo "[oh-my-opencode] [ERROR] bun update failed"
   exit 1
 fi
 
