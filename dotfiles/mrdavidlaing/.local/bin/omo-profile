@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# omo-profile - Switch oh-my-opencode agent profiles
+#
+# Usage:
+#   omo-profile [profile]    Switch to profile (free, value, performance)
+#   omo-profile              Show current profile
+#   omo-profile --list       List available profiles
+#   omo-profile --help       Show this help
+#
+# Profiles:
+#   free        - Free models only (gpt-5-nano, big-pickle, glm-4.7-free)
+#   value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1-2/1M tokens
+#   performance - Maximum quality (opus, gpt-5.2, sonnet, haiku for speed)
+
+set -e
+
+OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+PROFILES_DIR="$OPENCODE_CONFIG_DIR/profiles"
+TARGET_FILE="$OPENCODE_CONFIG_DIR/oh-my-opencode.json"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+show_help() {
+  cat << 'EOF'
+omo-profile - Switch oh-my-opencode agent profiles
+
+Usage:
+  omo-profile [profile]    Switch to profile (free, value, performance)
+  omo-profile              Show current profile
+  omo-profile --list       List available profiles
+  omo-profile --help       Show this help
+
+Profiles:
+  free        - Free models only (gpt-5-nano, big-pickle, glm-4.7-free)
+  value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1-2/1M tokens
+  performance - Maximum quality (opus, gpt-5.2, sonnet, haiku for speed)
+
+Shell Aliases:
+  omo-free    Shortcut for 'omo-profile free'
+  omo-value   Shortcut for 'omo-profile value'
+  omo-perf    Shortcut for 'omo-profile performance'
+
+Examples:
+  omo-profile value        # Switch to value profile
+  omo-perf                 # Switch to performance profile
+  omo-profile              # Show current profile
+EOF
+}
+
+list_profiles() {
+  echo -e "${BLUE}Available profiles:${NC}"
+  echo ""
+  for profile_file in "$PROFILES_DIR"/*.json; do
+    if [[ -f "$profile_file" ]]; then
+      profile_name=$(basename "$profile_file" .json)
+      # Check if this is the current profile
+      if [[ -L "$TARGET_FILE" ]]; then
+        current_target=$(readlink "$TARGET_FILE")
+        if [[ "$current_target" == "$profile_file" ]] || [[ "$current_target" == "profiles/$profile_name.json" ]]; then
+          echo -e "  ${GREEN}* $profile_name${NC} (active)"
+        else
+          echo "    $profile_name"
+        fi
+      else
+        echo "    $profile_name"
+      fi
+    fi
+  done
+  echo ""
+}
+
+get_current_profile() {
+  if [[ -L "$TARGET_FILE" ]]; then
+    current_target=$(readlink "$TARGET_FILE")
+    # Extract profile name from path
+    profile_name=$(basename "$current_target" .json)
+    echo "$profile_name"
+  elif [[ -f "$TARGET_FILE" ]]; then
+    echo "(custom config - not a profile symlink)"
+  else
+    echo "(none)"
+  fi
+}
+
+switch_profile() {
+  local profile="$1"
+  local profile_file="$PROFILES_DIR/$profile.json"
+  
+  if [[ ! -f "$profile_file" ]]; then
+    echo -e "${RED}Error: Profile '$profile' not found${NC}" >&2
+    echo "Available profiles:" >&2
+    ls -1 "$PROFILES_DIR"/*.json 2>/dev/null | xargs -I {} basename {} .json | sed 's/^/  /' >&2
+    exit 1
+  fi
+  
+  # Ensure config directory exists
+  mkdir -p "$OPENCODE_CONFIG_DIR"
+  
+  # Backup existing config if it's a regular file (not a symlink)
+  if [[ -f "$TARGET_FILE" && ! -L "$TARGET_FILE" ]]; then
+    backup_file="$TARGET_FILE.backup.$(date +%Y%m%d%H%M%S)"
+    mv "$TARGET_FILE" "$backup_file"
+    echo -e "${YELLOW}Backed up existing config to: $backup_file${NC}"
+  fi
+  
+  # Remove existing symlink if present
+  if [[ -L "$TARGET_FILE" ]]; then
+    rm "$TARGET_FILE"
+  fi
+  
+  # Create symlink (use relative path for portability)
+  ln -s "profiles/$profile.json" "$TARGET_FILE"
+  
+  echo -e "${GREEN}Switched to '$profile' profile${NC}"
+  echo ""
+  echo "Agent model assignments:"
+  jq -r '.agents | to_entries[] | "  \(.key): \(.value.model)"' "$profile_file"
+}
+
+# Main
+case "${1:-}" in
+  --help|-h)
+    show_help
+    ;;
+  --list|-l)
+    list_profiles
+    ;;
+  "")
+    current=$(get_current_profile)
+    echo -e "Current profile: ${GREEN}$current${NC}"
+    echo ""
+    echo "Use 'omo-profile --list' to see available profiles"
+    echo "Use 'omo-profile <name>' to switch profiles"
+    ;;
+  *)
+    switch_profile "$1"
+    ;;
+esac

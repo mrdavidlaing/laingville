@@ -8,8 +8,10 @@ omarchy:
     - beads-git
     - direnv  # Critical for devcontainer workflow
     - just  # Command runner (replaces make)
+    - opencode-bin  # AI coding assistant CLI
   custom:
     - install_claude_code
+    - install_oh_my_opencode
     - remove_happy_cli
     - configure_tailscale
     - remove_rectangle_config
@@ -93,6 +95,7 @@ arch:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
+    - install_oh_my_opencode
     - remove_happy_cli
     - configure_tailscale
 
@@ -140,6 +143,8 @@ macos:
     - lazydocker  # Terminal UI for docker/colima container management
     # Omarchy-style desktop enhancements (from FelixKratz/formulae tap)
     - FelixKratz/formulae/borders  # JankyBorders - window border highlighting
+    # AI coding assistant
+    - opencode
   cask:
     - ghostty
     - aerospace
@@ -149,6 +154,7 @@ macos:
     - sketchybar  # Removed 2025-12-20, clock hidden behind notch, not worth the complexity
   custom:
     - install_claude_code
+    - install_oh_my_opencode
     - remove_happy_cli
     - configure_tailscale
     - cleanup_old_beads_install

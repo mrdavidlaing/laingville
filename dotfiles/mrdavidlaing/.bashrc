@@ -38,3 +38,8 @@ lg() {
   local op_sock=$(ssh -G github.com | awk '/^identityagent / { print $2 }')
   SSH_AUTH_SOCK="${op_sock:-$SSH_AUTH_SOCK}" command lazygit "$@"
 }
+
+# oh-my-opencode profile shortcuts
+alias omo-free='omo-profile free'
+alias omo-value='omo-profile value'
+alias omo-perf='omo-profile performance'
