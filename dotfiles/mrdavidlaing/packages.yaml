@@ -10,7 +10,7 @@ omarchy:
     - just  # Command runner (replaces make)
   custom:
     - install_claude_code
-    - install_happy_cli
+    - remove_happy_cli
     - configure_tailscale
     - remove_rectangle_config
 
@@ -93,106 +93,8 @@ arch:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
-    - install_happy_cli
+    - remove_happy_cli
     - configure_tailscale
-
-# WSL - terminal-focused, no GUI
-wsl:
-  pacman:
-    - base-devel
-    - bash
-    - git
-    - git-lfs
-    - openssh
-    - tmux
-    - neovim
-    - go
-    - nodejs-lts-jod  # Node.js 22.x LTS (Jod) - includes npm
-    - ripgrep
-    - bat
-    - fd
-    - fzf
-    - jq
-    - shellcheck
-    - just
-    - rsync
-    - unzip
-    - docker
-    - wget
-    - tailscale
-    - gemini-cli
-  yay:
-    # AUR-only packages
-    - glibc-locales
-    - direnv
-    - github-cli
-    - tig
-    - lazygit
-    - lua-language-server
-    - bash-language-server
-    - marksman
-    - nil-git
-    - terraform-ls
-    - gopls
-    - yaml-language-server
-    - dockerfile-language-server
-    - starship
-    - zoxide
-    - eza
-    - navi
-    - pnpm
-    - bun-bin
-    - powershell-bin  # Native Linux PowerShell (avoids ShellSpec issue #351 with pwsh.exe)
-    - uv
-    - yarn
-    - kubectl
-    - shellspec
-    - shfmt
-    - glow
-    - crush-bin
-    - k9s
-    - speedtest-cli
-    - opencode-bin
-    - wslu  # WSL Utilities - provides wslview for opening URLs in Windows browser
-    - beads-git
-  yay_cleanup:
-    - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
-  custom:
-    - install_claude_code
-    - install_happy_cli
-    - configure_tailscale
-
-# Windows - GUI applications
-windows:
-  winget:
-    - Mozilla.Firefox
-    - Microsoft.PowerToys
-    - Microsoft.VisualStudioCode
-    - Starship.Starship
-    - Microsoft.PowerShell
-    - Tailscale.Tailscale
-  scoop:
-    - versions/wezterm-nightly
-    - lazygit
-    - git-lfs
-    - direnv
-    - eza
-    - zoxide
-    - bat
-    - jq
-    - just
-    - shfmt
-    - yarn
-    - bun
-    - nerd-fonts/CascadiaCode-NF
-    - nerd-fonts/JetBrainsMono-NF
-  psmodule:
-    - Pester
-    - PSScriptAnalyzer
-  custom:
-    - install_claude_code_windows
-    - install_beads
-    - configure_tailscale_windows
 
 # macOS - Unix tools and GUI apps
 # Dev tools (LSPs, build tools, project CLIs) belong in devcontainers
@@ -227,7 +129,7 @@ macos:
     - laio
     - tailscale
     - just  # Command runner (replaces make)
-    - yarn  # Required for install_happy_cli
+    - yarn
     - shellcheck  # Required for pre-push hook linting
     - shfmt  # Required for pre-push hook formatting
     - shellspec  # Required for pre-push hook tests
@@ -247,6 +149,6 @@ macos:
     - sketchybar  # Removed 2025-12-20, clock hidden behind notch, not worth the complexity
   custom:
     - install_claude_code
-    - install_happy_cli
+    - remove_happy_cli
     - configure_tailscale
     - cleanup_old_beads_install
