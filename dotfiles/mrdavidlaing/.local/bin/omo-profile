@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # omo-profile - Switch oh-my-opencode agent profiles
 #
+# Copies profile files to oh-my-opencode.json (not symlinks) to avoid
+# conflicts with oh-my-opencode's installer which overwrites symlinked files.
+#
 # Usage:
 #   omo-profile [profile]    Switch to profile (free, value, performance)
 #   omo-profile              Show current profile
@@ -55,17 +58,13 @@ EOF
 list_profiles() {
   echo -e "${BLUE}Available profiles:${NC}"
   echo ""
+  local current_profile
+  current_profile=$(get_current_profile)
   for profile_file in "$PROFILES_DIR"/*.json; do
     if [[ -f "$profile_file" ]]; then
       profile_name=$(basename "$profile_file" .json)
-      # Check if this is the current profile
-      if [[ -L "$TARGET_FILE" ]]; then
-        current_target=$(readlink "$TARGET_FILE")
-        if [[ "$current_target" == "$profile_file" ]] || [[ "$current_target" == "profiles/$profile_name.json" ]]; then
-          echo -e "  ${GREEN}* $profile_name${NC} (active)"
-        else
-          echo "    $profile_name"
-        fi
+      if [[ "$profile_name" == "$current_profile" ]]; then
+        echo -e "  ${GREEN}* $profile_name${NC} (active)"
       else
         echo "    $profile_name"
       fi
@@ -75,47 +74,56 @@ list_profiles() {
 }
 
 get_current_profile() {
-  if [[ -L "$TARGET_FILE" ]]; then
-    current_target=$(readlink "$TARGET_FILE")
-    # Extract profile name from path
-    profile_name=$(basename "$current_target" .json)
-    echo "$profile_name"
-  elif [[ -f "$TARGET_FILE" ]]; then
-    echo "(custom config - not a profile symlink)"
-  else
+  if [[ ! -f "$TARGET_FILE" ]]; then
     echo "(none)"
+    return
   fi
+
+  # Compare current config against each profile by checking .agents section
+  # (oh-my-opencode may modify other sections, but .agents is what we care about)
+  local current_agents
+  current_agents=$(jq -cS '.agents // {}' "$TARGET_FILE" 2>/dev/null) || {
+    echo "(invalid json)"
+    return
+  }
+
+  for profile_file in "$PROFILES_DIR"/*.json; do
+    if [[ -f "$profile_file" ]]; then
+      local profile_agents
+      profile_agents=$(jq -cS '.agents // {}' "$profile_file" 2>/dev/null) || continue
+      if [[ "$current_agents" == "$profile_agents" ]]; then
+        basename "$profile_file" .json
+        return
+      fi
+    fi
+  done
+
+  echo "(custom config)"
 }
 
 switch_profile() {
   local profile="$1"
   local profile_file="$PROFILES_DIR/$profile.json"
-  
+
   if [[ ! -f "$profile_file" ]]; then
     echo -e "${RED}Error: Profile '$profile' not found${NC}" >&2
     echo "Available profiles:" >&2
     ls -1 "$PROFILES_DIR"/*.json 2>/dev/null | xargs -I {} basename {} .json | sed 's/^/  /' >&2
     exit 1
   fi
-  
+
   # Ensure config directory exists
   mkdir -p "$OPENCODE_CONFIG_DIR"
-  
-  # Backup existing config if it's a regular file (not a symlink)
-  if [[ -f "$TARGET_FILE" && ! -L "$TARGET_FILE" ]]; then
-    backup_file="$TARGET_FILE.backup.$(date +%Y%m%d%H%M%S)"
-    mv "$TARGET_FILE" "$backup_file"
-    echo -e "${YELLOW}Backed up existing config to: $backup_file${NC}"
-  fi
-  
-  # Remove existing symlink if present
+
+  # Remove existing symlink if present (migration from old approach)
   if [[ -L "$TARGET_FILE" ]]; then
     rm "$TARGET_FILE"
+    echo -e "${YELLOW}Removed old symlink (migrating to copy-based profiles)${NC}"
   fi
-  
-  # Create symlink (use relative path for portability)
-  ln -s "profiles/$profile.json" "$TARGET_FILE"
-  
+
+  # Copy profile to target (overwrites existing file)
+  cp "$profile_file" "$TARGET_FILE"
+
   echo -e "${GREEN}Switched to '$profile' profile${NC}"
   echo ""
   echo "Agent model assignments:"

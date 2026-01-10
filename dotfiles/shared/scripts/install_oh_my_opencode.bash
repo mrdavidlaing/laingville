@@ -13,7 +13,7 @@ PROFILES_DIR="$OPENCODE_CONFIG_DIR/profiles"
 
 if [[ "${DRY_RUN}" = "true" ]]; then
   echo "[oh-my-opencode] [DRY RUN] Would register oh-my-opencode@${OMO_VERSION} plugin in opencode.json"
-  echo "[oh-my-opencode] [DRY RUN] Would symlink oh-my-opencode.json to profiles/value.json"
+  echo "[oh-my-opencode] [DRY RUN] Would copy profiles/value.json to oh-my-opencode.json"
   echo "[oh-my-opencode] [DRY RUN] Would run 'bun install' in opencode cache directory"
   exit 0
 fi
@@ -61,20 +61,25 @@ EOFCONFIG
   echo "[oh-my-opencode] [OK] Created opencode.json"
 fi
 
-# Step 2: Setup oh-my-opencode.json symlink to custom profile
-echo "Setting up oh-my-opencode.json symlink..."
-if [[ ! -L "$OMO_JSON" ]] && [[ ! -f "$OMO_JSON" ]]; then
+# Step 2: Setup oh-my-opencode.json from profile (copy, not symlink)
+# We use copy instead of symlink because oh-my-opencode's installer
+# follows symlinks and overwrites the target file, destroying our profiles.
+echo "Setting up oh-my-opencode.json..."
+if [[ -L "$OMO_JSON" ]]; then
+  # Migration: remove old symlink approach
+  rm "$OMO_JSON"
+  echo "[oh-my-opencode] [OK] Removed old symlink (migrating to copy-based profiles)"
+fi
+
+if [[ ! -f "$OMO_JSON" ]]; then
   if [[ -d "$PROFILES_DIR" ]] && [[ -f "$PROFILES_DIR/value.json" ]]; then
-    ln -s "profiles/value.json" "$OMO_JSON"
-    echo "[oh-my-opencode] [OK] Created symlink: oh-my-opencode.json -> profiles/value.json"
+    cp "$PROFILES_DIR/value.json" "$OMO_JSON"
+    echo "[oh-my-opencode] [OK] Copied profiles/value.json to oh-my-opencode.json"
   else
-    echo "[oh-my-opencode] [WARN] No profiles found, skipping oh-my-opencode.json symlink"
+    echo "[oh-my-opencode] [WARN] No profiles found, skipping oh-my-opencode.json setup"
   fi
-elif [[ -L "$OMO_JSON" ]]; then
-  current_target=$(readlink "$OMO_JSON")
-  echo "[oh-my-opencode] [OK] oh-my-opencode.json symlink already exists: $current_target"
-elif [[ -f "$OMO_JSON" ]]; then
-  echo "[oh-my-opencode] [OK] oh-my-opencode.json file already exists (not a symlink)"
+else
+  echo "[oh-my-opencode] [OK] oh-my-opencode.json already exists"
 fi
 
 # Step 3: Install oh-my-opencode in opencode cache directory (where opencode loads plugins from)
@@ -126,4 +131,4 @@ echo "[oh-my-opencode] [OK] Installation complete!"
 echo "[oh-my-opencode] Version: ${OMO_VERSION}"
 echo "[oh-my-opencode] Config: $OPENCODE_JSON"
 echo "[oh-my-opencode] Cache: $OPENCODE_CACHE_DIR/node_modules/oh-my-opencode"
-echo "[oh-my-opencode] Profile: $(readlink "$OMO_JSON" 2> /dev/null || echo 'not symlinked')"
+echo "[oh-my-opencode] Use 'omo-profile' to switch agent profiles"
