@@ -104,6 +104,7 @@ get_current_profile() {
 switch_profile() {
   local profile="$1"
   local profile_file="$PROFILES_DIR/$profile.json"
+  local backup_file="$TARGET_FILE.backup"
 
   if [[ ! -f "$profile_file" ]]; then
     echo -e "${RED}Error: Profile '$profile' not found${NC}" >&2
@@ -121,6 +122,11 @@ switch_profile() {
     echo -e "${YELLOW}Removed old symlink (migrating to copy-based profiles)${NC}"
   fi
 
+  # Backup existing config before overwriting
+  if [[ -f "$TARGET_FILE" ]]; then
+    cp "$TARGET_FILE" "$backup_file"
+  fi
+
   # Copy profile to target (overwrites existing file)
   cp "$profile_file" "$TARGET_FILE"
 
@@ -128,6 +134,17 @@ switch_profile() {
   echo ""
   echo "Agent model assignments:"
   jq -r '.agents | to_entries[] | "  \(.key): \(.value.model)"' "$profile_file"
+
+  # Show diff if backup exists
+  if [[ -f "$backup_file" ]]; then
+    echo ""
+    echo -e "${BLUE}Changes from previous config:${NC}"
+    if diff -q "$backup_file" "$TARGET_FILE" > /dev/null 2>&1; then
+      echo "  (no changes)"
+    else
+      diff --color=always -u "$backup_file" "$TARGET_FILE" | tail -n +3
+    fi
+  fi
 }
 
 # Main
