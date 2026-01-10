@@ -6,6 +6,7 @@ omarchy:
   yay:
     - 1password-cli
     - beads-git
+    - tailscale
     - direnv  # Critical for devcontainer workflow
     - just  # Command runner (replaces make)
     - opencode-bin  # AI coding assistant CLI
