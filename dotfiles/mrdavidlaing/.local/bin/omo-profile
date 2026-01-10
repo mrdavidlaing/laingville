@@ -8,9 +8,9 @@
 #   omo-profile --help       Show this help
 #
 # Profiles:
-#   free        - Free models only (gpt-5-nano, big-pickle, glm-4.7-free)
-#   value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1-2/1M tokens
-#   performance - Maximum quality (opus, gpt-5.2, sonnet, haiku for speed)
+#   free        - Free models only (glm-4.7-free, gpt-5-nano, big-pickle)
+#   value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1/1M tokens
+#   performance - Maximum quality (sonnet, gpt-5.2, haiku for speed) ~$5/1M tokens
 
 set -e
 
@@ -36,9 +36,9 @@ Usage:
   omo-profile --help       Show this help
 
 Profiles:
-  free        - Free models only (gpt-5-nano, big-pickle, glm-4.7-free)
-  value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1-2/1M tokens
-  performance - Maximum quality (opus, gpt-5.2, sonnet, haiku for speed)
+  free        - Free models only (glm-4.7-free, gpt-5-nano, big-pickle)
+  value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1/1M tokens
+  performance - Maximum quality (sonnet, gpt-5.2, haiku for speed) ~$5/1M tokens
 
 Shell Aliases:
   omo-free    Shortcut for 'omo-profile free'
