@@ -1,0 +1,1 @@
+/home/mrdavidlaing/.config/omarchy/current/theme/neovim.lua
