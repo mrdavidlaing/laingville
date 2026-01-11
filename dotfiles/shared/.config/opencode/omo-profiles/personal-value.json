@@ -4,13 +4,13 @@
       "model": "opencode/claude-haiku-4-5"
     },
     "most-capable": {
-      "model": "opencode/gpt-5-nano"
+      "model": "opencode/claude-sonnet-4-5"
     },
     "visual-engineering": {
       "model": "opencode/gemini-3-flash"
     },
     "writing": {
-      "model": "opencode/gemini-3-flash"
+      "model": "opencode/gpt-5-nano"
     }
   }
 }

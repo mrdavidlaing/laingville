@@ -4,7 +4,7 @@
       "model": "opencode/minimax-m2.1-free"
     },
     "most-capable": {
-      "model": "opencode/glm-4.7-free"
+      "model": "opencode/minimax-m2.1-free"
     },
     "visual-engineering": {
       "model": "opencode/glm-4.7-free"

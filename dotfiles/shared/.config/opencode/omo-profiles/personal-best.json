@@ -4,13 +4,13 @@
       "model": "opencode/claude-sonnet-4-5"
     },
     "most-capable": {
-      "model": "opencode/claude-opus-4-5"
+      "model": "opencode/gpt-5.2"
     },
     "visual-engineering": {
       "model": "opencode/gemini-3-pro"
     },
     "writing": {
-      "model": "opencode/gemini-3-flash"
+      "model": "opencode/claude-sonnet-4-5"
     }
   }
 }

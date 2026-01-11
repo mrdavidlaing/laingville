@@ -4,13 +4,13 @@
       "model": "anthropic/claude-sonnet-4-5"
     },
     "most-capable": {
-      "model": "anthropic/claude-opus-4-5"
+      "model": "openai/gpt-5.2"
     },
     "visual-engineering": {
       "model": "google/gemini-3-pro"
     },
     "writing": {
-      "model": "google/gemini-3-flash"
+      "model": "anthropic/claude-sonnet-4-5"
     }
   }
 }
