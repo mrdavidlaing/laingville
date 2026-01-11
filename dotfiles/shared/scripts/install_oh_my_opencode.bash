@@ -101,7 +101,7 @@ EOFPKG
 else
   # Check if oh-my-opencode is already in package.json
   if grep -q '"oh-my-opencode"' package.json; then
-    current_version=$(jq -r '.dependencies."oh-my-opencode" // "unknown"' package.json 2>/dev/null || echo "unknown")
+    current_version=$(jq -r '.dependencies."oh-my-opencode" // "unknown"' package.json 2> /dev/null || echo "unknown")
     if [[ "$current_version" == "$OMO_VERSION" ]]; then
       echo "[oh-my-opencode] [OK] oh-my-opencode@${OMO_VERSION} already in package.json"
     else
@@ -109,6 +109,9 @@ else
       tmp=$(mktemp)
       jq --arg version "$OMO_VERSION" '.dependencies."oh-my-opencode" = $version' package.json > "$tmp"
       mv "$tmp" package.json
+      # Remove lock file and node_modules to force fresh install
+      rm -f bun.lock bun.lockb
+      rm -rf node_modules/oh-my-opencode
     fi
   else
     # Add oh-my-opencode to existing package.json
