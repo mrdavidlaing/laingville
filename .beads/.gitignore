@@ -10,10 +10,16 @@ daemon.lock
 daemon.log
 daemon.pid
 bd.sock
+sync-state.json
+last-touched
+.sync.lock
 
 # Legacy database files
 db.sqlite
 bd.db
+
+# Worktree redirect file (contains relative path to main repo's .beads/)
+redirect
 
 # Merge artifacts (temporary files from 3-way merge)
 beads.base.jsonl
@@ -22,6 +28,7 @@ beads.left.jsonl
 beads.left.meta.json
 beads.right.jsonl
 beads.right.meta.json
+sync_base.jsonl
 
 # Keep JSONL exports and config (source of truth for git)
 !issues.jsonl
