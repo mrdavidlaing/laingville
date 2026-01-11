@@ -101,7 +101,7 @@ EOFPKG
 else
   # Check if oh-my-opencode is already in package.json
   if grep -q '"oh-my-opencode"' package.json; then
-    current_version=$(grep -oP '"oh-my-opencode":\s*"\K[^"]+' package.json || echo "unknown")
+    current_version=$(jq -r '.dependencies."oh-my-opencode" // "unknown"' package.json 2>/dev/null || echo "unknown")
     if [[ "$current_version" == "$OMO_VERSION" ]]; then
       echo "[oh-my-opencode] [OK] oh-my-opencode@${OMO_VERSION} already in package.json"
     else
