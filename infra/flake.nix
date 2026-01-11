@@ -190,8 +190,11 @@ ${user}:!:1::::::
 EOF
               chmod 640 ./etc/shadow
 
-              # sudoers - modern sudo supports sudoers.d without main sudoers file
-              # Pattern from laingville-devcontainer-nix (proven working)
+              # sudoers - create minimal main file with includedir, then user config
+              # Note: sudo requires main file to exist even if mostly empty
+              echo '@includedir /etc/sudoers.d' > ./etc/sudoers
+              chmod 440 ./etc/sudoers
+
               echo "${user} ALL=(ALL) NOPASSWD:ALL" > ./etc/sudoers.d/${user}
               chmod 440 ./etc/sudoers.d/${user}
 
