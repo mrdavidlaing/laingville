@@ -56,4 +56,4 @@
 # - sync.branch - Git branch for beads commits (use BEADS_SYNC_BRANCH env var or bd config set)
 
 # Git branch for beads sync commits (main = direct commits to main branch)
-sync-branch: main
+sync-branch: "beads-sync"
