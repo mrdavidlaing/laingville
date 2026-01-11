@@ -53,7 +53,8 @@
             diffutils        # diff, cmp, sdiff for file comparison
             just             # Command runner (justfile)
             shadow           # User management (useradd, passwd, etc.)
-            sudo             # Privilege escalation
+            # NOTE: sudo excluded from packages - installed manually in mkDevContainer's
+            # fakeRootCommands to allow setting setuid bit (chmod 4755)
             starship         # Cross-shell prompt
             openssh          # SSH client for Git over SSH and remote access
             gcc              # C compiler (required for Rust native compilation)
@@ -198,12 +199,10 @@ EOF
 
               printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${user}" | install -m 440 /dev/stdin ./etc/sudoers.d/${user}
 
-              # Set setuid bit on sudo binary (required for sudo to work)
-              # /bin/sudo is a symlink to nix store (read-only), so we must:
-              # 1. Get the target path, 2. Remove symlink, 3. Copy binary, 4. Set setuid
-              SUDO_TARGET=$(readlink -f ./bin/sudo)
-              rm ./bin/sudo
-              cp "$SUDO_TARGET" ./bin/sudo
+              # Install sudo manually (excluded from packages to allow setuid bit)
+              # Copy sudo binary from nix store and set setuid bit
+              mkdir -p ./bin
+              cp ${pkgs.sudo}/bin/sudo ./bin/sudo
               chmod 4755 ./bin/sudo
 
               # nix config
