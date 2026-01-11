@@ -151,6 +151,7 @@
           pkgs.dockerTools.buildLayeredImage {
             inherit name tag;
             contents = packages;
+            enableFakechroot = true;  # Enables modifying files from package layers
             # Create real files (not symlinks) using fakeRootCommands
             fakeRootCommands = ''
               # Create directories (note: /bin, /lib, /lib64 are created by packages)
