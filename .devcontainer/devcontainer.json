@@ -1,54 +1,14 @@
 {
-  "name": "Laingville (Yolo Agent)",
+  "name": "Laingville",
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/laingville",
   "remoteUser": "vscode",
   "customizations": {
     "vscode": {
       "extensions": [
-        // Nix
-        "jnoortheen.nix-ide",
-
-        // Python
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-
-        // Node.js / TypeScript
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-
-        // Go
-        "golang.go",
-
-        // Rust
-        "rust-lang.rust-analyzer",
-
-        // General
-        "eamodio.gitlens",
-        "github.copilot",
-        "github.copilot-chat"
-      ],
-      "settings": {
-        // Python
-        "python.defaultInterpreterPath": "/nix/store/*/bin/python3",
-        "python.linting.enabled": true,
-        "python.formatting.provider": "none",
-
-        // Node.js
-        "typescript.tsdk": "node_modules/typescript/lib",
-
-        // Terminal
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "terminal.integrated.profiles.linux": {
-          "bash": {
-            "path": "/bin/bash"
-          }
-        }
-      }
+        "jnoortheen.nix-ide"
+      ]
     }
-  },
-  "features": {},
-  "postCreateCommand": "echo 'Laingville devcontainer ready! All language runtimes pre-installed for AI/ML agent execution.'",
-  "mounts": []
+  }
 }

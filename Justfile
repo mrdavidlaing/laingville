@@ -101,25 +101,6 @@ check:
     @just lint
     @just test
 
-# Devcontainer management
-dev-up:
-    @.devcontainer/bin/ctl up
-
-dev-down:
-    @.devcontainer/bin/ctl down
-
-dev-shell:
-    @.devcontainer/bin/ctl shell
-
-dev-status:
-    @.devcontainer/bin/ctl status
-
-dev-rebuild:
-    @just dev-down
-    @echo "🔄 Pulling latest image..."
-    @docker compose -f .devcontainer/docker-compose.yml pull
-    @just dev-up
-
 # Help recipe
 help:
     @echo "Laingville Justfile - Available recipes:"
@@ -131,14 +112,6 @@ help:
     @echo "  just test-bash    - Run bash tests with shellspec"
     @echo "  just test-powershell - Run PowerShell tests with Pester"
     @echo "  just check        - Check format and run lint/test without modifying files"
-    @echo ""
-    @echo "Devcontainer:"
-    @echo "  just dev-up       - Start devcontainer with GitHub credentials"
-    @echo "  just dev-down     - Stop devcontainer"
-    @echo "  just dev-shell    - Open interactive shell in running container"
-    @echo "  just dev-status   - Show devcontainer service status"
-    @echo "  just dev-rebuild  - Pull latest image and restart devcontainer"
-    @echo ""
     @echo "  just help         - Show this help message"
     @echo "  just --list       - List all available recipes (built-in)"
     @echo ""
