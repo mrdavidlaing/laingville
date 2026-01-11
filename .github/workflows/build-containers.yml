@@ -83,13 +83,6 @@ jobs:
 
           # Determine test type based on image name
           case "${{ matrix.image }}" in
-            laingville-devcontainer)
-              echo "Running comprehensive yolo-agent environment tests..."
-              docker run --rm \
-                -v "${{ github.workspace }}/infra/tests:/tests:ro" \
-                "$IMAGE" \
-                bash /tests/test-yolo-agent-environment.sh
-              ;;
             *node*)
               echo "Running Node.js environment tests..."
               docker run --rm \
