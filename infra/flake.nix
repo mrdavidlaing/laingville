@@ -191,18 +191,20 @@ EOF
               chmod 640 ./etc/shadow
 
               # sudoers - main config file must exist and include sudoers.d
-              # Note: Must be created before sudoers.d entry
-              {
-                echo "# sudoers file for container"
-                echo "Defaults env_reset"
-                echo "Defaults secure_path=\"/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\""
-                echo "root ALL=(ALL:ALL) ALL"
-                echo "@includedir /etc/sudoers.d"
-              } > ./etc/sudoers
+              # Note: Cannot use output redirection in fakeRootCommands, use printf to temp then mv
+              printf '%s\n' \
+                '# sudoers file for container' \
+                'Defaults env_reset' \
+                'Defaults secure_path="/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' \
+                'root ALL=(ALL:ALL) ALL' \
+                '@includedir /etc/sudoers.d' \
+                > ./tmp/sudoers.tmp
+              mv ./tmp/sudoers.tmp ./etc/sudoers
               chmod 440 ./etc/sudoers
 
               # sudoers.d entry for vscode user
-              echo "${user} ALL=(ALL) NOPASSWD:ALL" > ./etc/sudoers.d/${user}
+              printf '%s\n' "${user} ALL=(ALL) NOPASSWD:ALL" > ./tmp/sudoers.d.tmp
+              mv ./tmp/sudoers.d.tmp ./etc/sudoers.d/${user}
               chmod 440 ./etc/sudoers.d/${user}
 
               # nix config
