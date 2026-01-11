@@ -379,12 +379,18 @@ EOF
         # Example container images (for testing/demo)
         # Projects should build their own using mkDevContainer/mkRuntime
         packages = {
-          # Laingville devcontainer - for developing this repository
-          # Includes Nix tooling and Bash development tools (shellcheck, shellspec)
+          # Laingville devcontainer - for developing this repository and AI/ML agent execution
+          # Yolo Agent setup: ALL language runtimes and dev tools for maximum agent autonomy
+          # Design: maximum permissions within container, strict isolation from host
           laingville-devcontainer = mkDevContainer {
             name = "ghcr.io/mrdavidlaing/laingville/laingville-devcontainer";
             packages = packageSets.base ++ packageSets.vscodeCompat ++ packageSets.nixTools
-                    ++ packageSets.devTools ++ packageSets.bashDev;
+                    ++ packageSets.devTools
+                    ++ packageSets.python ++ packageSets.pythonDev
+                    ++ packageSets.node ++ packageSets.nodeDev
+                    ++ packageSets.go ++ packageSets.goDev
+                    ++ packageSets.rust ++ packageSets.rustDev
+                    ++ packageSets.bash ++ packageSets.bashDev;
           };
 
           # Example devcontainer with Python

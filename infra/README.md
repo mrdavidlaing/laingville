@@ -49,6 +49,54 @@ nix build .#runtime
 docker load < result
 ```
 
+## Laingville Devcontainer
+
+The default `.devcontainer/` is optimized for **both repository development and AI/ML agent execution** (like Claude Code).
+
+**Design Philosophy (Yolo Agent):**
+- **Maximum freedom inside**: Passwordless sudo, all runtimes pre-installed, no restrictions
+- **Strict isolation from host**: Only current Git repository mounted, SSH agent forwarded
+- **Blast radius limited**: If something goes wrong, damage contained to container only
+
+**Includes:**
+- **All language runtimes**: Python 3.12, Node.js 22, Go, Rust, Bash
+- **All dev tools**: git, curl, jq, ripgrep, fd, fzf, bat, just, etc.
+- **All language dev tools**: pip, uv, ruff, pyright, npm, bun, gopls, rust-analyzer, shellcheck, etc.
+- **Nix tooling**: nix, direnv, nix-direnv for using `nix develop`
+- **Passwordless sudo**: Install additional packages without prompts
+
+**Location:** `.devcontainer/`
+**Image:** `ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:latest`
+
+**Usage:**
+```bash
+# In VS Code:
+# 1. Open repository
+# 2. Command Palette > "Dev Containers: Reopen in Container"
+# 3. Wait for container to pull and start
+
+# Or use Claude Code CLI:
+cd laingville
+claude-code  # Automatically detects and uses devcontainer
+```
+
+**Host Access:**
+- ✅ Current Git repository (mounted to `/workspace`)
+- ✅ SSH keys/credentials (via SSH agent forwarding)
+- ❌ Docker daemon (not exposed)
+- ❌ Cloud credentials (not mounted)
+- ❌ Other host directories (isolated)
+
+**Optional Resource Limits:**
+Edit `.devcontainer/docker-compose.yml` to uncomment resource limits:
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '4.0'
+      memory: 8G
+```
+
 ## Architecture
 
 ```
