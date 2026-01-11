@@ -16,3 +16,6 @@ result*
 # Local VM/builder artifacts
 keys/
 *.qcow2
+
+# bv (beads viewer) local config and caches
+.bv/
