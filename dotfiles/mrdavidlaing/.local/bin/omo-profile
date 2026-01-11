@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
-# omo-profile - Switch oh-my-opencode agent profiles
+# omo-profile - Switch oh-my-opencode category-to-model mappings
 #
-# Copies profile files to oh-my-opencode.json (not symlinks) to avoid
-# conflicts with oh-my-opencode's installer which overwrites symlinked files.
+# Merges category model assignments from profile files into oh-my-opencode.json,
+# preserving agent definitions and other configuration sections.
 #
 # Usage:
-#   omo-profile [profile]    Switch to profile (free, value, performance)
+#   omo-profile [profile]    Switch to profile
 #   omo-profile              Show current profile
 #   omo-profile --list       List available profiles
 #   omo-profile --help       Show this help
 #
 # Profiles:
-#   free        - Free models only (glm-4.7-free, gpt-5-nano, big-pickle)
-#   value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1/1M tokens
-#   performance - Maximum quality (sonnet, gpt-5.2, haiku for speed) ~$5/1M tokens
+#   Mo (work - direct provider access):
+#     mo-speed       - Fast models (Haiku, Sonnet, Gemini Flash)
+#     mo-best        - Best models (Sonnet, Opus, Gemini Pro)
+#
+#   Personal (opencode provider):
+#     personal-free  - Free models (MiniMax, GLM)
+#     personal-value - Value models (opencode/haiku, gpt-5-nano, gemini-flash)
+#     personal-best  - Best models (opencode/sonnet, opus, gemini-pro)
 
 set -e
 
 OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-PROFILES_DIR="$OPENCODE_CONFIG_DIR/profiles"
+PROFILES_DIR="$OPENCODE_CONFIG_DIR/omo-profiles"
 TARGET_FILE="$OPENCODE_CONFIG_DIR/oh-my-opencode.json"
 
 # Colors for output
@@ -30,28 +35,33 @@ NC='\033[0m' # No Color
 
 show_help() {
   cat << 'EOF'
-omo-profile - Switch oh-my-opencode agent profiles
+omo-profile - Switch oh-my-opencode category-to-model mappings
+
+Merges category model assignments from profile files into oh-my-opencode.json,
+preserving agent definitions and other configuration sections.
 
 Usage:
-  omo-profile [profile]    Switch to profile (free, value, performance)
+  omo-profile [profile]    Switch to profile
   omo-profile              Show current profile
   omo-profile --list       List available profiles
   omo-profile --help       Show this help
 
 Profiles:
-  free        - Free models only (glm-4.7-free, gpt-5-nano, big-pickle)
-  value       - Best ROI (haiku, gemini-flash, gpt-5-nano) ~$1/1M tokens
-  performance - Maximum quality (sonnet, gpt-5.2, haiku for speed) ~$5/1M tokens
 
-Shell Aliases:
-  omo-free    Shortcut for 'omo-profile free'
-  omo-value   Shortcut for 'omo-profile value'
-  omo-perf    Shortcut for 'omo-profile performance'
+  Mo (work - direct provider access):
+    mo-speed       Fast models (Haiku, Sonnet, Gemini Flash)
+    mo-best        Best models (Sonnet, Opus, Gemini Pro)
+
+  Personal (opencode provider):
+    personal-free  Free models (MiniMax, GLM)
+    personal-value Value models (opencode/haiku, gpt-5-nano, gemini-flash)
+    personal-best  Best models (opencode/sonnet, opus, gemini-pro)
 
 Examples:
-  omo-profile value        # Switch to value profile
-  omo-perf                 # Switch to performance profile
-  omo-profile              # Show current profile
+  omo-profile mo-speed         # Switch to mo-speed profile (work, fast)
+  omo-profile personal-value   # Switch to personal-value profile
+  omo-profile                  # Show current profile
+  omo-profile --list           # List all available profiles
 EOF
 }
 
@@ -79,19 +89,19 @@ get_current_profile() {
     return
   fi
 
-  # Compare current config against each profile by checking .agents section
-  # (oh-my-opencode may modify other sections, but .agents is what we care about)
-  local current_agents
-  current_agents=$(jq -cS '.agents // {}' "$TARGET_FILE" 2>/dev/null) || {
+  # Compare current config against each profile by checking .categories section
+  # (profiles only contain categories, agents are in base config)
+  local current_categories
+  current_categories=$(jq -cS '.categories // {}' "$TARGET_FILE" 2>/dev/null) || {
     echo "(invalid json)"
     return
   }
 
   for profile_file in "$PROFILES_DIR"/*.json; do
     if [[ -f "$profile_file" ]]; then
-      local profile_agents
-      profile_agents=$(jq -cS '.agents // {}' "$profile_file" 2>/dev/null) || continue
-      if [[ "$current_agents" == "$profile_agents" ]]; then
+      local profile_categories
+      profile_categories=$(jq -cS '.categories // {}' "$profile_file" 2>/dev/null) || continue
+      if [[ "$current_categories" == "$profile_categories" ]]; then
         basename "$profile_file" .json
         return
       fi
@@ -116,24 +126,24 @@ switch_profile() {
   # Ensure config directory exists
   mkdir -p "$OPENCODE_CONFIG_DIR"
 
-  # Remove existing symlink if present (migration from old approach)
-  if [[ -L "$TARGET_FILE" ]]; then
-    rm "$TARGET_FILE"
-    echo -e "${YELLOW}Removed old symlink (migrating to copy-based profiles)${NC}"
-  fi
-
-  # Backup existing config before overwriting
+  # Backup existing config before merging
   if [[ -f "$TARGET_FILE" ]]; then
     cp "$TARGET_FILE" "$backup_file"
-  fi
 
-  # Copy profile to target (overwrites existing file)
-  cp "$profile_file" "$TARGET_FILE"
+    # Merge categories only, preserving agents and other sections
+    local profile_categories
+    profile_categories=$(jq '.categories' "$profile_file")
+    jq --argjson cats "$profile_categories" '.categories = $cats' "$TARGET_FILE" > "$TARGET_FILE.tmp"
+    mv "$TARGET_FILE.tmp" "$TARGET_FILE"
+  else
+    # First time - just copy (no base config exists yet)
+    cp "$profile_file" "$TARGET_FILE"
+  fi
 
   echo -e "${GREEN}Switched to '$profile' profile${NC}"
   echo ""
-  echo "Agent model assignments:"
-  jq -r '.agents | to_entries[] | "  \(.key): \(.value.model)"' "$profile_file"
+  echo "Category model assignments:"
+  jq -r '.categories | to_entries[] | "  \(.key): \(.value.model)"' "$profile_file"
 
   # Show diff if backup exists
   if [[ -f "$backup_file" ]]; then
