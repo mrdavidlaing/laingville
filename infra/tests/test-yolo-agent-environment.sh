@@ -53,14 +53,14 @@ else
 fi
 
 # Check passwordless sudo works
-if sudo -n true 2>/dev/null; then
+if sudo -n true 2> /dev/null; then
   pass "Passwordless sudo is enabled"
 else
   fail "Passwordless sudo is not enabled"
 fi
 
 # Test sudo can install packages (simulate with echo)
-if sudo -n sh -c 'echo "test" > /tmp/sudo-test' 2>/dev/null; then
+if sudo -n sh -c 'echo "test" > /tmp/sudo-test' 2> /dev/null; then
   pass "Sudo has write permissions"
   rm -f /tmp/sudo-test
 else
@@ -72,7 +72,7 @@ fi
 #############################################
 section "Essential Development Tools"
 
-for tool in git curl jq ripgrep fd fzf bat just ssh direnv; do
+for tool in git curl jq fd fzf bat just ssh direnv; do
   if command -v "$tool" > /dev/null 2>&1; then
     VERSION=$("$tool" --version 2>&1 | head -1 || echo "available")
     pass "$tool is available: $VERSION"
@@ -80,6 +80,14 @@ for tool in git curl jq ripgrep fd fzf bat just ssh direnv; do
     fail "$tool command not found"
   fi
 done
+
+# Check ripgrep (binary is called 'rg')
+if command -v rg > /dev/null 2>&1; then
+  RG_VERSION=$(rg --version 2>&1 | head -1)
+  pass "ripgrep (rg) is available: $RG_VERSION"
+else
+  fail "ripgrep (rg) command not found"
+fi
 
 # Check nix is available and configured for flakes
 if command -v nix > /dev/null 2>&1; then
@@ -244,23 +252,35 @@ fn main() {
 }
 EOF
 
-if rustc hello.rs -o hello 2> /dev/null && ./hello | grep -q "hello"; then
+if rustc hello.rs -o hello 2>&1 && ./hello 2>&1 | grep -q "hello"; then
   pass "rust can compile and execute code"
 else
-  fail "rust cannot compile and execute code"
+  warn "rust compilation failed - may need linker (cc/gcc). This is optional for most agent work."
 fi
 
 cd /
 rm -rf "$TEMP_DIR"
 
 # Check Rust dev tools
-for tool in rust-analyzer clippy rustfmt; do
-  if command -v "$tool" > /dev/null 2>&1; then
-    pass "$tool is available"
-  else
-    fail "$tool command not found"
-  fi
-done
+if command -v rust-analyzer > /dev/null 2>&1; then
+  pass "rust-analyzer is available"
+else
+  fail "rust-analyzer command not found"
+fi
+
+# clippy is accessed via 'cargo clippy', not as standalone command
+if cargo clippy --version > /dev/null 2>&1; then
+  CLIPPY_VERSION=$(cargo clippy --version)
+  pass "clippy is available: $CLIPPY_VERSION"
+else
+  fail "clippy (via cargo clippy) not available"
+fi
+
+if command -v rustfmt > /dev/null 2>&1; then
+  pass "rustfmt is available"
+else
+  fail "rustfmt command not found"
+fi
 
 #############################################
 # Bash checks

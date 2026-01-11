@@ -56,6 +56,7 @@
             sudo             # Privilege escalation
             starship         # Cross-shell prompt
             openssh          # SSH client for Git over SSH and remote access
+            gcc              # C compiler (required for Rust native compilation)
           ];
 
           # Nix tooling (for containers that need nix develop)
@@ -189,7 +190,17 @@ ${user}:!:1::::::
 EOF
               chmod 640 ./etc/shadow
 
-              # sudoers
+              # sudoers - main config file must exist and include sudoers.d
+              cat > ./etc/sudoers <<EOF
+# sudoers file for container
+Defaults env_reset
+Defaults secure_path="/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+root ALL=(ALL:ALL) ALL
+@includedir /etc/sudoers.d
+EOF
+              chmod 440 ./etc/sudoers
+
+              # sudoers.d entry for vscode user
               echo "${user} ALL=(ALL) NOPASSWD:ALL" > ./etc/sudoers.d/${user}
               chmod 440 ./etc/sudoers.d/${user}
 
