@@ -11,8 +11,18 @@ services:
       # - Linux: set DEVCONTAINER_SSH_SOCK=$SSH_AUTH_SOCK before opening devcontainer
       - ${DEVCONTAINER_SSH_SOCK:-/run/host-services/ssh-auth.sock}:/ssh-agent:ro
 
+      # GitHub CLI config (aliases, preferences) - read-only
+      # Token passed via environment variable (extracted from macOS keychain by ctl script)
+      - ~/.config/gh:/home/vscode/.config/gh:ro
+
     environment:
       SSH_AUTH_SOCK: /ssh-agent
+
+      # GitHub CLI authentication
+      # Token extracted from host keychain by .devcontainer/bin/ctl script
+      # Allows agents to use gh CLI and GitHub API
+      # Run 'gh auth status' on host to see your current scopes
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
 
       # Security boundary: Agent has maximum permissions WITHIN container
       # No restrictions on package installation, file access, or command execution

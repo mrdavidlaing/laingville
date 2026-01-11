@@ -78,11 +78,23 @@ The default `.devcontainer/` is optimized for **both repository development and 
 # Or use Claude Code CLI:
 cd laingville
 claude-code  # Automatically detects and uses devcontainer
+
+# Or manage manually with just:
+just dev-up       # Start devcontainer (forwards GitHub credentials)
+just dev-shell    # Open interactive shell
+just dev-status   # Check service health
+just dev-down     # Stop devcontainer
+just dev-rebuild  # Pull latest image and restart
 ```
 
 **Host Access:**
 - ✅ Current Git repository (mounted to `/workspace`)
-- ✅ SSH keys/credentials (via SSH agent forwarding)
+- ✅ SSH keys/credentials (via SSH agent forwarding for git operations)
+- ✅ GitHub CLI credentials (token + config mounted read-only)
+  - Check your scopes: `gh auth status`
+  - Typical scopes: `repo`, `read:org`, `read:packages`, `gist`
+  - Allows agents to use `gh` CLI and GitHub API
+  - Config includes aliases and preferences from `~/.config/gh/`
 - ❌ Docker daemon (not exposed)
 - ❌ Cloud credentials (not mounted)
 - ❌ Other host directories (isolated)
