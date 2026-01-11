@@ -38,24 +38,28 @@ fi
 
 mkdir -p "$OPENCODE_CONFIG_DIR"
 
-# Step 1: Register plugin in opencode.json
+# Step 1: Register plugin in opencode.json with version pinning
 echo "Registering oh-my-opencode@${OMO_VERSION} plugin..."
 if [[ -f "$OPENCODE_JSON" ]]; then
-  if jq -e '.plugin | index("oh-my-opencode")' "$OPENCODE_JSON" > /dev/null 2>&1; then
-    echo "[oh-my-opencode] [OK] oh-my-opencode already in opencode.json"
-  else
-    tmp=$(mktemp)
-    jq '.plugin = ((.plugin // []) + ["oh-my-opencode"] | unique)' "$OPENCODE_JSON" > "$tmp"
-    mv "$tmp" "$OPENCODE_JSON"
-    echo "[oh-my-opencode] [OK] Added oh-my-opencode to opencode.json"
-  fi
+  # Remove any existing oh-my-opencode entries (with or without version)
+  tmp=$(mktemp)
+  jq --arg plugin "oh-my-opencode@${OMO_VERSION}" '
+    .plugin = (
+      (.plugin // [])
+      | map(select(. | test("^oh-my-opencode(@.*)?$") | not))
+      | . + [$plugin]
+      | unique
+    )
+  ' "$OPENCODE_JSON" > "$tmp"
+  mv "$tmp" "$OPENCODE_JSON"
+  echo "[oh-my-opencode] [OK] Registered oh-my-opencode@${OMO_VERSION} in opencode.json"
 else
-  echo "Creating opencode.json with oh-my-opencode plugin..."
+  echo "Creating opencode.json with oh-my-opencode@${OMO_VERSION} plugin..."
   mkdir -p "$OPENCODE_CONFIG_DIR"
-  cat > "$OPENCODE_JSON" << 'EOFCONFIG'
+  cat > "$OPENCODE_JSON" << EOFCONFIG
 {
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["oh-my-opencode"]
+  "\$schema": "https://opencode.ai/config.json",
+  "plugin": ["oh-my-opencode@${OMO_VERSION}"]
 }
 EOFCONFIG
   echo "[oh-my-opencode] [OK] Created opencode.json"
