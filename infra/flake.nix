@@ -198,8 +198,11 @@ EOF
               printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${user}" | install -m 440 /dev/stdin ./etc/sudoers.d/${user}
 
               # Set setuid bit on sudo binary (required for sudo to work)
-              # Find sudo in /bin and set permissions to 4755 (setuid root)
-              chmod u+s ./bin/sudo
+              # /bin/sudo is a symlink to nix store (read-only), so we must copy it
+              # and set setuid on the copy
+              SUDO_TARGET=$(readlink -f ./bin/sudo)
+              cp -f "$SUDO_TARGET" ./bin/sudo
+              chmod 4755 ./bin/sudo
 
               # nix config
               cat > ./etc/nix/nix.conf <<EOF
