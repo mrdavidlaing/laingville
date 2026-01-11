@@ -56,6 +56,7 @@
             sudo             # Privilege escalation
             starship         # Cross-shell prompt
             openssh          # SSH client for Git over SSH and remote access
+            gcc              # C compiler (required for Rust native compilation)
           ];
 
           # Nix tooling (for containers that need nix develop)
@@ -189,9 +190,12 @@ ${user}:!:1::::::
 EOF
               chmod 640 ./etc/shadow
 
-              # sudoers
-              echo "${user} ALL=(ALL) NOPASSWD:ALL" > ./etc/sudoers.d/${user}
-              chmod 440 ./etc/sudoers.d/${user}
+              # sudoers - create minimal main file with includedir, then user config
+              # Note: Cannot use redirection to /etc/sudoers in fakeRootCommands
+              # Use install command to create file with content and permissions atomically
+              printf '@includedir /etc/sudoers.d\n' | install -m 440 /dev/stdin ./etc/sudoers
+
+              printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${user}" | install -m 440 /dev/stdin ./etc/sudoers.d/${user}
 
               # nix config
               cat > ./etc/nix/nix.conf <<EOF
@@ -379,12 +383,18 @@ EOF
         # Example container images (for testing/demo)
         # Projects should build their own using mkDevContainer/mkRuntime
         packages = {
-          # Laingville devcontainer - for developing this repository
-          # Includes Nix tooling and Bash development tools (shellcheck, shellspec)
+          # Laingville devcontainer - for developing this repository and AI/ML agent execution
+          # Yolo Agent setup: ALL language runtimes and dev tools for maximum agent autonomy
+          # Design: maximum permissions within container, strict isolation from host
           laingville-devcontainer = mkDevContainer {
             name = "ghcr.io/mrdavidlaing/laingville/laingville-devcontainer";
             packages = packageSets.base ++ packageSets.vscodeCompat ++ packageSets.nixTools
-                    ++ packageSets.devTools ++ packageSets.bashDev;
+                    ++ packageSets.devTools
+                    ++ packageSets.python ++ packageSets.pythonDev
+                    ++ packageSets.node ++ packageSets.nodeDev
+                    ++ packageSets.go ++ packageSets.goDev
+                    ++ packageSets.rust ++ packageSets.rustDev
+                    ++ packageSets.bash ++ packageSets.bashDev;
           };
 
           # Example devcontainer with Python
