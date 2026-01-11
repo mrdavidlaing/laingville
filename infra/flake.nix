@@ -191,13 +191,14 @@ EOF
               chmod 640 ./etc/shadow
 
               # sudoers - main config file must exist and include sudoers.d
-              cat > ./etc/sudoers <<EOF
-# sudoers file for container
-Defaults env_reset
-Defaults secure_path="/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-root ALL=(ALL:ALL) ALL
-@includedir /etc/sudoers.d
-EOF
+              # Note: Must be created before sudoers.d entry
+              {
+                echo "# sudoers file for container"
+                echo "Defaults env_reset"
+                echo "Defaults secure_path=\"/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\""
+                echo "root ALL=(ALL:ALL) ALL"
+                echo "@includedir /etc/sudoers.d"
+              } > ./etc/sudoers
               chmod 440 ./etc/sudoers
 
               # sudoers.d entry for vscode user
