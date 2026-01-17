@@ -28,8 +28,18 @@ require("config.options")
 require("config.keymaps")
 require("config.autocmds")
 
--- Setup plugins
-require("lazy").setup("plugins", {
+-- Setup plugins with LazyVim
+require("lazy").setup({
+  spec = {
+    -- LazyVim core must come first
+    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+    -- Then your own plugins
+    { import = "plugins" },
+  },
+  defaults = {
+    lazy = false,
+    version = false,
+  },
   change_detection = {
     notify = false,
   },
