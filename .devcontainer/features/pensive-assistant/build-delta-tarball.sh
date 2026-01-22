@@ -28,7 +28,7 @@ git commit -q -m "build"
 
 # Snapshot existing nix store paths BEFORE build
 echo "Snapshotting base image store..."
-ls -d /nix/store/*/ 2> /dev/null | sed 's|/$||' > /tmp/existing-paths.txt || true
+find /nix/store -maxdepth 1 -mindepth 1 -type d 2> /dev/null > /tmp/existing-paths.txt || true
 
 # Build the pensive tools environment (not the tarball output)
 echo "Building pensive-assistant tools..."
@@ -47,12 +47,13 @@ if [ ! -s /tmp/delta-paths.txt ]; then
   cp /tmp/new-closure.txt /tmp/delta-paths.txt
 fi
 
-DELTA_PATHS=$(cat /tmp/delta-paths.txt | tr '\n' ' ')
+DELTA_PATHS=$(tr '\n' ' ' < /tmp/delta-paths.txt)
 echo "Delta paths: $(wc -l < /tmp/delta-paths.txt) new store paths"
 
 # Create tarball with only delta paths
 rm -rf dist
 mkdir -p dist
+# shellcheck disable=SC2086 # DELTA_PATHS is intentionally word-split
 tar -cf - $DELTA_PATHS | gzip > dist/pensive-tools.tar.gz
 
 # Write the env path for reference
@@ -105,6 +106,7 @@ echo "Computing size breakdown..."
   echo "|-----------|------|------------|"
 
   # Show sizes for key top-level dependencies
+  # shellcheck disable=SC2086 # DELTA_PATHS is intentionally word-split
   for path in $DELTA_PATHS; do
     # Only show direct dependencies (not recursive deps)
     if grep -q "^├───$path\|^└───$path" dist/dep-tree.txt; then
