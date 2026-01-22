@@ -21,19 +21,34 @@ else
   mkdir -p "${FEATURE_DIR}/dist"
 
   # Install oras if not available
-  if ! command -v oras &> /dev/null; then
+  if ! command -v oras > /dev/null 2>&1; then
     echo "Installing oras..."
+    ORAS_VERSION="1.3.0"
     ARCH=$(uname -m)
     case "$ARCH" in
-      x86_64) ORAS_ARCH="amd64" ;;
-      aarch64 | arm64) ORAS_ARCH="arm64" ;;
+      x86_64)
+        ORAS_ARCH="amd64"
+        ORAS_SHA256="6cdc692f929100feb08aa8de584d02f7bcc30ec7d88bc2adc2054d782db57c64"
+        ;;
+      aarch64 | arm64)
+        ORAS_ARCH="arm64"
+        ORAS_SHA256="7649738b48fde10542bcc8b0e9b460ba83936c75fb5be01ee6d4443764a14352"
+        ;;
       *)
         echo "Unsupported architecture: $ARCH"
         exit 1
         ;;
     esac
-    curl -fsSL "https://github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_${ORAS_ARCH}.tar.gz" \
-      | tar xz -C /usr/local/bin oras
+    ORAS_URL="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz"
+    ORAS_TMP=$(mktemp)
+    curl -fsSL "$ORAS_URL" -o "$ORAS_TMP"
+    echo "${ORAS_SHA256}  ${ORAS_TMP}" | sha256sum -c - || {
+      echo "Error: oras checksum verification failed"
+      rm -f "$ORAS_TMP"
+      exit 1
+    }
+    tar xz -C /usr/local/bin oras < "$ORAS_TMP"
+    rm -f "$ORAS_TMP"
   fi
 
   # Pull tarball from OCI registry
@@ -44,7 +59,7 @@ else
     echo "Error: Failed to pull from OCI registry."
     echo ""
     echo "Options:"
-    echo "  1. Build locally: 'just pensive-assistant-feature-build'"
+    echo "  1. Build locally: 'just pensive-assistant-build'"
     echo "  2. Ensure the feature is published to ${OCI_REGISTRY}"
     exit 1
   fi
@@ -62,6 +77,13 @@ ENV_PATH=$(cat "$ENV_PATH_FILE")
 # Extract nix tools from tarball
 # ============================================
 echo "Extracting pensive tools from tarball..."
+
+# Validate tarball contains only /nix/store paths (defense in depth)
+if tar -tzf "$TARBALL_PATH" | grep -qvE "^nix/store/"; then
+  echo "Error: Tarball contains paths outside /nix/store - refusing to extract"
+  exit 1
+fi
+
 tar -xzf "$TARBALL_PATH" -C /
 
 # Add nix tools and bun globals to PATH via profile.d (sourced by login shells and bash -l)
@@ -82,7 +104,7 @@ BASHEOF
 # Install Claude Code via bun
 # ============================================
 echo "Installing Claude Code..."
-if command -v bun &> /dev/null; then
+if command -v bun > /dev/null 2>&1; then
   bun install -g @anthropic-ai/claude-code
   echo "Claude Code installed via bun"
 else
@@ -95,7 +117,7 @@ fi
 TARGET_USER="${_REMOTE_USER:-}"
 if [ -z "$TARGET_USER" ]; then
   for user in vscode coder node; do
-    if id "$user" &> /dev/null; then
+    if id "$user" > /dev/null 2>&1; then
       TARGET_USER="$user"
       break
     fi

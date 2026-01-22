@@ -14,7 +14,7 @@ check_tool() {
   local check_cmd="${2:-$tool --version}"
 
   echo -n "Checking $tool... "
-  if eval "$check_cmd" &> /dev/null; then
+  if eval "$check_cmd" > /dev/null 2>&1; then
     echo "OK"
     PASS=$((PASS + 1))
   else
