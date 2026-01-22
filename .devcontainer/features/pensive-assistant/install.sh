@@ -47,6 +47,7 @@ else
       rm -f "$ORAS_TMP"
       exit 1
     }
+    mkdir -p /usr/local/bin
     tar xz -C /usr/local/bin oras < "$ORAS_TMP"
     rm -f "$ORAS_TMP"
   fi
