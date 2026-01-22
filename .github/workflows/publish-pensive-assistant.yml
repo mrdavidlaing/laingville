@@ -215,7 +215,8 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#pensive-assistant-v}"
           else
-            VERSION="latest"
+            # Use 0.0.0-dev for non-tag builds (valid semver)
+            VERSION="0.0.0-dev"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
