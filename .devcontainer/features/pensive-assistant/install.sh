@@ -65,7 +65,7 @@ else
   # don't support automatic platform selection like Docker image manifests
   cd "${FEATURE_DIR}/dist"
   OCI_TAG_ARCH="${OCI_TAG}-${ORAS_ARCH}"
-  if oras pull "${OCI_REGISTRY}:${OCI_TAG_ARCH}"; then
+  if /usr/local/bin/oras pull "${OCI_REGISTRY}:${OCI_TAG_ARCH}"; then
     echo "Successfully pulled from ${OCI_REGISTRY}:${OCI_TAG_ARCH}"
   else
     echo "Error: Failed to pull from OCI registry."
