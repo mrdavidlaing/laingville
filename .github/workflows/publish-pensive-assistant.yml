@@ -4,11 +4,6 @@ on:
   push:
     tags:
       - 'pensive-assistant-v*'
-    branches:
-      - 'feature/pensive-assistant'  # TEMPORARY: remove after initial publish
-    paths:
-      - '.devcontainer/features/pensive-assistant/**'
-      - '.github/workflows/publish-pensive-assistant.yml'
   workflow_dispatch:
 
 env:
