@@ -1,0 +1,7 @@
+{
+    "id": "pensive-assistant",
+    "version": "0.1.0",
+    "name": "Pensive Assistant",
+    "description": "Development tools for pensive: beads, zellij, lazygit, claude code",
+    "options": {}
+}
