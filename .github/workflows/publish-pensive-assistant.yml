@@ -1,0 +1,241 @@
+name: Publish Pensive Assistant Feature
+
+on:
+  push:
+    tags:
+      - 'pensive-assistant-v*'
+    paths:
+      - '.devcontainer/features/pensive-assistant/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-tarballs:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build feature tarball (delta from base image)
+        run: |
+          # Copy feature to isolated directory to avoid fetching entire repo
+          FEATURE_BUILD_DIR=$(mktemp -d)
+          cp -r .devcontainer/features/pensive-assistant/* "$FEATURE_BUILD_DIR/"
+
+          # Run build inside the base container as root (CI environment)
+          # Use --privileged to enable nix sandboxing capabilities
+          # Docker auto-selects correct architecture based on runner
+          docker run --rm \
+            --user root \
+            --privileged \
+            -v "$FEATURE_BUILD_DIR:/workspace" \
+            ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:latest \
+            bash /workspace/build-delta-tarball.sh
+
+          # Copy results back to workspace
+          mkdir -p .devcontainer/features/pensive-assistant/dist
+          cp "$FEATURE_BUILD_DIR/dist/"* .devcontainer/features/pensive-assistant/dist/
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/pensive-assistant-v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#pensive-assistant-v}"
+          else
+            VERSION="latest"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install oras
+        run: |
+          ORAS_ARCH=${{ matrix.arch }}
+          curl -fsSL "https://github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_${ORAS_ARCH}.tar.gz" \
+            | tar xz -C /usr/local/bin oras
+
+      - name: Push tarball to OCI registry
+        run: |
+          cd .devcontainer/features/pensive-assistant/dist
+          # Push architecture-specific tarball
+          oras push ${{ env.REGISTRY }}/mrdavidlaing/laingville/pensive-assistant-tarball:${{ steps.version.outputs.version }}-${{ matrix.arch }} \
+            pensive-tools.tar.gz:application/gzip \
+            env-path:text/plain
+
+      - name: Upload stats artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-stats-${{ matrix.arch }}
+          path: |
+            .devcontainer/features/pensive-assistant/dist/dep-tree-annotated.txt
+            .devcontainer/features/pensive-assistant/dist/size-breakdown.txt
+            .devcontainer/features/pensive-assistant/dist/pensive-tools.tar.gz
+          retention-days: 1
+
+  create-tarball-manifest:
+    needs: build-tarballs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/pensive-assistant-v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#pensive-assistant-v}"
+          else
+            VERSION="latest"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install oras
+        run: |
+          curl -fsSL "https://github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_amd64.tar.gz" \
+            | tar xz -C /usr/local/bin oras
+
+      - name: Create multi-arch manifest
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE_BASE="${{ env.REGISTRY }}/mrdavidlaing/laingville/pensive-assistant-tarball"
+
+          # Create and push multi-arch manifest for versioned tag
+          oras manifest index create "${IMAGE_BASE}:${VERSION}" \
+            "${IMAGE_BASE}:${VERSION}-amd64" \
+            "${IMAGE_BASE}:${VERSION}-arm64"
+
+          # Also tag as latest if this is a version tag
+          if [[ "${{ github.ref }}" == refs/tags/pensive-assistant-v* ]]; then
+            oras manifest index create "${IMAGE_BASE}:latest" \
+              "${IMAGE_BASE}:${VERSION}-amd64" \
+              "${IMAGE_BASE}:${VERSION}-arm64"
+          fi
+
+      - name: Download stats artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: stats
+
+      - name: Generate summary
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          echo "## Pensive Assistant Artifact Stats" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for arch in amd64 arm64; do
+            echo "### ${arch}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            TARBALL="stats/build-stats-${arch}/pensive-tools.tar.gz"
+            if [ -f "$TARBALL" ]; then
+              SIZE=$(du -h "$TARBALL" | cut -f1)
+              SIZE_BYTES=$(stat -c%s "$TARBALL" 2>/dev/null || stat -f%z "$TARBALL")
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Tarball size | ${SIZE} |" >> $GITHUB_STEP_SUMMARY
+              echo "| Tarball size (bytes) | ${SIZE_BYTES} |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            SIZE_BREAKDOWN="stats/build-stats-${arch}/size-breakdown.txt"
+            if [ -f "$SIZE_BREAKDOWN" ]; then
+              cat "$SIZE_BREAKDOWN" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            DEP_TREE="stats/build-stats-${arch}/dep-tree-annotated.txt"
+            if [ -f "$DEP_TREE" ]; then
+              echo "<details>" >> $GITHUB_STEP_SUMMARY
+              echo "<summary>Dependency Tree (annotated)</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Legend: \`[+]\` = included in tarball, \`[=]\` = from base container" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              cat "$DEP_TREE" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "### OCI Manifest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          oras manifest fetch ${{ env.REGISTRY }}/mrdavidlaing/laingville/pensive-assistant-tarball:${VERSION} | jq . >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  publish-devcontainer-feature:
+    needs: create-tarball-manifest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/pensive-assistant-v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#pensive-assistant-v}"
+          else
+            VERSION="latest"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish devcontainer feature
+        run: |
+          # Update feature version
+          cd .devcontainer/features/pensive-assistant
+          jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' devcontainer-feature.json > tmp.json
+          mv tmp.json devcontainer-feature.json
+
+          # Publish feature metadata to ghcr.io
+          cd ..
+          devcontainer features publish \
+            --registry ${{ env.REGISTRY }} \
+            --namespace mrdavidlaing/laingville \
+            pensive-assistant

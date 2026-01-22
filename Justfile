@@ -120,6 +120,63 @@ dev-rebuild:
     @docker compose -f .devcontainer/docker-compose.yml pull
     @just dev-up
 
+# ============================================
+# Pensive Assistant Feature Development
+# ============================================
+
+# Build the pensive-assistant feature (mirrors CI build)
+# Usage: just pensive-assistant-build [amd64|arm64|native]
+pensive-assistant-build ARCH="native":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Check if Docker is available
+    if ! docker info >/dev/null 2>&1; then
+        echo "Error: Docker is not running. Please start Colima or Docker Desktop."
+        exit 1
+    fi
+
+    # Determine platform flag and output suffix
+    if [ "{{ARCH}}" = "native" ]; then
+        PLATFORM=""
+        SUFFIX=""
+        echo "Building for native architecture..."
+    else
+        PLATFORM="--platform linux/{{ARCH}}"
+        SUFFIX="-{{ARCH}}"
+        echo "Building for architecture: {{ARCH}}"
+    fi
+
+    # Use a temp dir under $HOME to ensure Docker can mount it on macOS
+    FEATURE_BUILD_DIR=$(mktemp -d "$HOME/.pensive-assistant-build${SUFFIX}.XXXXXX")
+    trap "rm -rf $FEATURE_BUILD_DIR" EXIT
+
+    echo "Copying feature files to $FEATURE_BUILD_DIR..."
+    cp -r .devcontainer/features/pensive-assistant/* "$FEATURE_BUILD_DIR/"
+
+    echo "Running build inside devcontainer base image (mirrors CI)..."
+    docker run --rm $PLATFORM \
+        --user root \
+        --privileged \
+        -v "$FEATURE_BUILD_DIR:/workspace" \
+        ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:latest \
+        bash /workspace/build-delta-tarball.sh
+
+    echo ""
+    echo "=== Copying results to .devcontainer/features/pensive-assistant/dist${SUFFIX}/ ==="
+    mkdir -p ".devcontainer/features/pensive-assistant/dist${SUFFIX}"
+    rm -rf ".devcontainer/features/pensive-assistant/dist${SUFFIX}/"*
+    cp "$FEATURE_BUILD_DIR/dist/"* ".devcontainer/features/pensive-assistant/dist${SUFFIX}/"
+    chmod -R u+w ".devcontainer/features/pensive-assistant/dist${SUFFIX}/"
+    ls -lh ".devcontainer/features/pensive-assistant/dist${SUFFIX}/"
+
+    echo ""
+    echo "Build complete: .devcontainer/features/pensive-assistant/dist${SUFFIX}/"
+
+# Test the pensive-assistant nix environment locally
+pensive-assistant-shell:
+    cd .devcontainer/features/pensive-assistant && nix develop
+
 # Launch a coding agent in devcontainer (full yolo mode)
 # Usage: just dev-agent [claude-code|opencode] [task...]
 # Default: claude-code, interactive mode if no task provided
@@ -217,6 +274,10 @@ help:
     @echo "  just dev-shell    - Open interactive shell in running container"
     @echo "  just dev-status   - Show devcontainer service status"
     @echo "  just dev-rebuild  - Pull latest image and restart devcontainer"
+    @echo ""
+    @echo "Pensive Assistant Feature:"
+    @echo "  just pensive-assistant-build [arch] - Build feature tarball (native/amd64/arm64)"
+    @echo "  just pensive-assistant-shell        - Enter nix development shell"
     @echo ""
     @echo "Agent (yolo mode):"
     @echo "  just dev-agent [type] [task...]"
