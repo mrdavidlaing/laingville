@@ -120,6 +120,85 @@ dev-rebuild:
     @docker compose -f .devcontainer/docker-compose.yml pull
     @just dev-up
 
+# Launch a coding agent in devcontainer (full yolo mode)
+# Usage: just dev-agent [claude-code|opencode] [task...]
+# Default: claude-code, interactive mode if no task provided
+dev-agent agent_type="claude-code" *task:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    # Normalize agent type and set yolo flags
+    AGENT_TYPE="{{ agent_type }}"
+    TASK="{{ task }}"
+    
+    case "$AGENT_TYPE" in
+        claude|claude-code|cc)
+            AGENT_CMD="claude"
+            AGENT_NAME="Claude Code"
+            YOLO_FLAG="--dangerously-skip-permissions"
+            ;;
+        opencode|omo|oc)
+            AGENT_CMD="opencode"
+            AGENT_NAME="OpenCode"
+            # OpenCode run command with implicit auto-approve in agent mode
+            YOLO_FLAG="run"
+            ;;
+        *)
+            echo "❌ Unknown agent type: $AGENT_TYPE"
+            echo ""
+            echo "Supported agents:"
+            echo "  • claude-code (default): claude, cc"
+            echo "  • opencode: opencode, omo, oc"
+            exit 1
+            ;;
+    esac
+    
+    # Check if devcontainer is running
+    # Use current directory to determine project name (same logic as .devcontainer/bin/ctl)
+    PROJECT_NAME="laingville"
+    COMPOSE_PROJECT="${PROJECT_NAME}_devcontainer"
+    
+    if ! docker compose -p "$COMPOSE_PROJECT" ps --quiet devcontainer 2>/dev/null | grep -q .; then
+        echo "🚀 Starting devcontainer..."
+        just dev-up
+        echo ""
+        sleep 2
+    fi
+    
+    echo "🤖 Launching $AGENT_NAME in devcontainer (yolo mode)..."
+    echo ""
+    echo "   Yolo flags: $YOLO_FLAG"
+    echo "   Capabilities: Full filesystem access, no approval prompts"
+    echo "   Blast radius: Container + your GitHub token (via GITHUB_TOKEN env var)"
+    echo "   Working directory: /workspace (your repo mounted here)"
+    echo ""
+    
+    # Build and execute command
+    if [ -z "$TASK" ]; then
+        # Interactive mode
+        if [ "$AGENT_CMD" = "claude" ]; then
+            FULL_CMD="$AGENT_CMD $YOLO_FLAG"
+        else
+            # OpenCode interactive doesn't use run flag
+            FULL_CMD="$AGENT_CMD"
+        fi
+    else
+        # Task mode with yolo flags
+        if [ "$AGENT_CMD" = "claude" ]; then
+            FULL_CMD="$AGENT_CMD $YOLO_FLAG '$TASK'"
+        else
+            # OpenCode: run [message...]
+            FULL_CMD="$AGENT_CMD $YOLO_FLAG $TASK"
+        fi
+    fi
+    
+    # Execute agent in container
+    docker compose -p "$COMPOSE_PROJECT" exec \
+        -it \
+        -w /workspace \
+        devcontainer \
+        bash -c "$FULL_CMD"
+
 # Help recipe
 help:
     @echo "Laingville Justfile - Available recipes:"
@@ -138,6 +217,19 @@ help:
     @echo "  just dev-shell    - Open interactive shell in running container"
     @echo "  just dev-status   - Show devcontainer service status"
     @echo "  just dev-rebuild  - Pull latest image and restart devcontainer"
+    @echo ""
+    @echo "Agent (yolo mode):"
+    @echo "  just dev-agent [type] [task...]"
+    @echo ""
+    @echo "  Types (default: claude-code):"
+    @echo "    claude-code, cc, claude     Claude Code (flag: --dangerously-skip-permissions)"
+    @echo "    opencode, omo, oc           OpenCode (command: run)"
+    @echo ""
+    @echo "  Examples:"
+    @echo "    just dev-agent                           # Claude Code interactive"
+    @echo "    just dev-agent cc 'Implement auth'       # Claude Code task"
+    @echo "    just dev-agent opencode                  # OpenCode interactive"
+    @echo "    just dev-agent omo 'Fix bugs'            # OpenCode task"
     @echo ""
     @echo "  just help         - Show this help message"
     @echo "  just --list       - List all available recipes (built-in)"
