@@ -14,6 +14,21 @@ ENV_PATH_FILE="${FEATURE_DIR}/dist/env-path"
 OCI_REGISTRY="ghcr.io/mrdavidlaing/laingville/pensive-assistant-tarball"
 OCI_TAG="${PENSIVE_TOOLS_VERSION:-latest}"
 
+# Detect architecture (needed for tarball pull and oras install)
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64)
+    ORAS_ARCH="amd64"
+    ;;
+  aarch64 | arm64)
+    ORAS_ARCH="arm64"
+    ;;
+  *)
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+    ;;
+esac
+
 if [ -f "$TARBALL_PATH" ] && [ -f "$ENV_PATH_FILE" ]; then
   echo "Using local tarball from dist/"
 else
@@ -24,19 +39,12 @@ else
   if ! command -v oras > /dev/null 2>&1; then
     echo "Installing oras..."
     ORAS_VERSION="1.3.0"
-    ARCH=$(uname -m)
-    case "$ARCH" in
-      x86_64)
-        ORAS_ARCH="amd64"
+    case "$ORAS_ARCH" in
+      amd64)
         ORAS_SHA256="6cdc692f929100feb08aa8de584d02f7bcc30ec7d88bc2adc2054d782db57c64"
         ;;
-      aarch64 | arm64)
-        ORAS_ARCH="arm64"
+      arm64)
         ORAS_SHA256="7649738b48fde10542bcc8b0e9b460ba83936c75fb5be01ee6d4443764a14352"
-        ;;
-      *)
-        echo "Unsupported architecture: $ARCH"
-        exit 1
         ;;
     esac
     ORAS_URL="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz"
@@ -52,10 +60,13 @@ else
     rm -f "$ORAS_TMP"
   fi
 
-  # Pull tarball from OCI registry
+  # Pull tarball from OCI registry (architecture-specific tag)
+  # Note: We pull arch-specific tags directly because oras artifact manifests
+  # don't support automatic platform selection like Docker image manifests
   cd "${FEATURE_DIR}/dist"
-  if oras pull "${OCI_REGISTRY}:${OCI_TAG}" 2> /dev/null; then
-    echo "Successfully pulled from ${OCI_REGISTRY}:${OCI_TAG}"
+  OCI_TAG_ARCH="${OCI_TAG}-${ORAS_ARCH}"
+  if oras pull "${OCI_REGISTRY}:${OCI_TAG_ARCH}"; then
+    echo "Successfully pulled from ${OCI_REGISTRY}:${OCI_TAG_ARCH}"
   else
     echo "Error: Failed to pull from OCI registry."
     echo ""
