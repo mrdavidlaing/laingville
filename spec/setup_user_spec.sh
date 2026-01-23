@@ -12,21 +12,21 @@ Describe "setup-user script"
               Before "source ./lib/shared.functions.bash"
                 Before "source ./lib/setup-user.functions.bash"
 
-validate_setup_user_stderr() {
-  local stderr_output="$1"
+                  validate_setup_user_stderr() {
+                  local stderr_output="$1"
 
-  if [[ -z "${stderr_output}" ]]; then
-    return 0
-  fi
+                  if [[ -z "${stderr_output}" ]]; then
+                  return 0
+                  fi
 
-  if [[ "${stderr_output}" == *"already exists as a directory. Cannot create symlink."* ]]; then
-    return 0
-  fi
+                  if [[ "${stderr_output}" == *"already exists as a directory. Cannot create symlink."* ]]; then
+                  return 0
+                  fi
 
-  echo "Unexpected stderr output:"
-  echo "${stderr_output}"
-  return 1
-}
+                  echo "Unexpected stderr output:"
+                  echo "${stderr_output}"
+                  return 1
+                  }
 
                   Describe "dry-run mode"
                     It "shows expected output format"

@@ -621,13 +621,13 @@ install_nix_packages() {
       local quoted_pkg
       printf -v quoted_pkg '%q' "${pkg}"
 
-  # Convert version format for GitHub reference
-  local github_ref
-  if [[ "${nix_version}" = "unstable" ]]; then
-    github_ref="github:NixOS/nixpkgs/nixpkgs-unstable"
-  else
-    github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
-  fi
+      # Convert version format for GitHub reference
+      local github_ref
+      if [[ "${nix_version}" = "unstable" ]]; then
+        github_ref="github:NixOS/nixpkgs/nixpkgs-unstable"
+      else
+        github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
+      fi
       if ! eval "nix profile install ${github_ref}#${quoted_pkg}"; then
         failed_packages+=("${pkg}")
       fi
