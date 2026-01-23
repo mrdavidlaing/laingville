@@ -188,5 +188,6 @@ nix:
     - shfmt
     - shellspec
     - beads
+    - opencode
     - docker
     - lazydocker
