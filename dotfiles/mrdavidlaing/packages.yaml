@@ -158,3 +158,35 @@ macos:
     - remove_happy_cli
     - configure_tailscale
     - cleanup_old_beads_install
+
+# Nix - CLI-focused dev tooling (nixpkgs-unstable)
+nix:
+  nixpkgs-unstable:
+    # Shell experience
+    - direnv
+    - zoxide
+    - starship
+    - fzf
+    - eza
+    - bat
+    # Swiss army knife
+    - gh
+    - jq
+    - ripgrep
+    - fd
+    - tree
+    # Git UX
+    - git
+    - git-lfs
+    - lazygit
+    # System tools
+    - rsync
+    - neovim
+    - tmux
+    - just  # Command runner (replaces make)
+    - shellcheck
+    - shfmt
+    - shellspec
+    - beads
+    - docker
+    - lazydocker

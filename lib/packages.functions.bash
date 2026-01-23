@@ -550,6 +550,45 @@ remove_yay_packages() {
 }
 
 # Install nix packages (individual mode with GitHub refs)
+# Initialize nix environment for profile installs
+initialize_nix_environment() {
+  local dry_run="$1"
+  local nix_profile=""
+
+  if [[ "${dry_run}" = true ]]; then
+    log_dry_run "initialize nix environment"
+    return 0
+  fi
+
+  if [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
+    nix_profile="$HOME/.nix-profile/etc/profile.d/nix.sh"
+  elif [[ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]]; then
+    nix_profile="/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
+  elif [[ -f "/etc/profile.d/nix.sh" ]]; then
+    nix_profile="/etc/profile.d/nix.sh"
+  elif [[ -f "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh" ]]; then
+    nix_profile="$HOME/.nix-profile/etc/profile.d/nix-daemon.sh"
+  elif [[ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]]; then
+    nix_profile="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+  fi
+
+  if [[ -n "${nix_profile}" ]]; then
+    # shellcheck disable=SC1090
+    . "${nix_profile}"
+    log_success "Nix environment initialized"
+    return 0
+  fi
+
+  if command -v nix > /dev/null 2>&1; then
+    log_info "Nix environment already available"
+    return 0
+  fi
+
+  log_warning "Nix environment not found - nix commands may be unavailable"
+  return 1
+}
+
+# Install nix packages (individual mode with GitHub refs)
 install_nix_packages() {
   local packages="$1" nix_version="$2" dry_run="$3"
 
@@ -582,8 +621,13 @@ install_nix_packages() {
       local quoted_pkg
       printf -v quoted_pkg '%q' "${pkg}"
 
-      # Convert version format for GitHub reference (25.05 -> nixos-25.05)
-      local github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
+  # Convert version format for GitHub reference
+  local github_ref
+  if [[ "${nix_version}" = "unstable" ]]; then
+    github_ref="github:NixOS/nixpkgs/nixpkgs-unstable"
+  else
+    github_ref="github:NixOS/nixpkgs/nixos-${nix_version}"
+  fi
       if ! eval "nix profile install ${github_ref}#${quoted_pkg}"; then
         failed_packages+=("${pkg}")
       fi
@@ -1052,8 +1096,24 @@ handle_packages_from_file() {
       ;;
     "nix")
       # Process versioned nixpkgs (e.g., nixpkgs-25.05)
-      # Find all nixpkgs-* managers in the file
       if [[ -f "${packages_file}" ]]; then
+        local nix_managers
+        nix_managers=$(grep -E "^  nixpkgs-([0-9]+\.[0-9]+|unstable):" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
+
+        if [[ -z "${nix_managers}" ]]; then
+          if [[ "${dry_run}" = true ]]; then
+            log_dry_run "no nixpkgs entries found - no nix packages would be installed"
+          else
+            log_info "No nixpkgs entries found in ${packages_file} - skipping nix packages"
+          fi
+          return
+        fi
+
+        if ! initialize_nix_environment "${dry_run}"; then
+          log_warning "Skipping nix packages - nix environment not initialized"
+          return
+        fi
+
         # First pass: remove cleanup packages
         while IFS= read -r manager; do
           [[ -n "${manager}" ]] || continue
@@ -1061,7 +1121,7 @@ handle_packages_from_file() {
           local nix_cleanup
           nix_cleanup=$(extract_cleanup_packages_from_yaml "${platform}" "${manager}" "${packages_file}")
           remove_nix_packages "${nix_cleanup}" "${nix_version}" "${dry_run}"
-        done < <(grep -E "^  nixpkgs-[0-9]+\.[0-9]+:" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
+        done <<< "${nix_managers}"
 
         # Second pass: install packages
         while IFS= read -r manager; do
@@ -1070,7 +1130,7 @@ handle_packages_from_file() {
           local nix_packages
           nix_packages=$(extract_packages_from_yaml "${platform}" "${manager}" "${packages_file}")
           install_nix_packages "${nix_packages}" "${nix_version}" "${dry_run}"
-        done < <(grep -E "^  nixpkgs-[0-9]+\.[0-9]+:" "${packages_file}" 2> /dev/null | sed 's/:.*//; s/^  //' || true)
+        done <<< "${nix_managers}"
       fi
       ;;
     "freshtomato")

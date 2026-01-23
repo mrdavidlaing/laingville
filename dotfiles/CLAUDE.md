@@ -8,7 +8,7 @@ Each user has a `packages.yaml` file that defines packages to install across dif
 
 ### Package Categories
 
-- **Platform package managers**: `pacman`, `yay`, `homebrew`, `cask`, `winget`, `scoop`, `psmodule`, `nixpkgs-25.05`
+- **Platform package managers**: `pacman`, `yay`, `homebrew`, `cask`, `winget`, `scoop`, `psmodule`, `nixpkgs-25.05`, `nixpkgs-unstable`
 - **Custom scripts**: `custom` - runs bash scripts from `dotfiles/shared/scripts/`
 - **Cleanup sections**: `*_cleanup` - removes packages that have been replaced or are no longer needed
 

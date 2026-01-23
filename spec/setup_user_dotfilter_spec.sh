@@ -6,6 +6,22 @@ Describe "setup-user dotfile filtering"
   Before "cd '${SHELLSPEC_PROJECT_ROOT}'"
     Before "source ./lib/setup-user.functions.bash"
 
+validate_setup_user_stderr() {
+  local stderr_output="$1"
+
+  if [[ -z "${stderr_output}" ]]; then
+    return 0
+  fi
+
+  if [[ "${stderr_output}" == *"already exists as a directory. Cannot create symlink."* ]]; then
+    return 0
+  fi
+
+  echo "Unexpected stderr output:"
+  echo "${stderr_output}"
+  return 1
+}
+
       Describe "user symlinks filtering"
         It "only includes dot-prefixed files and dirs"
           export DOTFILES_DIR
@@ -14,6 +30,7 @@ Describe "setup-user dotfile filtering"
           When call ./bin/setup-user --dry-run
 
           The status should be success
+          The stderr should satisfy "validate_setup_user_stderr"
 
 # Custom validation function to check all symlinks start with dots
           check_dotfile_symlinks() {

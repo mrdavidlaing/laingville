@@ -12,6 +12,22 @@ Describe "setup-user script"
               Before "source ./lib/shared.functions.bash"
                 Before "source ./lib/setup-user.functions.bash"
 
+validate_setup_user_stderr() {
+  local stderr_output="$1"
+
+  if [[ -z "${stderr_output}" ]]; then
+    return 0
+  fi
+
+  if [[ "${stderr_output}" == *"already exists as a directory. Cannot create symlink."* ]]; then
+    return 0
+  fi
+
+  echo "Unexpected stderr output:"
+  echo "${stderr_output}"
+  return 1
+}
+
                   Describe "dry-run mode"
                     It "shows expected output format"
 # Set DOTFILES_DIR to a known good directory for CI compatibility
@@ -28,6 +44,7 @@ Describe "setup-user script"
                       The output should include "SYMLINKS (from symlinks.yaml):"
                       The output should include "PACKAGES"
                       The output should include "SYSTEMD SERVICES:"
+                      The stderr should satisfy "validate_setup_user_stderr"
                     End
                   End
 
@@ -71,6 +88,7 @@ Describe "setup-user script"
                       The status should be success
                       The output should include "dynamic-wallpaper"
                       The output should include "shared"
+                      The stderr should satisfy "validate_setup_user_stderr"
                     End
                   End
 
@@ -85,6 +103,7 @@ Describe "setup-user script"
 
                       The status should be success
                       The output should include "* Would: enable and start: dynamic-wallpaper.timer"
+                      The stderr should satisfy "validate_setup_user_stderr"
                     End
                   End
 
@@ -122,6 +141,7 @@ Describe "setup-user script"
 
                       The status should be success
                       The output should include "Unknown platform: unknown - skipping package installation"
+                      The stderr should satisfy "validate_setup_user_stderr"
                     End
 
                     It "skips custom scripts gracefully on unknown platform"
