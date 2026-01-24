@@ -18,6 +18,7 @@ omarchy:
     - remove_happy_cli
     - configure_tailscale
     - remove_rectangle_config
+    - install_omarchy_zellij
 
 # Arch Linux - full desktop environment
 arch:
