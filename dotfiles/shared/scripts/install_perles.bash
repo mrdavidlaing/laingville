@@ -27,8 +27,11 @@ ARCH=$(uname -m)
 
 case "${ARCH}" in
   x86_64) ARCH="amd64" ;;
-  aarch64|arm64) ARCH="arm64" ;;
-  *) echo "[ERROR] Unsupported architecture: ${ARCH}"; exit 1 ;;
+  aarch64 | arm64) ARCH="arm64" ;;
+  *)
+    echo "[ERROR] Unsupported architecture: ${ARCH}"
+    exit 1
+    ;;
 esac
 
 # Check if jq is available, if not we might need a simpler way to parse JSON

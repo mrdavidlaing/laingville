@@ -39,10 +39,10 @@ mkdir -p "$HOME/.local/bin"
 if [[ -d "$OMARCHY_ZELLIJ_DIR" ]]; then
   echo "Updating omarchy-zellij repository..."
   cd "$OMARCHY_ZELLIJ_DIR"
-  git pull origin main 2>/dev/null || true
+  git pull origin main 2> /dev/null || true
 else
   echo "Cloning omarchy-zellij repository..."
-  git clone https://github.com/cedricwider/omarchy-zellij "$OMARCHY_ZELLIJ_DIR" 2>/dev/null || {
+  git clone https://github.com/cedricwider/omarchy-zellij "$OMARCHY_ZELLIJ_DIR" 2> /dev/null || {
     echo "[ERROR] Failed to clone omarchy-zellij repository"
     exit 1
   }
@@ -130,11 +130,11 @@ for theme_dir in "$HOME/.config/omarchy/themes"/*/; do
   if [[ -f "$theme_dir/kitty.conf" ]]; then
     theme_name=$(basename "$theme_dir")
     output_file="$THEMES_DIR/${theme_name}.kdl"
-    
+
     # Only regenerate if theme file doesn't exist
     if [[ ! -f "$output_file" ]]; then
       echo "  Converting $theme_name theme..."
-      if python3 "$OMARCHY_ZELLIJ_DIR/scripts/convert_theme.py" "$theme_name" "$theme_dir/kitty.conf" > "$output_file" 2>/dev/null; then
+      if python3 "$OMARCHY_ZELLIJ_DIR/scripts/convert_theme.py" "$theme_name" "$theme_dir/kitty.conf" > "$output_file" 2> /dev/null; then
         ((theme_count++))
       else
         echo "[omarchy-zellij] [WARN] Failed to convert theme: $theme_name"
@@ -147,9 +147,9 @@ done
 if [[ -f "$HOME/.config/omarchy/current/theme/kitty.conf" ]]; then
   # Try to get theme name from current symlink, fallback to "current"
   if [[ -L "$HOME/.config/omarchy/current/theme" ]]; then
-    current_theme_name=$(basename "$(readlink "$HOME/.config/omarchy/current/theme" | xargs dirname)" 2>/dev/null)
+    current_theme_name=$(basename "$(readlink "$HOME/.config/omarchy/current/theme" | xargs dirname)" 2> /dev/null)
   fi
-  
+
   if [[ -z "$current_theme_name" ]]; then
     # Fallback: check if there's a single theme in ~/.config/omarchy/themes/
     theme_dirs=("$HOME/.config/omarchy/themes"/*)
@@ -159,11 +159,11 @@ if [[ -f "$HOME/.config/omarchy/current/theme/kitty.conf" ]]; then
       current_theme_name="current"
     fi
   fi
-  
+
   output_file="$THEMES_DIR/${current_theme_name}.kdl"
   if [[ ! -f "$output_file" ]]; then
     echo "  Converting current Omarchy theme ($current_theme_name)..."
-    if python3 "$OMARCHY_ZELLIJ_DIR/scripts/convert_theme.py" "$current_theme_name" "$HOME/.config/omarchy/current/theme/kitty.conf" > "$output_file" 2>/dev/null; then
+    if python3 "$OMARCHY_ZELLIJ_DIR/scripts/convert_theme.py" "$current_theme_name" "$HOME/.config/omarchy/current/theme/kitty.conf" > "$output_file" 2> /dev/null; then
       ((theme_count++))
     else
       echo "[omarchy-zellij] [WARN] Failed to convert current theme"
