@@ -1,0 +1,19 @@
+services:
+  devcontainer:
+    build:
+      context: ../..
+      dockerfile: .devcontainer/ubuntu.Dockerfile
+    
+    volumes:
+      - ../..:/workspace:cached
+
+      - ${DEVCONTAINER_SSH_SOCK:-/run/host-services/ssh-auth.sock}:/ssh-agent:ro
+
+      - ~/.config/gh:/home/vscode/.config/gh:ro
+
+    environment:
+      SSH_AUTH_SOCK: /ssh-agent
+
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+
+    command: sleep infinity
