@@ -1,0 +1,150 @@
+themes {
+    tokyo-night {
+        // Basic UI text components
+        text_unselected {
+            base 169 177 214
+            background 26 27 38
+            emphasis_0 68 157 171
+            emphasis_1 120 124 153
+            emphasis_2 158 206 106
+            emphasis_3 224 175 104
+        }
+        
+        text_selected {
+            base 26 27 38
+            background 169 177 214
+            emphasis_0 68 157 171
+            emphasis_1 120 124 153
+            emphasis_2 158 206 106
+            emphasis_3 224 175 104
+        }
+        
+        // Ribbon components (tabs, status bar sections)
+        ribbon_unselected {
+            base 169 177 214
+            background 68 75 106
+            emphasis_0 158 206 106
+            emphasis_1 122 162 247
+            emphasis_2 68 157 171
+            emphasis_3 173 142 230
+        }
+        
+        ribbon_selected {
+            base 26 27 38
+            background 169 177 214
+            emphasis_0 247 118 142
+            emphasis_1 158 206 106
+            emphasis_2 68 157 171
+            emphasis_3 224 175 104
+        }
+        
+        // Table components
+        table_title {
+            base 224 175 104
+            background 26 27 38
+            emphasis_0 68 157 171
+            emphasis_1 120 124 153
+            emphasis_2 158 206 106
+            emphasis_3 247 118 142
+        }
+        
+        table_cell_unselected {
+            base 169 177 214
+            background 26 27 38
+            emphasis_0 122 162 247
+            emphasis_1 158 206 106
+            emphasis_2 68 157 171
+            emphasis_3 173 142 230
+        }
+        
+        table_cell_selected {
+            base 26 27 38
+            background 158 206 106
+            emphasis_0 120 124 153
+            emphasis_1 224 175 104
+            emphasis_2 68 157 171
+            emphasis_3 247 118 142
+        }
+        
+        // List components
+        list_unselected {
+            base 169 177 214
+            background 26 27 38
+            emphasis_0 158 206 106
+            emphasis_1 68 157 171
+            emphasis_2 122 162 247
+            emphasis_3 173 142 230
+        }
+        
+        list_selected {
+            base 26 27 38
+            background 68 157 171
+            emphasis_0 120 124 153
+            emphasis_1 224 175 104
+            emphasis_2 158 206 106
+            emphasis_3 247 118 142
+        }
+        
+        // Frame components (pane borders)
+        frame_unselected {
+            base 68 75 106
+            background 26 27 38
+            emphasis_0 158 206 106
+            emphasis_1 68 157 171
+            emphasis_2 122 162 247
+            emphasis_3 169 177 214
+        }
+        
+        frame_selected {
+            base 68 157 171
+            background 26 27 38
+            emphasis_0 224 175 104
+            emphasis_1 120 124 153
+            emphasis_2 158 206 106
+            emphasis_3 247 118 142
+        }
+        
+        frame_highlight {
+            base 224 175 104
+            background 26 27 38
+            emphasis_0 68 157 171
+            emphasis_1 120 124 153
+            emphasis_2 158 206 106
+            emphasis_3 247 118 142
+        }
+        
+        // Exit code indicators
+        exit_code_success {
+            base 158 206 106
+            background 26 27 38
+            emphasis_0 0 0 0
+            emphasis_1 0 0 0
+            emphasis_2 0 0 0
+            emphasis_3 0 0 0
+        }
+        
+        exit_code_error {
+            base 247 118 142
+            background 26 27 38
+            emphasis_0 0 0 0
+            emphasis_1 0 0 0
+            emphasis_2 0 0 0
+            emphasis_3 0 0 0
+        }
+        
+        // Multiplayer user colors
+        multiplayer_user_colors {
+            player_1 68 157 171
+            player_2 158 206 106
+            player_3 224 175 104
+            player_4 173 142 230
+            player_5 122 162 247
+            player_6 247 118 142
+            player_7 125 166 255
+            player_8 13 185 215
+            player_9 185 242 124
+            player_10 169 177 214
+        }
+    }
+}
+
