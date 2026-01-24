@@ -167,17 +167,6 @@ switch_profile() {
   echo -e "${GREEN}Switched to '$profile' profile${NC}"
   echo ""
   show_status
-
-  # Show diff if backup exists
-  if [[ -f "$backup_file" ]]; then
-    echo ""
-    echo -e "${BLUE}Changes from previous config:${NC}"
-    if diff -q "$backup_file" "$TARGET_FILE" > /dev/null 2>&1; then
-      echo "  (no changes)"
-    else
-      diff --color=always -u "$backup_file" "$TARGET_FILE" | tail -n +3
-    fi
-  fi
 }
 
 # Main
