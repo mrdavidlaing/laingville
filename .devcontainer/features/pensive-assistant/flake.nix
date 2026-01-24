@@ -18,7 +18,10 @@
     {
       packages = forAllSystems (system:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;  # Required for claude-code and opencode (unfree licenses)
+          };
 
           pensiveTools = [
             beads.packages.${system}.default
