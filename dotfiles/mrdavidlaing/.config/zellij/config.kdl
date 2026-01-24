@@ -165,6 +165,20 @@ keybinds {
             };
             SwitchToMode "Normal"
         }
+        bind "f" {
+            LaunchOrFocusPlugin "filepicker" {
+                floating true
+                move_to_focused_tab true
+            };
+            SwitchToMode "Normal"
+        }
+        // Open file path from clipboard in nvim (macOS)
+        bind "e" {
+            Run "bash" "-c" "f=$(pbpaste); zellij action rename-pane \"$f\"; nvim \"${f/#\\~/$HOME}\"" {
+                floating true
+            };
+            SwitchToMode "Normal"
+        }
     }
     tmux {
         bind "[" { SwitchToMode "Scroll"; }
