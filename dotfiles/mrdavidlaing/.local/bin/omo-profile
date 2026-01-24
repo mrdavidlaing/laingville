@@ -26,6 +26,7 @@ OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 PROFILES_DIR="$OPENCODE_CONFIG_DIR/omo-profiles"
 TARGET_FILE="$OPENCODE_CONFIG_DIR/oh-my-opencode.json"
 OPENCODE_CORE_FILE="$OPENCODE_CONFIG_DIR/opencode.json"
+OMO_BIN="$OPENCODE_CONFIG_DIR/node_modules/.bin/oh-my-opencode"
 
 # Colors for output
 RED='\033[0;31m'
@@ -111,15 +112,12 @@ get_current_profile() {
   echo "(custom config)"
 }
 
-show_resolved_agents() {
-  echo -e "${BLUE}Resolved Agent Mappings:${NC}"
-  # Extract model for each major agent, falling back to category resolve
-  jq -r '
-    .categories as $cats |
-    .agents | to_entries[] |
-    select(.key | IN("atlas", "sisyphus", "prometheus", "oracle", "explore", "librarian")) |
-    "  \(.key): \(.value.model // (if .value.category then $cats[.value.category].model else null end) // "default")"
-  ' "$TARGET_FILE"
+show_status() {
+  if [[ -x "$OMO_BIN" ]]; then
+    "$OMO_BIN" doctor --verbose
+  else
+    echo -e "${YELLOW}Warning: oh-my-opencode binary not found at $OMO_BIN${NC}"
+  fi
 }
 
 switch_profile() {
@@ -168,7 +166,7 @@ switch_profile() {
 
   echo -e "${GREEN}Switched to '$profile' profile${NC}"
   echo ""
-  show_resolved_agents
+  show_status
 
   # Show diff if backup exists
   if [[ -f "$backup_file" ]]; then
@@ -194,7 +192,7 @@ case "${1:-}" in
     current=$(get_current_profile)
     echo -e "Current profile: ${GREEN}$current${NC}"
     echo ""
-    show_resolved_agents
+    show_status
     echo ""
     echo "Use 'omo-profile --list' to see available profiles"
     echo "Use 'omo-profile <name>' to switch profiles"
