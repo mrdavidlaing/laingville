@@ -64,11 +64,11 @@
       },
       "locked": {
         "dir": "infra",
-        "lastModified": 1769295607,
-        "narHash": "sha256-LGuKWXLPY7nLqEy7Mmwk0m8M7M0WlUoSZUOcBU12jDU=",
+        "lastModified": 1769296165,
+        "narHash": "sha256-TeKUmSr5/cOKnPC0uuZd1qmT7q2bymG/TZbb4EN/zX4=",
         "owner": "mrdavidlaing",
         "repo": "laingville",
-        "rev": "eb009016bc7e9a4356eff9dcdb9a99d7b6ed6c66",
+        "rev": "25915429c9b0a12b3c50ed7e054933552b04d1a0",
         "type": "github"
       },
       "original": {
