@@ -49,9 +49,50 @@ else
   cd "$OMARCHY_ZELLIJ_DIR"
 fi
 
-# Install hook script
+# Install wrapper hook script that handles missing theme directories
 echo "Installing hook script..."
-cp "$OMARCHY_ZELLIJ_DIR/scripts/omarchy-zellij-hook" "$HOOK_DEST"
+cat > "$HOOK_DEST" << 'EOFHOOK'
+#!/bin/bash
+set -euo pipefail
+
+readonly THEME_SNAKE="$1"
+readonly THEME="${THEME_SNAKE//_/-}"
+readonly THEME_DIR="$HOME/.config/omarchy/themes/$THEME"
+readonly CURRENT_THEME_DIR="$HOME/.config/omarchy/current/theme"
+readonly ZELLIJ_CONF="$HOME/.config/zellij/config.kdl"
+readonly THEMES_DIR="$HOME/.config/zellij/themes"
+readonly CONVERTER="$HOME/.config/omarchy-zellij/scripts/convert_theme.py"
+
+# Validate zellij config exists
+if [[ ! -f "$ZELLIJ_CONF" ]]; then
+  echo "Error: Zellij config not found at $ZELLIJ_CONF" >&2
+  exit 1
+fi
+
+# If theme directory doesn't exist, create it from current/theme
+if [[ ! -d "$THEME_DIR" ]]; then
+  if [[ -d "$CURRENT_THEME_DIR" ]] && [[ -f "$CURRENT_THEME_DIR/kitty.conf" ]]; then
+    echo "[omarchy-zellij] Creating missing theme directory: $THEME"
+    mkdir -p "$THEME_DIR"
+    cp "$CURRENT_THEME_DIR"/* "$THEME_DIR/" 2>/dev/null || true
+    
+    # Also convert to zellij theme if converter exists
+    if [[ -f "$CONVERTER" ]]; then
+      mkdir -p "$THEMES_DIR"
+      output_file="$THEMES_DIR/${THEME}.kdl"
+      if python3 "$CONVERTER" "$THEME" "$CURRENT_THEME_DIR/kitty.conf" > "$output_file" 2>/dev/null; then
+        echo "[omarchy-zellij] Successfully converted theme: $THEME"
+      fi
+    fi
+  else
+    echo "Error: Theme directory not found at $THEME_DIR and current/theme is not available" >&2
+    exit 1
+  fi
+fi
+
+# Update the theme line in zellij config by pattern matching
+sed -i "s/^theme \"[^\"]*\"/theme \"$THEME\"/" "$ZELLIJ_CONF"
+EOFHOOK
 chmod +x "$HOOK_DEST"
 
 # Register hook in Omarchy
