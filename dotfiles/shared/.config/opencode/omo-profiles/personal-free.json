@@ -1,19 +1,17 @@
 {
   "categories": {
-    "quick": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "most-capable": {
-      "model": "opencode/big-pickle"
-    },
-    "visual-engineering": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "writing": {
-      "model": "opencode/minimax-m2.1-free"
-    },
-    "planning": {
-      "model": "opencode/gpt-5-nano"
-    }
+    "quick": { "model": "opencode/gpt-5-nano" },
+    "ultrabrain": { "model": "opencode/big-pickle" },
+    "visual-engineering": { "model": "opencode/gpt-5-nano" },
+    "writing": { "model": "opencode/gpt-5-nano" },
+    "unspecified-high": { "model": "opencode/gpt-5-nano" }
+  },
+  "agents": {
+    "atlas": { "model": "opencode/gpt-5-nano" },
+    "sisyphus": { "model": "opencode/gpt-5-nano" },
+    "prometheus": { "model": "opencode/big-pickle" },
+    "oracle": { "model": "opencode/big-pickle" },
+    "explore": { "model": "opencode/gpt-5-nano" },
+    "librarian": { "model": "opencode/gpt-5-nano" }
   }
 }

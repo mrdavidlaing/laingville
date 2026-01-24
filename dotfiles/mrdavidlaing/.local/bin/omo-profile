@@ -112,12 +112,12 @@ get_current_profile() {
 
 show_resolved_agents() {
   echo -e "${BLUE}Resolved Agent Mappings:${NC}"
-  # Extract category for each major agent and resolve to model
+  # Extract model for each major agent, falling back to category resolve
   jq -r '
     .categories as $cats |
     .agents | to_entries[] |
-    select(.key | IN("atlas", "prometheus", "oracle", "explore", "librarian")) |
-    "  \(.key) (\(.value.category)): \($cats[.value.category].model // "default")"
+    select(.key | IN("atlas", "sisyphus", "prometheus", "oracle", "explore", "librarian")) |
+    "  \(.key): \(.value.model // (if .value.category then $cats[.value.category].model else null end) // "default")"
   ' "$TARGET_FILE"
 }
 
@@ -140,21 +140,12 @@ switch_profile() {
   if [[ -f "$TARGET_FILE" ]]; then
     cp "$TARGET_FILE" "$backup_file"
 
-    # Merge categories only, preserving agents and other sections
-    # If the profile ALSO contains an agents section, we merge that too (allowing per-profile category overrides)
-    local has_agents
-    has_agents=$(jq 'has("agents")' "$profile_file")
-    
-    if [[ "$has_agents" == "true" ]]; then
-      jq -s '.[0] * .[1]' "$TARGET_FILE" "$profile_file" > "$TARGET_FILE.tmp"
-    else
-      local profile_categories
-      profile_categories=$(jq '.categories' "$profile_file")
-      jq --argjson cats "$profile_categories" '.categories = $cats' "$TARGET_FILE" > "$TARGET_FILE.tmp"
-    fi
+    # Merge profiles
+    # We use a merge that replaces categories and agents with the ones from the profile
+    jq -s '.[0] * .[1]' "$TARGET_FILE" "$profile_file" > "$TARGET_FILE.tmp"
     mv "$TARGET_FILE.tmp" "$TARGET_FILE"
   else
-    # First time - just copy (no base config exists yet)
+    # First time - just copy
     cp "$profile_file" "$TARGET_FILE"
   fi
 

@@ -1,19 +1,17 @@
 {
   "categories": {
-    "quick": {
-      "model": "opencode/claude-haiku-4-5"
-    },
-    "most-capable": {
-      "model": "opencode/claude-sonnet-4-5"
-    },
-    "visual-engineering": {
-      "model": "opencode/gemini-3-pro"
-    },
-    "writing": {
-      "model": "opencode/claude-sonnet-4-5"
-    },
-    "planning": {
-      "model": "opencode/claude-opus-4-5"
-    }
+    "quick": { "model": "opencode/claude-haiku-4-5" },
+    "ultrabrain": { "model": "opencode/claude-sonnet-4-5" },
+    "visual-engineering": { "model": "opencode/gemini-3-flash" },
+    "writing": { "model": "opencode/gpt-5-nano" },
+    "unspecified-high": { "model": "opencode/claude-opus-4-5" }
+  },
+  "agents": {
+    "atlas": { "model": "opencode/claude-haiku-4-5" },
+    "sisyphus": { "model": "opencode/claude-haiku-4-5" },
+    "prometheus": { "model": "opencode/claude-opus-4-5" },
+    "oracle": { "model": "opencode/claude-sonnet-4-5" },
+    "explore": { "model": "opencode/claude-haiku-4-5" },
+    "librarian": { "model": "opencode/claude-haiku-4-5" }
   }
 }

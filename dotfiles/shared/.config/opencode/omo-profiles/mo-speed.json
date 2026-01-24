@@ -1,19 +1,17 @@
 {
   "categories": {
-    "quick": {
-      "model": "anthropic/claude-haiku-4-5"
-    },
-    "most-capable": {
-      "model": "anthropic/claude-sonnet-4-5"
-    },
-    "visual-engineering": {
-      "model": "google/gemini-3-flash"
-    },
-    "writing": {
-      "model": "google/gemini-3-flash"
-    },
-    "planning": {
-      "model": "openai/o3-mini"
-    }
+    "quick": { "model": "anthropic/claude-haiku-4-5" },
+    "ultrabrain": { "model": "anthropic/claude-sonnet-4-5" },
+    "visual-engineering": { "model": "google/gemini-3-flash" },
+    "writing": { "model": "google/gemini-3-flash" },
+    "unspecified-high": { "model": "openai/o3-mini" }
+  },
+  "agents": {
+    "atlas": { "model": "anthropic/claude-haiku-4-5" },
+    "sisyphus": { "model": "anthropic/claude-haiku-4-5" },
+    "prometheus": { "model": "openai/o3-mini" },
+    "oracle": { "model": "anthropic/claude-sonnet-4-5" },
+    "explore": { "model": "anthropic/claude-haiku-4-5" },
+    "librarian": { "model": "anthropic/claude-haiku-4-5" }
   }
 }
