@@ -64,8 +64,8 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 curl -fsSL "${DOWNLOAD_URL}" -o "${TMP_DIR}/perles.tar.gz"
 tar -xzf "${TMP_DIR}/perles.tar.gz" -C "${TMP_DIR}"
 
-# Find the binary in the extracted files
-EXTRACTED_BINARY=$(find "${TMP_DIR}" -type f -name "perles" -executable | head -n 1)
+# Find the binary in the extracted files (BSD find compatible - no -executable flag)
+EXTRACTED_BINARY=$(find "${TMP_DIR}" -type f -name "perles" | head -n 1)
 
 if [[ -z "${EXTRACTED_BINARY}" ]]; then
   echo "[ERROR] Could not find perles binary in extracted archive"
