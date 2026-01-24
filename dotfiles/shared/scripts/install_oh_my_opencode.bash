@@ -3,7 +3,7 @@
 set -e
 
 DRY_RUN="${1:-false}"
-OMO_VERSION="${2:-beta}"
+OMO_VERSION="${2:-3.0.0}"
 
 OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 OPENCODE_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/opencode"
