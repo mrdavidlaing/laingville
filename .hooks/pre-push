@@ -1,19 +1,27 @@
-#!/usr/bin/env sh
-# bd-shim v1
-# bd-hooks-version: 0.49.0
-#
-# bd (beads) pre-push hook - thin shim
-#
-# This shim delegates to 'bd hooks run pre-push' which contains
-# the actual hook logic. This pattern ensures hook behavior is always
-# in sync with the installed bd version - no manual updates needed.
+#!/bin/bash
+# Pre-push hook for Laingville repository
+# Syncs beads, then runs all tests before allowing push
 
-# Check if bd is available
-if ! command -v bd >/dev/null 2>&1; then
-    echo "Warning: bd command not found in PATH, skipping pre-push hook" >&2
-    echo "  Install bd: brew install steveyegge/tap/bd" >&2
-    echo "  Or add bd to your PATH" >&2
-    exit 0
+set -e
+
+# Run beads pre-push hook first if bd is available
+if command -v bd >/dev/null 2>&1; then
+    echo "🔄 Running beads pre-push sync..."
+    bd hooks run pre-push "$@"
+    echo
 fi
 
-exec bd hooks run pre-push "$@"
+echo "🚀 Running pre-push checks..."
+echo
+
+# Run all checks and tests
+echo "🔧 Running all checks and tests (just)..."
+if ! just; then
+    echo
+    echo "❌ Checks failed. Push aborted."
+    echo "💡 Fix the issues above, or use 'git push --no-verify' to skip this hook."
+    exit 1
+fi
+
+echo
+echo "✅ All pre-push checks passed! Proceeding with push..."
