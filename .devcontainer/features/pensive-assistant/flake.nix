@@ -10,7 +10,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, beads, ... }:
+  outputs = { self, nixpkgs, beads, infra, ... }:
     let
       supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -18,12 +18,22 @@
     {
       packages = forAllSystems (system:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
+          # Import nixpkgs with infra overlays to get nodejs_22_patched
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import "${infra}/overlays") ];
+          };
+          
+          # Import overlay packages from infra (available in CI)
+          opencodeAi = pkgs.callPackage "${infra}/overlays/opencode-ai/package.nix" { };
+          claudeCode = pkgs.callPackage "${infra}/overlays/claude-code/package.nix" { };
 
           pensiveTools = [
             beads.packages.${system}.default
             pkgs.zellij
             pkgs.lazygit
+            opencodeAi
+            claudeCode
           ];
 
           pensiveEnv = pkgs.buildEnv {

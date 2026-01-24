@@ -46,3 +46,32 @@
 - Replicate the postinstall script's behavior manually
 
 **Next step:** Update hashes using fake hash technique (TODO 3)
+
+## Feature Flake Updated with Infra Overlays
+
+**Date:** 2026-01-24
+
+**What:** Updated `.devcontainer/features/pensive-assistant/flake.nix` to import nixpkgs with infra overlays and add opencode-ai and claude-code tools.
+
+**Changes:**
+1. Added `infra` parameter to `outputs` function signature
+2. Changed from `nixpkgs.legacyPackages.${system}` to `import nixpkgs` with overlays
+3. Added `opencodeAi` and `claudeCode` via `callPackage` from infra overlay packages
+4. Added both tools to `pensiveTools` list
+
+**Pattern:**
+```nix
+# Import nixpkgs WITH overlays
+pkgs = import nixpkgs {
+  inherit system;
+  overlays = [ (import "${infra}/overlays") ];
+};
+
+# Import overlay packages
+opencodeAi = pkgs.callPackage "${infra}/overlays/opencode-ai/package.nix" { };
+claudeCode = pkgs.callPackage "${infra}/overlays/claude-code/package.nix" { };
+```
+
+**Why:** This ensures the feature flake gets `nodejs_22_patched` from overlays and can build opencode-ai and claude-code packages. The pattern matches how other parts of the repo import overlays.
+
+**Next:** The flake won't build yet because package.nix files still have placeholder hashes. Those will be updated after running nix build to get real hashes.
