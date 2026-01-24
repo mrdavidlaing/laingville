@@ -55,6 +55,40 @@ jobs:
           mkdir -p .devcontainer/features/pensive-assistant/dist
           cp "$FEATURE_BUILD_DIR/dist/"* .devcontainer/features/pensive-assistant/dist/
 
+      - name: Test pensive-assistant tools
+        run: |
+          # Mount entire feature directory so test.sh is accessible
+          # --user root: Required to extract to /nix/store (absolute paths)
+          docker run --rm \
+            --user root \
+            -v ${{ github.workspace }}/.devcontainer/features/pensive-assistant:/feature \
+            ghcr.io/mrdavidlaing/laingville/laingville-devcontainer:latest \
+            bash -l -c "
+              # Use login shell (-l) to source /etc/profile.d scripts
+              # This ensures bun from base image is on PATH
+              
+              # Extract tarball to /nix/store (requires root)
+              tar -xzf /feature/dist/pensive-tools.tar.gz -C /
+              
+              # Get the env path and prepend to PATH
+              ENV_PATH=\$(cat /feature/dist/env-path)
+              export PATH=\"\${ENV_PATH}/bin:\$PATH\"
+              
+              # Pre-flight check: verify tools are available and log their paths
+              echo '=== Pre-flight checks ==='
+              echo \"bun: \$(command -v bun)\"
+              echo \"opencode: \$(command -v opencode)\"
+              echo \"claude: \$(command -v claude)\"
+              
+              command -v bun || { echo 'ERROR: bun not found in PATH'; exit 1; }
+              bun --version
+              
+              # Run tests (includes provenance checks)
+              # Set TARBALL_PATH so test.sh can find it in CI context
+              chmod +x /feature/test.sh
+              TARBALL_PATH=/feature/dist/pensive-tools.tar.gz /feature/test.sh
+            "
+
       - name: Determine version
         id: version
         run: |
