@@ -6,7 +6,6 @@ omarchy:
   yay:
     - 1password-cli
     - beads-git
-    - perles  # TUI for beads issue tracker
     - tailscale
     - direnv  # Critical for devcontainer workflow
     - just  # Command runner (replaces make)
@@ -14,6 +13,7 @@ omarchy:
     - opencode-bin  # AI coding assistant CLI
   custom:
     - install_claude_code
+    - install_perles
     - install_oh_my_opencode
     - remove_happy_cli
     - configure_tailscale
@@ -100,6 +100,7 @@ arch:
     - opencode  # Replaced with opencode-bin 2025-11-02, build broken in v1.0.11
   custom:
     - install_claude_code
+    - install_perles
     - install_oh_my_opencode
     - remove_happy_cli
     - configure_tailscale
@@ -160,6 +161,7 @@ macos:
     - sketchybar  # Removed 2025-12-20, clock hidden behind notch, not worth the complexity
   custom:
     - install_claude_code
+    - install_perles
     - install_oh_my_opencode
     - remove_happy_cli
     - configure_tailscale
