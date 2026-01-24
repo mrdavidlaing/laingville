@@ -46,7 +46,7 @@ omarchy:
     target: ~/.local/bin/fetch-api-key
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: ../shared/.config/opencode/omo-profiles
+  - source: .config/opencode/omo-profiles
     target: ~/.config/opencode/omo-profiles
 
 # Arch Linux - full desktop environment
@@ -95,7 +95,7 @@ arch:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: ../shared/.config/opencode/omo-profiles
+  - source: .config/opencode/omo-profiles
     target: ~/.config/opencode/omo-profiles
   # Desktop environment - Hyprland
   - .config/hypr
@@ -147,7 +147,7 @@ wsl:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: ../shared/.config/opencode/omo-profiles
+  - source: .config/opencode/omo-profiles
     target: ~/.config/opencode/omo-profiles
 
 wsl_cleanup:
@@ -271,7 +271,7 @@ macos:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: ../shared/.config/opencode/omo-profiles
+  - source: .config/opencode/omo-profiles
     target: ~/.config/opencode/omo-profiles
   # Codex (OpenAI Codex CLI)
   - source: .codex/config.toml
@@ -339,5 +339,5 @@ nix:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: ../shared/.config/opencode/omo-profiles
+  - source: .config/opencode/omo-profiles
     target: ~/.config/opencode/omo-profiles
