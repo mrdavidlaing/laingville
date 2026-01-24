@@ -163,3 +163,32 @@ We can update the hashes after getting these error messages.
 - `grep -n "bun install -g"` returns no matches
 - Symlink loop at line 143 includes all 5 tarball tools
 - install.sh is now consistent with tarball contents from feature flake
+
+## Test Script Enhancement (2026-01-24)
+
+Updated `.devcontainer/features/pensive-assistant/test.sh` with comprehensive verification:
+
+**Version checks added:**
+- `bun --version` - from base image
+- `opencode --version` - from tarball (upgraded from basic existence check)
+- `claude --version` - from tarball (upgraded from `command -v`)
+
+**Functional smoke tests added:**
+- `opencode --help` - verifies runtime works without network
+- `claude --help` - verifies runtime works without network
+
+**Critical provenance verification (3-step):**
+1. Assert NOT in $HOME - catches stale `bun install -g` versions
+2. Assert IN /nix/store - verifies correct source
+3. Assert PRESENT in tarball - proves tools came from tarball, not base image
+
+**Key implementation details:**
+- Uses `readlink -f` to resolve symlinks to actual binary location
+- Checks tarball membership via `tar -tzf` + grep for store paths
+- Handles TARBALL_PATH env var with fallback to script-relative path
+- Exits non-zero on any failure for CI integration
+
+**Why this matters:**
+- PATH ordering can hide stale installations
+- /nix/store presence alone doesn't prove tarball origin
+- This catches cases where tools work but come from wrong source
