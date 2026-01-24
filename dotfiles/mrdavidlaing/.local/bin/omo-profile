@@ -25,6 +25,7 @@ set -e
 OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 PROFILES_DIR="$OPENCODE_CONFIG_DIR/omo-profiles"
 TARGET_FILE="$OPENCODE_CONFIG_DIR/oh-my-opencode.json"
+OPENCODE_CORE_FILE="$OPENCODE_CONFIG_DIR/opencode.json"
 
 # Colors for output
 RED='\033[0;31m'
@@ -144,9 +145,25 @@ switch_profile() {
     # We use a merge that replaces categories and agents with the ones from the profile
     jq -s '.[0] * .[1]' "$TARGET_FILE" "$profile_file" > "$TARGET_FILE.tmp"
     mv "$TARGET_FILE.tmp" "$TARGET_FILE"
+
+    # Also update core opencode.json with the profile default model if present
+    local profile_model
+    profile_model=$(jq -r '.model // empty' "$profile_file")
+    if [[ -n "$profile_model" ]] && [[ -f "$OPENCODE_CORE_FILE" ]]; then
+      jq --arg model "$profile_model" '.model = $model' "$OPENCODE_CORE_FILE" > "$OPENCODE_CORE_FILE.tmp"
+      mv "$OPENCODE_CORE_FILE.tmp" "$OPENCODE_CORE_FILE"
+    fi
   else
     # First time - just copy
     cp "$profile_file" "$TARGET_FILE"
+    
+    # Update core model if base config exists
+    local profile_model
+    profile_model=$(jq -r '.model // empty' "$profile_file")
+    if [[ -n "$profile_model" ]] && [[ -f "$OPENCODE_CORE_FILE" ]]; then
+      jq --arg model "$profile_model" '.model = $model' "$OPENCODE_CORE_FILE" > "$OPENCODE_CORE_FILE.tmp"
+      mv "$OPENCODE_CORE_FILE.tmp" "$OPENCODE_CORE_FILE"
+    fi
   fi
 
   echo -e "${GREEN}Switched to '$profile' profile${NC}"

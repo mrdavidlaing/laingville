@@ -1,17 +1,40 @@
 {
   "categories": {
-    "quick": { "model": "anthropic/claude-sonnet-4-5" },
-    "ultrabrain": { "model": "openai/gpt-5.2" },
-    "visual-engineering": { "model": "google/gemini-3-pro" },
-    "writing": { "model": "anthropic/claude-sonnet-4-5" },
-    "unspecified-high": { "model": "openai/o1" }
+    "quick": {
+      "model": "anthropic/claude-sonnet-4-5"
+    },
+    "ultrabrain": {
+      "model": "openai/gpt-5.2"
+    },
+    "visual-engineering": {
+      "model": "google/gemini-3-pro"
+    },
+    "writing": {
+      "model": "anthropic/claude-sonnet-4-5"
+    },
+    "unspecified-high": {
+      "model": "openai/o1"
+    }
   },
   "agents": {
-    "atlas": { "model": "anthropic/claude-sonnet-4-5" },
-    "sisyphus": { "model": "anthropic/claude-sonnet-4-5" },
-    "prometheus": { "model": "openai/o1" },
-    "oracle": { "model": "openai/gpt-5.2" },
-    "explore": { "model": "anthropic/claude-sonnet-4-5" },
-    "librarian": { "model": "anthropic/claude-sonnet-4-5" }
-  }
+    "atlas": {
+      "model": "anthropic/claude-sonnet-4-5"
+    },
+    "sisyphus": {
+      "model": "anthropic/claude-sonnet-4-5"
+    },
+    "prometheus": {
+      "model": "openai/o1"
+    },
+    "oracle": {
+      "model": "openai/gpt-5.2"
+    },
+    "explore": {
+      "model": "anthropic/claude-sonnet-4-5"
+    },
+    "librarian": {
+      "model": "anthropic/claude-sonnet-4-5"
+    }
+  },
+  "model": "anthropic/claude-sonnet-4-5"
 }
