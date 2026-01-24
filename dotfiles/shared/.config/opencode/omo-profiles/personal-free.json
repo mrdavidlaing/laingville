@@ -1,40 +1,23 @@
 {
+  "model": "opencode/gpt-5-nano",
   "categories": {
-    "quick": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "ultrabrain": {
-      "model": "opencode/big-pickle"
-    },
-    "visual-engineering": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "writing": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "unspecified-high": {
-      "model": "opencode/gpt-5-nano"
-    }
+    "quick": { "model": "opencode/gpt-5-nano" },
+    "ultrabrain": { "model": "opencode/big-pickle" },
+    "artistry": { "model": "opencode/gpt-5-nano" },
+    "visual-engineering": { "model": "opencode/gpt-5-nano" },
+    "writing": { "model": "opencode/gpt-5-nano" },
+    "unspecified-low": { "model": "opencode/gpt-5-nano" },
+    "unspecified-high": { "model": "opencode/gpt-5-nano" }
   },
   "agents": {
-    "atlas": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "sisyphus": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "prometheus": {
-      "model": "opencode/big-pickle"
-    },
-    "oracle": {
-      "model": "opencode/big-pickle"
-    },
-    "explore": {
-      "model": "opencode/gpt-5-nano"
-    },
-    "librarian": {
-      "model": "opencode/gpt-5-nano"
-    }
-  },
-  "model": "opencode/gpt-5-nano"
+    "atlas": { "model": "opencode/gpt-5-nano" },
+    "sisyphus": { "model": "opencode/gpt-5-nano" },
+    "prometheus": { "model": "opencode/gpt-5-nano" },
+    "metis": { "model": "opencode/gpt-5-nano" },
+    "oracle": { "model": "opencode/big-pickle" },
+    "momus": { "model": "opencode/big-pickle" },
+    "explore": { "model": "opencode/gpt-5-nano" },
+    "librarian": { "model": "opencode/gpt-5-nano" },
+    "multimodal-looker": { "model": "opencode/gpt-5-nano" }
+  }
 }
