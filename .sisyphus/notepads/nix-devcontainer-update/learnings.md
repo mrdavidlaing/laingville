@@ -75,3 +75,91 @@ claudeCode = pkgs.callPackage "${infra}/overlays/claude-code/package.nix" { };
 **Why:** This ensures the feature flake gets `nodejs_22_patched` from overlays and can build opencode-ai and claude-code packages. The pattern matches how other parts of the repo import overlays.
 
 **Next:** The flake won't build yet because package.nix files still have placeholder hashes. Those will be updated after running nix build to get real hashes.
+
+---
+
+## [2026-01-24T20:45] Session Summary - TODO 1 & 2 Complete
+
+### Completed Tasks
+
+✅ **TODO 1: Research npm package structure**
+- Analyzed both opencode-ai and claude-code packages
+- Documented lockfile status, native deps, postinstall behavior
+- Identified platform binary sources for opencode-ai
+- Generated lockfiles for both packages
+
+✅ **TODO 2: Add opencode + claude to flake.nix**
+- Created `infra/overlays/opencode-ai/package.nix` with platform-specific binary handling
+- Created `infra/overlays/claude-code/package.nix` (simple, all binaries in tarball)
+- Updated `.devcontainer/features/pensive-assistant/flake.nix` to import overlays
+- Updated flake.lock to pick up new infra revision
+- All using placeholder hashes (AAAA, BBBB, CCCC, DDDD)
+
+### Commits Made
+1. `4e51bd9` - feat(nix): add opencode-ai and claude-code overlays
+2. `ffa71c4` - feat(nix): update pensive-assistant flake to import opencode and claude overlays
+3. `61e366d` - chore(nix): update pensive-assistant flake.lock
+
+### Next Steps (TODO 2 continuation)
+1. Get real hashes by running `nix build .#default` in feature directory
+2. Update placeholder hashes in package.nix files with real values
+3. Verify build succeeds
+4. Then move to TODO 3: Remove runtime bun installation from install.sh
+
+### Key Decisions
+- Used `buildNpmPackage` for both packages (not stdenv.mkDerivation)
+- opencode-ai fetches platform binaries from separate npm packages
+- claude-code includes all binaries in tarball (no special handling)
+- Both use `nodejs_22_patched` to avoid CVE scanner findings
+- Both use `npmInstallFlags = [ "--ignore-scripts" ]`
+
+### Files Created/Modified
+- `infra/overlays/opencode-ai/package.nix`
+- `infra/overlays/opencode-ai/package-lock.json`
+- `infra/overlays/opencode-ai/package.json`
+- `infra/overlays/claude-code/package.nix`
+- `infra/overlays/claude-code/package-lock.json`
+- `infra/overlays/claude-code/package.json`
+- `.devcontainer/features/pensive-assistant/flake.nix`
+- `.devcontainer/features/pensive-assistant/flake.lock`
+
+---
+
+## [2026-01-24T20:32] Hash Update Deferred
+
+**Issue:** Cannot build on macOS (aarch64-darwin) - flake only supports x86_64-linux and aarch64-linux.
+
+**Options:**
+1. Use Colima VM (see infra/README.md) - `./infra/scripts/build-in-colima`
+2. Let CI build and get hashes from error messages
+3. Use a Linux machine
+
+**Decision:** Defer hash updates to CI or Linux build. The placeholder hashes will cause build failures with messages like:
+```
+specified: sha256-AAAA...
+got:       sha256-REAL_HASH_HERE
+```
+
+We can update the hashes after getting these error messages.
+
+**Next:** Continue with TODO 3-6 which don't require building the Nix derivations.
+
+## install.sh Runtime Installation Removal
+
+**Completed:** Removed runtime `bun install -g @anthropic-ai/claude-code` block from install.sh
+
+**Changes:**
+- Deleted lines 124-132 (bun install -g block and surrounding comments)
+- Updated symlink loop from `for tool in bd zellij lazygit` to `for tool in bd zellij lazygit opencode claude`
+- File reduced from 173 to 162 lines
+
+**Rationale:**
+- Runtime `bun install -g` violates "secure mode" (no network at container startup)
+- Tools now come from tarball (built via Nix overlays)
+- `bun` itself remains available (comes from base image via packageSets.nodeDev)
+- Only tarball tools are symlinked: bd, zellij, lazygit, opencode, claude
+
+**Verification:**
+- `grep -n "bun install -g"` returns no matches
+- Symlink loop at line 143 includes all 5 tarball tools
+- install.sh is now consistent with tarball contents from feature flake

@@ -4,6 +4,14 @@ set -e
 echo "Installing pensive-assistant feature..."
 
 FEATURE_DIR="$(cd "$(dirname "$0")" && pwd)"
+MODE="${MODE:-nix}"
+
+if [ "$MODE" = "ubuntu" ]; then
+  echo "Mode: ubuntu (Development Mode)"
+  exec "${FEATURE_DIR}/install-ubuntu.sh"
+fi
+
+echo "Mode: nix (Secure Mode)"
 TARBALL_PATH="${FEATURE_DIR}/dist/pensive-tools.tar.gz"
 ENV_PATH_FILE="${FEATURE_DIR}/dist/env-path"
 
@@ -113,17 +121,6 @@ export PATH="${ENV_PATH}/bin:\$HOME/.bun/bin:\$PATH"
 BASHEOF
 
 # ============================================
-# Install Claude Code via bun
-# ============================================
-echo "Installing Claude Code..."
-if command -v bun > /dev/null 2>&1; then
-  bun install -g @anthropic-ai/claude-code
-  echo "Claude Code installed via bun"
-else
-  echo "Warning: bun not found, skipping Claude Code installation"
-fi
-
-# ============================================
 # Set up user tools in ~/.local/bin
 # ============================================
 TARGET_USER="${_REMOTE_USER:-}"
@@ -143,7 +140,7 @@ if [ -n "$TARGET_USER" ]; then
     mkdir -p "${REMOTE_HOME}/.local/bin"
 
     # Symlink nix tools to ~/.local/bin
-    for tool in bd zellij lazygit; do
+    for tool in bd zellij lazygit opencode claude; do
       if [ -x "${ENV_PATH}/bin/${tool}" ]; then
         ln -sf "${ENV_PATH}/bin/${tool}" "${REMOTE_HOME}/.local/bin/${tool}"
         echo "  Linked ${tool}"
