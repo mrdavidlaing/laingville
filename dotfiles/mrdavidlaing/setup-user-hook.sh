@@ -50,6 +50,21 @@ if [[ "$(uname)" == "Darwin" ]]; then
   fi
 fi
 
+# Ensure omo-profiles symlink (LV-aao)
+OMO_SOURCE="${PROJECT_ROOT}/dotfiles/shared/.config/opencode/omo-profiles"
+OMO_TARGET="$HOME/.config/opencode/omo-profiles"
+if [[ -d "$OMO_SOURCE" ]]; then
+    mkdir -p "$(dirname "$OMO_TARGET")"
+    if [[ ! -L "$OMO_TARGET" ]]; then
+        if [[ -d "$OMO_TARGET" ]]; then
+            echo "Backing up existing omo-profiles directory..."
+            mv "$OMO_TARGET" "${OMO_TARGET}.bak.$(date +%Y%m%d%H%M%S)"
+        fi
+        ln -s "$OMO_SOURCE" "$OMO_TARGET"
+        echo "Created symlink: $OMO_TARGET -> $OMO_SOURCE"
+    fi
+fi
+
 # Skip check on Git Bash where this script running means we're already in bash
 if [[ "${OSTYPE}" == "msys"* ]] || [[ "${OSTYPE}" == "cygwin"* ]]; then
   exit 0

@@ -12,13 +12,13 @@
 #
 # Profiles:
 #   Mo (work - direct provider access):
-#     mo-speed       - Fast models (Haiku, Sonnet, Gemini Flash)
-#     mo-best        - Best models (Sonnet, Opus, Gemini Pro)
+#     mo-speed       - Fast models (Haiku, Sonnet, Gemini Flash, o3-mini)
+#     mo-best        - Best models (Sonnet, Opus, Gemini Pro, o1)
 #
-#   Personal (opencode provider):
-#     personal-free  - Free models (MiniMax, GLM)
-#     personal-value - Value models (opencode/haiku, gpt-5-nano, gemini-flash)
-#     personal-best  - Best models (opencode/sonnet, opus, gemini-pro)
+#   Personal (opencode provider - Zen Models):
+#     personal-free  - Free models (GPT-5 Nano, Big Pickle)
+#     personal-value - Value models (GPT-5.1 Mini, Qwen3 Coder, Kimi K2 Thinking)
+#     personal-best  - Best models (Haiku 4.5, Sonnet 4.5, Opus 4.5)
 
 set -e
 
@@ -38,7 +38,7 @@ show_help() {
 omo-profile - Switch oh-my-opencode category-to-model mappings
 
 Merges category model assignments from profile files into oh-my-opencode.json,
-preserving agent definitions and other configuration sections.
+preserving agent definitions (Atlas, Prometheus, etc.) and other configuration.
 
 Usage:
   omo-profile [profile]    Switch to profile
@@ -49,16 +49,16 @@ Usage:
 Profiles:
 
   Mo (work - direct provider access):
-    mo-speed       Fast models (Haiku, Sonnet, Gemini Flash)
-    mo-best        Best models (Sonnet, Opus, Gemini Pro)
+    mo-speed       Fast models (Haiku, Sonnet, Gemini Flash, o3-mini)
+    mo-best        Best models (Sonnet, Opus, Gemini Pro, o1)
 
-  Personal (opencode provider):
-    personal-free  Free models (MiniMax, GLM)
-    personal-value Value models (opencode/haiku, gpt-5-nano, gemini-flash)
-    personal-best  Best models (opencode/sonnet, opus, gemini-pro)
+  Personal (opencode provider - Zen Models):
+    personal-free  Free models (GPT-5 Nano, Big Pickle)
+    personal-value Value models (GPT-5.1 Mini, Qwen3 Coder, Kimi K2 Thinking)
+    personal-best  Best models (Haiku 4.5, Sonnet 4.5, Opus 4.5)
 
 Examples:
-  omo-profile mo-speed         # Switch to mo-speed profile (work, fast)
+  omo-profile mo-speed         # Switch to mo-speed profile
   omo-profile personal-value   # Switch to personal-value profile
   omo-profile                  # Show current profile
   omo-profile --list           # List all available profiles
@@ -90,7 +90,6 @@ get_current_profile() {
   fi
 
   # Compare current config against each profile by checking .categories section
-  # (profiles only contain categories, agents are in base config)
   local current_categories
   current_categories=$(jq -cS '.categories // {}' "$TARGET_FILE" 2>/dev/null) || {
     echo "(invalid json)"
@@ -109,6 +108,17 @@ get_current_profile() {
   done
 
   echo "(custom config)"
+}
+
+show_resolved_agents() {
+  echo -e "${BLUE}Resolved Agent Mappings:${NC}"
+  # Extract category for each major agent and resolve to model
+  jq -r '
+    .categories as $cats |
+    .agents | to_entries[] |
+    select(.key | IN("atlas", "prometheus", "oracle", "explore", "librarian")) |
+    "  \(.key) (\(.value.category)): \($cats[.value.category].model // "default")"
+  ' "$TARGET_FILE"
 }
 
 switch_profile() {
@@ -131,9 +141,17 @@ switch_profile() {
     cp "$TARGET_FILE" "$backup_file"
 
     # Merge categories only, preserving agents and other sections
-    local profile_categories
-    profile_categories=$(jq '.categories' "$profile_file")
-    jq --argjson cats "$profile_categories" '.categories = $cats' "$TARGET_FILE" > "$TARGET_FILE.tmp"
+    # If the profile ALSO contains an agents section, we merge that too (allowing per-profile category overrides)
+    local has_agents
+    has_agents=$(jq 'has("agents")' "$profile_file")
+    
+    if [[ "$has_agents" == "true" ]]; then
+      jq -s '.[0] * .[1]' "$TARGET_FILE" "$profile_file" > "$TARGET_FILE.tmp"
+    else
+      local profile_categories
+      profile_categories=$(jq '.categories' "$profile_file")
+      jq --argjson cats "$profile_categories" '.categories = $cats' "$TARGET_FILE" > "$TARGET_FILE.tmp"
+    fi
     mv "$TARGET_FILE.tmp" "$TARGET_FILE"
   else
     # First time - just copy (no base config exists yet)
@@ -142,8 +160,7 @@ switch_profile() {
 
   echo -e "${GREEN}Switched to '$profile' profile${NC}"
   echo ""
-  echo "Category model assignments:"
-  jq -r '.categories | to_entries[] | "  \(.key): \(.value.model)"' "$profile_file"
+  show_resolved_agents
 
   # Show diff if backup exists
   if [[ -f "$backup_file" ]]; then
@@ -168,6 +185,8 @@ case "${1:-}" in
   "")
     current=$(get_current_profile)
     echo -e "Current profile: ${GREEN}$current${NC}"
+    echo ""
+    show_resolved_agents
     echo ""
     echo "Use 'omo-profile --list' to see available profiles"
     echo "Use 'omo-profile <name>' to switch profiles"

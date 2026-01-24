@@ -46,8 +46,8 @@ omarchy:
     target: ~/.local/bin/fetch-api-key
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: .config/opencode/profiles
-    target: ~/.config/opencode/profiles
+  - source: ../shared/.config/opencode/omo-profiles
+    target: ~/.config/opencode/omo-profiles
 
 # Arch Linux - full desktop environment
 arch:
@@ -95,8 +95,8 @@ arch:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: .config/opencode/profiles
-    target: ~/.config/opencode/profiles
+  - source: ../shared/.config/opencode/omo-profiles
+    target: ~/.config/opencode/omo-profiles
   # Desktop environment - Hyprland
   - .config/hypr
   - .config/waybar
@@ -147,8 +147,8 @@ wsl:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: .config/opencode/profiles
-    target: ~/.config/opencode/profiles
+  - source: ../shared/.config/opencode/omo-profiles
+    target: ~/.config/opencode/omo-profiles
 
 wsl_cleanup:
   - .config/alacritty  # Removed 2025-09-30, switched to wezterm
@@ -193,8 +193,8 @@ windows:
     target: $USERPROFILE/.local/bin/claude-code-bash-direnv-wrapper
   - source: .local/bin/omo-profile
     target: $USERPROFILE/.local/bin/omo-profile
-  - source: .config/opencode/profiles
-    target: $USERPROFILE/.config/opencode/profiles
+  - source: ../shared/.config/opencode/omo-profiles
+    target: $USERPROFILE/.config/opencode/omo-profiles
 windows_cleanup:
   - source: .config/alacritty/alacritty.toml
     target: $APPDATA/alacritty/alacritty.toml
@@ -271,8 +271,8 @@ macos:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: .config/opencode/profiles
-    target: ~/.config/opencode/profiles
+  - source: ../shared/.config/opencode/omo-profiles
+    target: ~/.config/opencode/omo-profiles
   # Codex (OpenAI Codex CLI)
   - source: .codex/config.toml
     target: ~/.codex/config.toml
@@ -339,5 +339,5 @@ nix:
     target: ~/.claude/wrappers
   - source: .local/bin/omo-profile
     target: ~/.local/bin/omo-profile
-  - source: .config/opencode/profiles
-    target: ~/.config/opencode/profiles
+  - source: ../shared/.config/opencode/omo-profiles
+    target: ~/.config/opencode/omo-profiles

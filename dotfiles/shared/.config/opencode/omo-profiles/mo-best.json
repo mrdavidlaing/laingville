@@ -11,6 +11,9 @@
     },
     "writing": {
       "model": "anthropic/claude-sonnet-4-5"
+    },
+    "planning": {
+      "model": "openai/o1"
     }
   }
 }

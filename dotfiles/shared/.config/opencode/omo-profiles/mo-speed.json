@@ -11,6 +11,9 @@
     },
     "writing": {
       "model": "google/gemini-3-flash"
+    },
+    "planning": {
+      "model": "openai/o3-mini"
     }
   }
 }

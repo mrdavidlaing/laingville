@@ -1,16 +1,19 @@
 {
   "categories": {
     "quick": {
-      "model": "opencode/claude-haiku-4-5"
+      "model": "opencode/gpt-5.1-codex-mini"
     },
     "most-capable": {
-      "model": "opencode/claude-sonnet-4-5"
+      "model": "opencode/qwen3-coder"
     },
     "visual-engineering": {
       "model": "opencode/gemini-3-flash"
     },
     "writing": {
       "model": "opencode/gpt-5-nano"
+    },
+    "planning": {
+      "model": "opencode/kimi-k2-thinking"
     }
   }
 }

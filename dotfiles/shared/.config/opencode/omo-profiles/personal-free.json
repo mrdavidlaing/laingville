@@ -1,16 +1,19 @@
 {
   "categories": {
     "quick": {
-      "model": "opencode/minimax-m2.1-free"
+      "model": "opencode/gpt-5-nano"
     },
     "most-capable": {
-      "model": "opencode/minimax-m2.1-free"
+      "model": "opencode/big-pickle"
     },
     "visual-engineering": {
       "model": "opencode/glm-4.7-free"
     },
     "writing": {
       "model": "opencode/minimax-m2.1-free"
+    },
+    "planning": {
+      "model": "opencode/gpt-5-nano"
     }
   }
 }
