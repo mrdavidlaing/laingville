@@ -57,3 +57,7 @@
 
 # Git branch for beads sync commits (main = direct commits to main branch)
 sync-branch: "beads-sync"
+
+daemon.auto-commit: true
+
+daemon.auto-push: true
