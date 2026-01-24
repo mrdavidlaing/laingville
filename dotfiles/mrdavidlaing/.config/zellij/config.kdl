@@ -263,12 +263,6 @@ ui {
         rounded_corners true
         hide_session_name false
     }
-    padding {
-        left 0
-        right 0
-        top 0
-        bottom 0
-    }
 }
 
 // Use system clipboard
