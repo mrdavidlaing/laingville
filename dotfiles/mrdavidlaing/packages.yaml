@@ -6,9 +6,11 @@ omarchy:
   yay:
     - 1password-cli
     - beads-git
+    - perles  # TUI for beads issue tracker
     - tailscale
     - direnv  # Critical for devcontainer workflow
     - just  # Command runner (replaces make)
+    - zellij
     - opencode-bin  # AI coding assistant CLI
   custom:
     - install_claude_code
@@ -38,6 +40,7 @@ arch:
     - git-lfs
     - openssh
     - tmux
+    - zellij
     - neovim
     - go
     - ripgrep
@@ -129,6 +132,7 @@ macos:
     - rsync
     - neovim
     - tmux
+    - zellij
     - navi
     - laio
     - tailscale
@@ -184,6 +188,7 @@ nix:
     - rsync
     - neovim
     - tmux
+    - zellij
     - just  # Command runner (replaces make)
     - shellcheck
     - shfmt

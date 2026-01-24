@@ -27,6 +27,7 @@ omarchy:
   - .config/lazygit/config.yml
   - .config/starship.toml
   - .config/nvim/lua/plugins/
+  - .config/zellij
 
   # Claude Code orchestrator
   - source: .claude/CLAUDE.md
@@ -69,6 +70,7 @@ arch:
   - source: .config/ghostty/overrides-omarchy.conf
     target: ~/.config/ghostty/overrides.conf
   - .config/tmux
+  - .config/zellij
   - .config/navi
   - .config/starship.toml
   - .config/lazygit
@@ -120,6 +122,7 @@ wsl:
   - .gitmessage
   # Terminal tools (tmux and navi work great in WSL!)
   - .config/tmux
+  - .config/zellij
   - .config/navi
   - .config/starship.toml
   - .config/lazygit
@@ -230,6 +233,7 @@ macos:
   - source: .config/ghostty/overrides-macos.conf
     target: ~/.config/ghostty/overrides.conf
   - .config/tmux
+  - .config/zellij
   - .config/navi
   - .config/wezterm
   - .config/starship.toml
@@ -314,6 +318,7 @@ nix:
   - .gitmessage
   # Terminal tools
   - .config/tmux
+  - .config/zellij
   - .config/navi
   - .config/starship.toml
   - .config/lazygit
