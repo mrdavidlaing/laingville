@@ -59,6 +59,36 @@ Uses the Claude Code Action to automatically identify and fix security vulnerabi
 
 **PR labels:** `security`, `automated`
 
+#### `security-response.yml` - Automated Security Alert Triage
+Continuously monitors GitHub Security API for new vulnerabilities and automatically invokes Claude for HIGH/CRITICAL alerts.
+
+**Triggers:**
+- After `Security Scan` completes on main (workflow_run)
+- Hourly polling at :00 UTC (schedule)
+- Manual trigger with optional deduplication override
+
+**What it does:**
+1. Polls GitHub Code Scanning API for open security alerts
+2. Filters to new alerts using deduplication state (`.github/.security-response-state`)
+3. Runs `bin/security-triage` to categorize alerts by severity
+4. Automatically invokes `claude-security-fix` workflow for HIGH/CRITICAL alerts
+5. Tracks processed alert numbers to prevent duplicate processing
+
+**Deduplication:**
+- Maintains state file (`.github/.security-response-state`) with last processed alert number
+- Prevents duplicate PRs for same alerts across multiple runs
+- Can be overridden with `force_process_all` flag for manual re-processing
+
+**How to view results:**
+- **Workflow logs**: GitHub Actions → Security Response workflow
+- **Security alerts**: Repository → Security → Code scanning alerts
+- **Triggered fixes**: Check `claude-security-fix` workflow runs (triggered automatically)
+- **State tracking**: `.github/.security-response-state` file in repository
+
+**Concurrency:**
+- Only one run at a time (prevents duplicate processing)
+- Queued runs execute sequentially
+
 ### Build & Deployment
 
 #### `build-containers.yml` - Container Image Building
