@@ -149,6 +149,8 @@
             uid = "1000";
             gid = "1000";
             home = "/home/${user}";
+            # sudo without PAM (for minimal containers)
+            sudoNoPam = pkgs.sudo.override { pam = null; };
           in
           pkgs.dockerTools.buildLayeredImage {
             inherit name tag;
@@ -193,19 +195,26 @@ ${user}:!:1::::::
 EOF
               chmod 640 ./etc/shadow
 
-              # sudoers - create minimal main file with includedir, then user config
-              # Note: Use #includedir (not @includedir) - this is the canonical directive
-              # Use install command to create file with content and permissions atomically
-              printf '#includedir /etc/sudoers.d\n' | install -m 440 /dev/stdin ./etc/sudoers
+              # sudoers - create main config with includedir directive
+              # Note: sudo is built without PAM to avoid complex PAM dependency chain
+              # Explicit ownership (chown 0:0) ensures correct metadata in Docker layer
+              mkdir -p ./etc/sudoers.d
+              echo 'root ALL=(ALL:ALL) ALL' > ./etc/sudoers
+              echo '#includedir /etc/sudoers.d' >> ./etc/sudoers
+              chmod 440 ./etc/sudoers
+              chown 0:0 ./etc/sudoers
 
-              printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${user}" | install -m 440 /dev/stdin ./etc/sudoers.d/${user}
+              # User-specific sudoers config (passwordless sudo)
+              echo '${user} ALL=(ALL) NOPASSWD:ALL' > ./etc/sudoers.d/${user}
+              chmod 440 ./etc/sudoers.d/${user}
+              chown 0:0 ./etc/sudoers.d/${user}
 
-              # Install sudo with setuid bit (required for privilege escalation)
-              # Note: pkgs.sudo doesn't have setuid in nix store, so we copy and set it here
-              # This is the standard Nix pattern for setuid binaries in Docker containers
+              # Install sudo binary with setuid bit
+              # Note: Using sudoNoPam (sudo without PAM) for minimal container
               # We do NOT include sudo in devTools packages to avoid symlink conflicts
               mkdir -p ./bin
-              cp ${pkgs.sudo}/bin/sudo ./bin/sudo
+              cp ${sudoNoPam}/bin/sudo ./bin/sudo
+              chown 0:0 ./bin/sudo
               chmod 4755 ./bin/sudo
 
               # nix config
