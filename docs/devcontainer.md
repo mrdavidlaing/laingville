@@ -233,46 +233,59 @@ Result: Instant startup, no build, no network needed after pull.
 | **Tool Acquisition** | Upstream binaries (curl, uv, gh) |
 | **Agent Profile** | High (standard Ubuntu paths/tools) |
 
+**Installed Tools** (from `.devcontainer/ubuntu.Dockerfile`):
+
+| Category | Tools |
+|----------|-------|
+| **System (apt)** | git, git-lfs, curl, wget, ripgrep, fd-find, fzf, jq, yq, bat, eza, vim, neovim, build-essential, cmake, ninja-build, tmux, zsh |
+| **Python** | uv (modern package manager) with Python 3.12 |
+| **Node.js** | fnm (Fast Node Manager) with LTS version |
+| **Go** | Official binary release (latest) |
+| **Rust** | rustup with stable toolchain |
+| **Dev Tools** | GitHub CLI (gh), starship prompt, direnv |
+
 **Build Workflow:**
 
 ```
-1. Developer opens project
+1. Developer runs `ctl up`
    ↓
-2. Bedrock Image build: Dockerfile executes
-   - apt-get install (system deps)
-   - curl/uv/gh (latest dev tools)
+2. Bedrock Image build: ubuntu.Dockerfile executes
+   - Layer 0.1: apt-get install (system foundation)
+   - Layer 0.2: User setup (vscode user with sudo)
+   - Layer 0.3: Language runtimes (uv, fnm, go, rustup)
+   - Layer 0.4: Dev tools (gh, starship, direnv)
+   - Layer 0.5: Shell configuration
    ↓
 3. Feature Extensions: install.sh executes
-   - Detects Ubuntu base
-   - Fetches latest binaries
+   - Detects Ubuntu base via MODE variable
+   - Runs install-ubuntu.sh for Ubuntu-specific setup
    ↓
-4. Container ready
+4. Container ready: `ctl shell` to enter
 ```
 
 **User Workflow:**
 
-```dockerfile
-# .devcontainer/Dockerfile
-FROM ubuntu:24.04
+```bash
+# Start devcontainer with GitHub credential forwarding
+.devcontainer/bin/ctl up
 
-# Base tools
-RUN apt-get update && apt-get install -y \
-    git curl jq ripgrep fd-find fzf bat \
-    python3 python3-pip nodejs npm golang \
-    && rm -rf /var/lib/apt/lists/*
+# Open interactive shell in container
+.devcontainer/bin/ctl shell
 
-# Feature extensions (runtime install)
-COPY features/pensive-assistant/install.sh /tmp/
-RUN bash /tmp/install.sh
+# Check service status
+.devcontainer/bin/ctl status
+
+# Stop container when done
+.devcontainer/bin/ctl down
 ```
 
 Result: Fresh packages, latest versions, longer build time.
 
 **Implementation Technologies:**
-- **apt/pacman** - System package managers
-- **GitHub Releases** - Download latest binaries
-- **Language package managers** - pip, npm, cargo install
-- **Dev-mode Nix** - `nix-shell` for project-specific envs
+- **apt** - System package manager for Ubuntu foundation
+- **Upstream installers** - uv, fnm, rustup, starship (latest from source)
+- **GitHub Releases** - Go binary, direnv binary
+- **GitHub CLI apt repo** - gh package via official repository
 
 ---
 
@@ -416,7 +429,7 @@ laingville/
 │   └── implementations/
 │       ├── nix/                            # Secure mode implementation
 │       │   ├── README.md                   # How to use Nix backend
-│       │   └── pensive-assistant.md        # Example walkthrough
+│       │   └── feature-creation.md         # Feature creation walkthrough
 │       └── ubuntu/                         # Development mode implementation
 │           ├── README.md                   # How to use Ubuntu backend
 │           └── migration.md                # Port from Nix to Ubuntu
@@ -424,17 +437,27 @@ laingville/
 ├── infra/
 │   ├── flake.nix                          # Secure mode: Nix definitions
 │   ├── overlays/                          # Secure mode: CVE patches
-│   └── templates/                         # Example devcontainer.json
+│   └── templates/                         # Project templates
+│       ├── python-project/                # Python project with devcontainer
+│       └── ubuntu-devcontainer/           # Ubuntu devcontainer template
 │
 └── .devcontainer/
-    ├── devcontainer.json                  # Current: Secure mode
+    ├── devcontainer.json                  # Secure mode: pre-built Nix image
     ├── docker-compose.yml                 # Multi-container setup
+    ├── ubuntu.Dockerfile                  # Development mode: Ubuntu base image
+    ├── bin/
+    │   └── ctl                            # CLI tool for lifecycle management
+    ├── ubuntu/                            # Development mode config
+    │   ├── devcontainer.json              # Ubuntu devcontainer config
+    │   └── docker-compose.yml             # Ubuntu compose file
     └── features/
         └── pensive-assistant/             # Example feature
             ├── devcontainer-feature.json
-            ├── install.sh                  # Works in both modes!
-            ├── flake.nix                   # Secure mode build
-            └── build-delta-tarball.sh      # Secure mode CI
+            ├── install.sh                  # Mode dispatch (nix vs ubuntu)
+            ├── install-ubuntu.sh           # Ubuntu mode: apt installation
+            ├── flake.nix                   # Secure mode: Nix build
+            ├── build-delta-tarball.sh      # Secure mode: CI script
+            └── test.sh                     # Feature verification tests
 ```
 
 ---
@@ -525,8 +548,9 @@ laingville/
 
 | Component | Secure Mode | Development Mode |
 |-----------|-------------|------------------|
-| Bedrock Image | ✅ Nix-based | 🚧 Ubuntu planned |
-| Feature: pensive-assistant | ✅ Nix + OCI | 🚧 apt planned |
+| Bedrock Image | ✅ Nix-based | ✅ Ubuntu complete |
+| Feature: pensive-assistant | ✅ Nix + OCI | ✅ apt complete |
+| CLI Tool: bin/ctl | ✅ Complete | ✅ Complete |
 | OCI Distribution | ✅ ghcr.io | N/A |
 | SBOM Generation | ✅ Complete | N/A |
 | Multi-arch | ✅ amd64, arm64 | TBD |

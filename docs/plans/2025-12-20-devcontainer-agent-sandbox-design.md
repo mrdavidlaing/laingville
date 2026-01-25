@@ -1,8 +1,15 @@
 # Devcontainer + Leash Agent Sandbox Design
 
+> **⚠️ NOT IMPLEMENTED - Future Enhancement**
+>
+> This document describes a **proposed design** that has not been implemented.
+> The Leash policy enforcement, agent sandbox profiles, and related tooling
+> described below do not exist in the current devcontainer setup. This design
+> is preserved for future reference and potential implementation.
+
 **Date:** 2025-12-20
 **Author:** mrdavidlaing
-**Status:** Design
+**Status:** Proposed (Not Implemented)
 
 ## Problem
 
