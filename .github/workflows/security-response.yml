@@ -70,7 +70,9 @@ jobs:
             alerts=$(echo "$alerts" | jq -s '.')
           fi
           
-          echo "alerts=$alerts" >> $GITHUB_OUTPUT
+          # Write alerts to file for subsequent steps (avoids GITHUB_OUTPUT size limits)
+          echo "$alerts" > /tmp/security_alerts.json
+          echo "alerts_file=/tmp/security_alerts.json" >> $GITHUB_OUTPUT
           echo "alert_count=$(echo "$alerts" | jq 'length')" >> $GITHUB_OUTPUT
           
           # Log summary
@@ -96,7 +98,7 @@ jobs:
           FORCE_PROCESS_ALL: ${{ github.event.inputs.force_process_all || 'false' }}
         run: |
           LAST_PROCESSED=${{ steps.load_state.outputs.last_processed }}
-          ALL_ALERTS='${{ steps.fetch_alerts.outputs.alerts }}'
+          ALL_ALERTS=$(cat "${{ steps.fetch_alerts.outputs.alerts_file }}")
           
           if [[ "$FORCE_PROCESS_ALL" == "true" ]]; then
             echo "Force processing all alerts (deduplication disabled)"
@@ -107,7 +109,9 @@ jobs:
           fi
           
           NEW_COUNT=$(echo "$NEW_ALERTS" | jq 'length')
-          echo "new_alerts=$NEW_ALERTS" >> $GITHUB_OUTPUT
+          # Write filtered alerts to file for subsequent steps
+          echo "$NEW_ALERTS" > /tmp/new_alerts.json
+          echo "new_alerts_file=/tmp/new_alerts.json" >> $GITHUB_OUTPUT
           echo "new_count=$NEW_COUNT" >> $GITHUB_OUTPUT
           
           if [[ "$NEW_COUNT" -gt 0 ]]; then
@@ -120,12 +124,14 @@ jobs:
       - name: Triage alerts
         id: triage
         run: |
-          NEW_ALERTS='${{ steps.filter_alerts.outputs.new_alerts }}'
+          NEW_ALERTS=$(cat "${{ steps.filter_alerts.outputs.new_alerts_file }}")
           
           # Run triage script
           TRIAGED=$(echo "$NEW_ALERTS" | ./bin/security-triage)
           
-          echo "triaged=$TRIAGED" >> $GITHUB_OUTPUT
+          # Write triaged alerts to file for subsequent steps
+          echo "$TRIAGED" > /tmp/triaged_alerts.json
+          echo "triaged_file=/tmp/triaged_alerts.json" >> $GITHUB_OUTPUT
           
           # Count HIGH/CRITICAL (priority 1-4)
           HIGH_CRITICAL=$(echo "$TRIAGED" | jq '[.[] | select(.priority <= 4)] | length')
@@ -145,7 +151,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: |
-          TRIAGED='${{ steps.triage.outputs.triaged }}'
+          TRIAGED=$(cat "${{ steps.triage.outputs.triaged_file }}")
           
           # Filter to HIGH/CRITICAL (priority 1-4)
           HIGH_CRITICAL=$(echo "$TRIAGED" | jq '[.[] | select(.priority <= 4)]')
@@ -181,7 +187,7 @@ jobs:
         if: steps.filter_alerts.outputs.new_count > 0
         run: |
           STATE_FILE=".github/.security-response-state"
-          NEW_ALERTS='${{ steps.filter_alerts.outputs.new_alerts }}'
+          NEW_ALERTS=$(cat "${{ steps.filter_alerts.outputs.new_alerts_file }}")
           
           # Get highest alert number
           MAX_NUMBER=$(echo "$NEW_ALERTS" | jq 'max_by(.number) | .number')
