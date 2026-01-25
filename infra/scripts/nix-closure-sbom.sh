@@ -89,19 +89,21 @@ generate_spdx_json() {
 
   cat << EOF
 {
-  "spdxVersion": "SPDX-2.3",
-  "dataLicense": "CC0-1.0",
-  "creationInfo": {
-    "created": "$timestamp",
-    "creators": ["Tool: nix-closure-sbom"]
-  },
-  "packages": [
+   "spdxVersion": "SPDX-2.3",
+   "dataLicense": "CC0-1.0",
+   "creationInfo": {
+     "created": "$timestamp",
+     "creators": ["Tool: nix-closure-sbom"]
+   },
+   "packages": [
 EOF
 
-  printf '%s\n' "${package_lines[@]}"
+  if [[ ${#package_lines[@]} -gt 0 ]]; then
+    printf '%s\n' "${package_lines[@]}"
+  fi
 
   cat << EOF
-  ]
+   ]
 }
 EOF
 }
