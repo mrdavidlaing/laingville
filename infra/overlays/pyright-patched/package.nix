@@ -1,5 +1,5 @@
-# Patched pyright package with esbuild 0.27.1 to fix Go stdlib CVEs
-# esbuild 0.27.0+ is compiled with Go 1.25.4 which fixes:
+# Patched pyright package with esbuild 0.27.2 to fix Go stdlib CVEs
+# esbuild 0.27.2 is compiled with Go 1.25.5 which fixes:
 # - CVE-2025-61729 (HIGH): HostnameError.Error() resource exhaustion
 # - CVE-2025-58187 (HIGH): x509 name constraint checking DoS
 # - CVE-2025-58186 (HIGH): HTTP cookie parsing memory exhaustion
@@ -33,13 +33,13 @@ let
       ' ${src}/package.json > $out
   '';
 
-# Patch pyright-internal's package.json to use esbuild 0.27.1 (Go 1.25.4).
+# Patch pyright-internal's package.json to use esbuild 0.27.2 (Go 1.25.5).
 # NOTE: `esbuild-loader` pins `esbuild` to ^0.25.0 (0.25.x only), which pulls in
 # a vulnerable Go stdlib via `@esbuild/*` gobinaries and gets flagged by container
 # scanners even though we don't run the build pipeline in Nix (`dontNpmBuild=true`).
-# We use npm `overrides` to force esbuild 0.27.1 everywhere, allowing us to keep
+# We use npm `overrides` to force esbuild 0.27.2 everywhere, allowing us to keep
 # `esbuild-loader` while ensuring the runtime closure uses the patched esbuild.
-  # Why pin `esbuild` to an exact version (not ^0.27.1)?
+  # Why pin `esbuild` to an exact version (not ^0.27.2)?
   # - Reproducibility: this derivation is driven by `package-lock.json` + `npmDepsHash`.
   #   Allowing semver ranges makes it easier to accidentally regenerate locks/hashes with
   #   a newer esbuild, causing non-obvious hash mismatches and CI-only failures.
@@ -51,35 +51,35 @@ let
   # - Update `npmDepsHash` in this file
   patchedInternalPackageJSON = runCommand "pyright-internal-package.json" { } ''
     ${jq}/bin/jq '
-      .devDependencies["esbuild"] = "0.27.1"
+      .devDependencies["esbuild"] = "0.27.2"
       | .overrides = {
-          "esbuild": "0.27.1",
-          "@esbuild/aix-ppc64": "0.27.1",
-          "@esbuild/android-arm": "0.27.1",
-          "@esbuild/android-arm64": "0.27.1",
-          "@esbuild/android-x64": "0.27.1",
-          "@esbuild/darwin-arm64": "0.27.1",
-          "@esbuild/darwin-x64": "0.27.1",
-          "@esbuild/freebsd-arm64": "0.27.1",
-          "@esbuild/freebsd-x64": "0.27.1",
-          "@esbuild/linux-arm": "0.27.1",
-          "@esbuild/linux-arm64": "0.27.1",
-          "@esbuild/linux-ia32": "0.27.1",
-          "@esbuild/linux-loong64": "0.27.1",
-          "@esbuild/linux-mips64el": "0.27.1",
-          "@esbuild/linux-ppc64": "0.27.1",
-          "@esbuild/linux-riscv64": "0.27.1",
-          "@esbuild/linux-s390x": "0.27.1",
-          "@esbuild/linux-x64": "0.27.1",
-          "@esbuild/netbsd-arm64": "0.27.1",
-          "@esbuild/netbsd-x64": "0.27.1",
-          "@esbuild/openbsd-arm64": "0.27.1",
-          "@esbuild/openbsd-x64": "0.27.1",
-          "@esbuild/openharmony-arm64": "0.27.1",
-          "@esbuild/sunos-x64": "0.27.1",
-          "@esbuild/win32-arm64": "0.27.1",
-          "@esbuild/win32-ia32": "0.27.1",
-          "@esbuild/win32-x64": "0.27.1"
+          "esbuild": "0.27.2",
+          "@esbuild/aix-ppc64": "0.27.2",
+          "@esbuild/android-arm": "0.27.2",
+          "@esbuild/android-arm64": "0.27.2",
+          "@esbuild/android-x64": "0.27.2",
+          "@esbuild/darwin-arm64": "0.27.2",
+          "@esbuild/darwin-x64": "0.27.2",
+          "@esbuild/freebsd-arm64": "0.27.2",
+          "@esbuild/freebsd-x64": "0.27.2",
+          "@esbuild/linux-arm": "0.27.2",
+          "@esbuild/linux-arm64": "0.27.2",
+          "@esbuild/linux-ia32": "0.27.2",
+          "@esbuild/linux-loong64": "0.27.2",
+          "@esbuild/linux-mips64el": "0.27.2",
+          "@esbuild/linux-ppc64": "0.27.2",
+          "@esbuild/linux-riscv64": "0.27.2",
+          "@esbuild/linux-s390x": "0.27.2",
+          "@esbuild/linux-x64": "0.27.2",
+          "@esbuild/netbsd-arm64": "0.27.2",
+          "@esbuild/netbsd-x64": "0.27.2",
+          "@esbuild/openbsd-arm64": "0.27.2",
+          "@esbuild/openbsd-x64": "0.27.2",
+          "@esbuild/openharmony-arm64": "0.27.2",
+          "@esbuild/sunos-x64": "0.27.2",
+          "@esbuild/win32-arm64": "0.27.2",
+          "@esbuild/win32-ia32": "0.27.2",
+          "@esbuild/win32-x64": "0.27.2"
         }
       ' ${src}/packages/pyright-internal/package.json > $out
   '';
