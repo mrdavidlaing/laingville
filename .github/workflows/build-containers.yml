@@ -85,12 +85,11 @@ jobs:
 
       - name: Generate SBOM for arch-specific image
         id: sbom
-        run: |
-          ARCH_TAG="${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ matrix.arch }}"
-          
-          # Generate SPDX SBOM using syft
-          syft "$ARCH_TAG" -o spdx-json > sbom.spdx.json
-          echo "sbom_file=sbom.spdx.json" >> $GITHUB_OUTPUT
+        uses: anchore/sbom-action@v0
+        with:
+          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ matrix.arch }}'
+          format: spdx-json
+          output-file: 'sbom.spdx.json'
 
       - name: Attach SBOM attestation to arch-specific image
         continue-on-error: true
@@ -98,7 +97,7 @@ jobs:
           ARCH_TAG="${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-${{ matrix.arch }}"
           
           cosign attest --type spdxjson \
-            --predicate "${{ steps.sbom.outputs.sbom_file }}" \
+            --predicate sbom.spdx.json \
             "$ARCH_TAG"
 
       - name: Run environment validation tests
@@ -200,16 +199,20 @@ jobs:
             "${IMAGE_BASE}:${DATE_TAG}-arm64"
           docker manifest push "${IMAGE_BASE}:latest"
 
+      - name: Generate SBOM for multi-arch manifest
+        id: sbom
+        uses: anchore/sbom-action@v0
+        with:
+          image: '${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}:${{ steps.tags.outputs.date }}-amd64'
+          format: spdx-json
+          output-file: 'sbom.spdx.json'
+
       - name: Attach SBOM attestations to multi-arch manifests
         continue-on-error: true
         run: |
           IMAGE_BASE="${{ env.REGISTRY }}/mrdavidlaing/laingville/${{ matrix.image }}"
           DATE_TAG="${{ steps.tags.outputs.date }}"
           SHA="${{ steps.tags.outputs.sha }}"
-
-          # Retrieve SBOM from one of the arch-specific images
-          SBOM_SOURCE="${IMAGE_BASE}:${DATE_TAG}-amd64"
-          syft "$SBOM_SOURCE" -o spdx-json > sbom.spdx.json
 
           # Attach attestation to all three manifest tags
           for TAG in "${DATE_TAG}" "${DATE_TAG}-${SHA}" "latest"; do
