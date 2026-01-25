@@ -125,3 +125,67 @@ This is different from a job failure - it's a workflow parsing failure.
 4. **Monitor Dependabot** (After 24 hours)
    - Wait for GitHub to process configuration
    - Verify Dependabot alerts appear for container packages
+
+---
+
+## Session 3: 2026-01-25 12:40 UTC - Build Containers Workflow Fix
+
+### Issue 4: syft CLI Not Installed (FIXED)
+
+- **Location**: `.github/workflows/build-containers.yml` lines 86-93, 203-212
+- **Problem**: Workflow called `syft` CLI directly but never installed it
+- **Error**: `syft: command not found` (exit code 127)
+- **Affected Runs**: #46-63 (all failed after SBOM feature was added)
+- **Last Successful Run**: #45 (before SBOM feature was added)
+
+### Root Cause Analysis
+
+1. **Commit `b3d8bc7`** (2026-01-25) added SBOM generation using `syft` CLI
+2. The commit assumed `syft` would be available on GitHub runners
+3. GitHub runners do NOT have `syft` pre-installed
+4. The `security-scan.yml` workflow works because it uses `anchore/sbom-action@v0` which includes syft
+
+### Fix Applied
+
+Replaced direct `syft` CLI calls with `anchore/sbom-action@v0`:
+
+**Before (broken):**
+```yaml
+- name: Generate SBOM for arch-specific image
+  run: |
+    syft "$ARCH_TAG" -o spdx-json > sbom.spdx.json
+```
+
+**After (fixed):**
+```yaml
+- name: Generate SBOM for arch-specific image
+  uses: anchore/sbom-action@v0
+  with:
+    image: '${{ env.REGISTRY }}/...'
+    format: spdx-json
+    output-file: 'sbom.spdx.json'
+```
+
+### Changes Made
+
+1. **build-images job**: Replaced `syft` CLI with `anchore/sbom-action@v0`
+2. **create-manifests job**: Added separate SBOM generation step using `anchore/sbom-action@v0`
+3. **Attestation step**: Updated to use hardcoded filename instead of step output
+
+### Commit
+
+- `20423d1` - fix(workflows): use anchore/sbom-action instead of syft CLI
+
+### Verification
+
+- Workflow run #21332749508 triggered (queued)
+- YAML syntax validated with Ruby YAML parser
+- All tests pass (541 examples, 0 failures)
+
+### Key Learnings
+
+1. **Don't assume CLI tools are available** - GitHub runners have limited pre-installed tools
+2. **Use GitHub Actions when available** - Actions handle installation and caching
+3. **Check working workflows for patterns** - `security-scan.yml` already solved this problem
+4. **Test locally is insufficient** - Need to verify tools exist in CI environment
+
