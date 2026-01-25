@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-push hook for Laingville repository
-# Syncs beads, then runs all tests before allowing push
+# Syncs beads, then runs linting and tests before allowing push
 
 set -e
 
@@ -14,11 +14,11 @@ fi
 echo "🚀 Running pre-push checks..."
 echo
 
-# Run all checks and tests
-echo "🔧 Running all checks and tests (just)..."
-if ! just; then
+# Run tests
+echo "🧪 Running tests..."
+if ! just test; then
     echo
-    echo "❌ Checks failed. Push aborted."
+    echo "❌ Tests failed. Push aborted."
     echo "💡 Fix the issues above, or use 'git push --no-verify' to skip this hook."
     exit 1
 fi

@@ -1,24 +1,74 @@
-#!/usr/bin/env sh
-# bd-shim v1
-# bd-hooks-version: 0.49.0
-#
-# bd (beads) pre-commit hook - thin shim
-#
-# This shim delegates to 'bd hook pre-commit' which contains
-# the actual hook logic. This pattern ensures hook behavior is always
-# in sync with the installed bd version - no manual updates needed.
-#
-# The 'bd hook' command (singular) supports:
-# - Per-worktree export state tracking
-# - Dolt branch-then-merge pattern for cell-level conflict resolution
-# - Hook chaining configuration
+#!/usr/bin/env bash
+# Pre-commit hook for Laingville repository
+# Syncs beads, then formats staged files
 
-# Check if bd is available
-if ! command -v bd >/dev/null 2>&1; then
-    echo "Warning: bd command not found in PATH, skipping pre-commit hook" >&2
-    echo "  Install bd: brew install steveyegge/tap/bd" >&2
-    echo "  Or add bd to your PATH" >&2
-    exit 0
+set -e
+
+# Run beads pre-commit hook first if bd is available
+if command -v bd >/dev/null 2>&1; then
+    bd hook pre-commit "$@"
 fi
 
-exec bd hook pre-commit "$@"
+echo "🔍 Running linters..."
+if ! just lint; then
+    echo
+    echo "❌ Linting failed. Commit aborted."
+    echo "💡 Fix the issues above, or use 'git commit --no-verify' to skip this hook."
+    exit 1
+fi
+
+echo
+
+echo "🎨 Formatting staged files..."
+echo
+
+# Get list of staged files
+STAGED_FILES=()
+while IFS= read -r file; do
+    if [ -f "$file" ]; then
+        STAGED_FILES+=("$file")
+    fi
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
+# Store checksums before formatting
+declare -A before_checksums
+for file in "${STAGED_FILES[@]}"; do
+    before_checksums["$file"]=$(cksum "$file" 2>/dev/null | awk '{print $1}')
+done
+
+# Run formatter on staged files only if there are any
+if [ ${#STAGED_FILES[@]} -gt 0 ]; then
+    if ! ./scripts/format-files.sh "${STAGED_FILES[@]}"; then
+        echo
+        echo "❌ Formatting failed. Please fix the errors above."
+        exit 1
+    fi
+fi
+
+# Check if any files were modified by formatting
+modified_files=()
+while IFS= read -r file; do
+    if [ -f "$file" ]; then
+        after=$(cksum "$file" 2>/dev/null | awk '{print $1}')
+        before="${before_checksums[$file]}"
+        if [ "$before" != "$after" ]; then
+            modified_files+=("$file")
+        fi
+    fi
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
+# If files were modified, fail the commit
+if [ ${#modified_files[@]} -gt 0 ]; then
+    echo
+    echo "❌ Formatting modified ${#modified_files[@]} file(s). Please stage the changes and commit again:"
+    echo
+    for file in "${modified_files[@]}"; do
+        echo "    $file"
+    done
+    echo
+    echo "💡 Run: git add ${modified_files[@]}"
+    echo "   Then: git commit"
+    exit 1
+fi
+
+echo "✅ All staged files are properly formatted!"
