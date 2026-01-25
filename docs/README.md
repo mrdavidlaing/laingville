@@ -40,4 +40,8 @@ Contract between Feature Extensions and DevContainer environment for cross-mode 
 
 ## Historical Documentation
 
-The [plans/](plans/) directory contains implementation plans and design documents from past development work.
+### [plans/](plans/)
+Implementation plans and design documents from past development work.
+
+### [history/](history/)
+AI-assisted work session artifacts: analysis documents, benchmark reports, troubleshooting notes, and implementation summaries. These capture the research and decision-making process behind configuration changes and system optimizations.
