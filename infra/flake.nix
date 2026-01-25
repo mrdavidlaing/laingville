@@ -53,8 +53,7 @@
             diffutils        # diff, cmp, sdiff for file comparison
             just             # Command runner (justfile)
             shadow           # User management (useradd, passwd, etc.)
-            # NOTE: sudo excluded from packages - installed manually in mkDevContainer's
-            # fakeRootCommands to allow setting setuid bit (chmod 4755)
+            sudo             # Privilege escalation (setuid bit set in fakeRootCommands)
             starship         # Cross-shell prompt
             openssh          # SSH client for Git over SSH and remote access
             gcc              # C compiler (required for Rust native compilation)
@@ -194,14 +193,15 @@ EOF
               chmod 640 ./etc/shadow
 
               # sudoers - create minimal main file with includedir, then user config
-              # Note: Cannot use redirection to /etc/sudoers in fakeRootCommands
+              # Note: Use #includedir (not @includedir) - this is the canonical directive
               # Use install command to create file with content and permissions atomically
-              printf '@includedir /etc/sudoers.d\n' | install -m 440 /dev/stdin ./etc/sudoers
+              printf '#includedir /etc/sudoers.d\n' | install -m 440 /dev/stdin ./etc/sudoers
 
               printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${user}" | install -m 440 /dev/stdin ./etc/sudoers.d/${user}
 
-              # Install sudo manually (excluded from packages to allow setuid bit)
-              # Copy sudo binary from nix store and set setuid bit
+              # Install sudo with setuid bit (required for privilege escalation)
+              # Note: pkgs.sudo doesn't have setuid in nix store, so we copy and set it here
+              # This is the standard Nix pattern for setuid binaries in Docker containers
               mkdir -p ./bin
               cp ${pkgs.sudo}/bin/sudo ./bin/sudo
               chmod 4755 ./bin/sudo
