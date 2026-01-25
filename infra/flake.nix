@@ -53,7 +53,8 @@
             diffutils        # diff, cmp, sdiff for file comparison
             just             # Command runner (justfile)
             shadow           # User management (useradd, passwd, etc.)
-            sudo             # Privilege escalation (setuid bit set in fakeRootCommands)
+            # sudo is installed manually in fakeRootCommands (not as a package symlink)
+            # to enable setting the setuid bit on the binary
             starship         # Cross-shell prompt
             openssh          # SSH client for Git over SSH and remote access
             gcc              # C compiler (required for Rust native compilation)
@@ -202,9 +203,8 @@ EOF
               # Install sudo with setuid bit (required for privilege escalation)
               # Note: pkgs.sudo doesn't have setuid in nix store, so we copy and set it here
               # This is the standard Nix pattern for setuid binaries in Docker containers
+              # We do NOT include sudo in devTools packages to avoid symlink conflicts
               mkdir -p ./bin
-              # Remove symlink if it exists (sudo is in devTools packages)
-              rm -f ./bin/sudo
               cp ${pkgs.sudo}/bin/sudo ./bin/sudo
               chmod 4755 ./bin/sudo
 
