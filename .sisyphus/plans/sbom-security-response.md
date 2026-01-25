@@ -590,12 +590,12 @@ shellspec
 ```
 
 ### Final Checklist
-- [ ] Container dependencies visible in GitHub Dependency Graph
-- [ ] Dependabot alerts fire for container packages
-- [ ] cosign attestations attached to all published images
-- [ ] Nix closure SBOM generator produces valid SPDX
-- [ ] Security response workflow polls and triages alerts
-- [ ] PRs include before/after SBOM diff summaries
-- [ ] All shellspec tests pass
-- [ ] Documentation updated
-- [ ] Claude API costs < $2/week
+- [x] Container dependencies visible in GitHub Dependency Graph
+- [x] Dependabot alerts fire for container packages
+- [x] cosign attestations attached to all published images
+- [x] Nix closure SBOM generator produces valid SPDX
+- [x] Security response workflow polls and triages alerts
+- [x] PRs include before/after SBOM diff summaries
+- [x] All shellspec tests pass
+- [x] Documentation updated
+- [x] Claude API costs < $2/week
