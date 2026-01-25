@@ -92,10 +92,11 @@ triage_alerts() {
         return
     fi
     
-    declare -A cve_severity
-    declare -A cve_description
-    declare -A cve_images
-    declare -A cve_rule_ids
+    # Bash 3.2 compatible: use delimited strings instead of associative arrays
+    local cve_severity=""
+    local cve_description=""
+    local cve_images=""
+    local cve_rule_ids=""
     
     local alert_count
     alert_count=$(echo "$alerts_json" | jq 'length')
@@ -122,66 +123,92 @@ triage_alerts() {
             continue
         fi
         
-        if [[ -n "${cve_severity[$cve_id]:-}" ]]; then
-            cve_severity[$cve_id]=$(get_higher_severity "${cve_severity[$cve_id]}" "$severity")
+        # Update severity (use higher severity if exists)
+        local existing_severity
+        existing_severity=$(echo "$cve_severity" | grep "^${cve_id}|" | cut -d'|' -f2)
+        if [[ -n "$existing_severity" ]]; then
+            local new_severity
+            new_severity=$(get_higher_severity "$existing_severity" "$severity")
+            cve_severity=$(echo "$cve_severity" | grep -v "^${cve_id}|")
+            cve_severity="${cve_severity}"$'\n'"${cve_id}|${new_severity}"
         else
-            cve_severity[$cve_id]="$severity"
-            cve_description[$cve_id]="$description"
+            cve_severity="${cve_severity}"$'\n'"${cve_id}|${severity}"
+            cve_description="${cve_description}"$'\n'"${cve_id}|${description}"
         fi
         
+        # Update images list
         local image_name
         image_name=$(extract_image_name "$rule_id")
         if [[ -n "$image_name" ]]; then
-            if [[ -n "${cve_images[$cve_id]:-}" ]]; then
-                if [[ ! "${cve_images[$cve_id]}" =~ (^|,)"$image_name"(,|$) ]]; then
-                    cve_images[$cve_id]="${cve_images[$cve_id]},$image_name"
+            local existing_images
+            existing_images=$(echo "$cve_images" | grep "^${cve_id}|" | cut -d'|' -f2)
+            if [[ -n "$existing_images" ]]; then
+                if [[ ! "$existing_images" =~ (^|,)"$image_name"(,|$) ]]; then
+                    cve_images=$(echo "$cve_images" | grep -v "^${cve_id}|")
+                    cve_images="${cve_images}"$'\n'"${cve_id}|${existing_images},${image_name}"
                 fi
             else
-                cve_images[$cve_id]="$image_name"
+                cve_images="${cve_images}"$'\n'"${cve_id}|${image_name}"
             fi
         fi
         
-        if [[ -n "${cve_rule_ids[$cve_id]:-}" ]]; then
-            cve_rule_ids[$cve_id]="${cve_rule_ids[$cve_id]},$rule_id"
+        # Update rule IDs list
+        local existing_rules
+        existing_rules=$(echo "$cve_rule_ids" | grep "^${cve_id}|" | cut -d'|' -f2)
+        if [[ -n "$existing_rules" ]]; then
+            cve_rule_ids=$(echo "$cve_rule_ids" | grep -v "^${cve_id}|")
+            cve_rule_ids="${cve_rule_ids}"$'\n'"${cve_id}|${existing_rules},${rule_id}"
         else
-            cve_rule_ids[$cve_id]="$rule_id"
+            cve_rule_ids="${cve_rule_ids}"$'\n'"${cve_id}|${rule_id}"
         fi
     done
     
     local results=()
-    for cve_id in "${!cve_severity[@]}"; do
-        local severity="${cve_severity[$cve_id]}"
+    while IFS='|' read -r cve_id severity; do
+        if [[ -z "$cve_id" ]]; then
+            continue
+        fi
+        
         local priority
         priority=$(severity_to_priority "$severity" "false")
         
+        local images_list
+        images_list=$(echo "$cve_images" | grep "^${cve_id}|" | cut -d'|' -f2)
         local images_json
-        IFS=',' read -ra image_array <<< "${cve_images[$cve_id]:-}"
-        images_json=$(printf '%s\n' "${image_array[@]}" | jq -R . | jq -s .)
+        if [[ -n "$images_list" ]]; then
+            images_json=$(echo "$images_list" | tr ',' '\n' | jq -R . | jq -s .)
+        else
+            images_json="[]"
+        fi
         
+        local rule_ids_list
+        rule_ids_list=$(echo "$cve_rule_ids" | grep "^${cve_id}|" | cut -d'|' -f2)
         local rule_ids_json
-        IFS=',' read -ra rule_array <<< "${cve_rule_ids[$cve_id]}"
-        rule_ids_json=$(printf '%s\n' "${rule_array[@]}" | jq -R . | jq -s .)
+        rule_ids_json=$(echo "$rule_ids_list" | tr ',' '\n' | jq -R . | jq -s .)
         
-         local entry
-         local severity_lower
-         severity_lower=$(_tolower "$severity")
-         entry=$(jq -n \
-             --arg cve_id "$cve_id" \
-             --argjson priority "$priority" \
-             --arg severity "$severity_lower" \
-             --argjson affected_images "$images_json" \
-             --argjson rule_ids "$rule_ids_json" \
-             --arg description "${cve_description[$cve_id]}" \
-             '{
-                 cve_id: $cve_id,
-                 priority: $priority,
-                 severity: $severity,
-                 affected_images: $affected_images,
-                 rule_ids: $rule_ids,
-                 description: $description
-             }')
+        local desc
+        desc=$(echo "$cve_description" | grep "^${cve_id}|" | cut -d'|' -f2-)
+        
+        local entry
+        local severity_lower
+        severity_lower=$(_tolower "$severity")
+        entry=$(jq -n \
+            --arg cve_id "$cve_id" \
+            --argjson priority "$priority" \
+            --arg severity "$severity_lower" \
+            --argjson affected_images "$images_json" \
+            --argjson rule_ids "$rule_ids_json" \
+            --arg description "$desc" \
+            '{
+                cve_id: $cve_id,
+                priority: $priority,
+                severity: $severity,
+                affected_images: $affected_images,
+                rule_ids: $rule_ids,
+                description: $description
+            }')
         results+=("$entry")
-    done
+    done <<< "$cve_severity"
     
     if [[ ${#results[@]} -eq 0 ]]; then
         echo "[]"
