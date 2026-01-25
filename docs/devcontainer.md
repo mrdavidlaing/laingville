@@ -429,7 +429,7 @@ laingville/
 │   └── implementations/
 │       ├── nix/                            # Secure mode implementation
 │       │   ├── README.md                   # How to use Nix backend
-│       │   └── pensive-assistant.md        # Example walkthrough
+│       │   └── feature-creation.md         # Feature creation walkthrough
 │       └── ubuntu/                         # Development mode implementation
 │           ├── README.md                   # How to use Ubuntu backend
 │           └── migration.md                # Port from Nix to Ubuntu
@@ -437,17 +437,27 @@ laingville/
 ├── infra/
 │   ├── flake.nix                          # Secure mode: Nix definitions
 │   ├── overlays/                          # Secure mode: CVE patches
-│   └── templates/                         # Example devcontainer.json
+│   └── templates/                         # Project templates
+│       ├── python-project/                # Python project with devcontainer
+│       └── ubuntu-devcontainer/           # Ubuntu devcontainer template
 │
 └── .devcontainer/
-    ├── devcontainer.json                  # Current: Secure mode
+    ├── devcontainer.json                  # Secure mode: pre-built Nix image
     ├── docker-compose.yml                 # Multi-container setup
+    ├── ubuntu.Dockerfile                  # Development mode: Ubuntu base image
+    ├── bin/
+    │   └── ctl                            # CLI tool for lifecycle management
+    ├── ubuntu/                            # Development mode config
+    │   ├── devcontainer.json              # Ubuntu devcontainer config
+    │   └── docker-compose.yml             # Ubuntu compose file
     └── features/
         └── pensive-assistant/             # Example feature
             ├── devcontainer-feature.json
-            ├── install.sh                  # Works in both modes!
-            ├── flake.nix                   # Secure mode build
-            └── build-delta-tarball.sh      # Secure mode CI
+            ├── install.sh                  # Mode dispatch (nix vs ubuntu)
+            ├── install-ubuntu.sh           # Ubuntu mode: apt installation
+            ├── flake.nix                   # Secure mode: Nix build
+            ├── build-delta-tarball.sh      # Secure mode: CI script
+            └── test.sh                     # Feature verification tests
 ```
 
 ---
