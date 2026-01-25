@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+severity_to_priority() {
+    local severity="${1,,}"
+    local has_exploit="${2:-false}"
+    
+    case "$severity" in
+        critical)
+            if [[ "$has_exploit" == "true" ]]; then
+                echo "1"
+            else
+                echo "2"
+            fi
+            ;;
+        high)
+            if [[ "$has_exploit" == "true" ]]; then
+                echo "3"
+            else
+                echo "4"
+            fi
+            ;;
+        *)
+            echo "5"
+            ;;
+    esac
+}
+
+extract_cve_id() {
+    local rule_id="$1"
+    local cve_pattern='CVE-[0-9]{4}-[0-9]+'
+    
+    if [[ "$rule_id" =~ $cve_pattern ]]; then
+        echo "${BASH_REMATCH[0]}"
+    else
+        echo ""
+    fi
+}
+
+extract_image_name() {
+    local rule_id="$1"
+    local scanner_pattern='^(trivy|grype)-(.+)-CVE-[0-9]{4}-[0-9]+$'
+    
+    if [[ "$rule_id" =~ $scanner_pattern ]]; then
+        echo "${BASH_REMATCH[2]}"
+    else
+        echo ""
+    fi
+}
+
+get_higher_severity() {
+    local sev1="${1,,}"
+    local sev2="${2,,}"
+    
+    declare -A severity_rank=(
+        [critical]=1
+        [high]=2
+        [medium]=3
+        [low]=4
+    )
+    
+    local rank1="${severity_rank[$sev1]:-5}"
+    local rank2="${severity_rank[$sev2]:-5}"
+    
+    if [[ "$rank1" -le "$rank2" ]]; then
+        echo "$sev1"
+    else
+        echo "$sev2"
+    fi
+}
+
+triage_alerts() {
+    local alerts_json="$1"
+    
+    if [[ "$alerts_json" == "[]" ]] || [[ -z "$alerts_json" ]]; then
+        echo "[]"
+        return
+    fi
+    
+    declare -A cve_severity
+    declare -A cve_description
+    declare -A cve_images
+    declare -A cve_rule_ids
+    
+    local alert_count
+    alert_count=$(echo "$alerts_json" | jq 'length')
+    
+    for ((i=0; i<alert_count; i++)); do
+        local alert
+        alert=$(echo "$alerts_json" | jq ".[$i]")
+        
+        local state
+        state=$(echo "$alert" | jq -r '.state')
+        if [[ "$state" != "open" ]]; then
+            continue
+        fi
+        
+        local rule_id severity description
+        rule_id=$(echo "$alert" | jq -r '.rule.id')
+        severity=$(echo "$alert" | jq -r '.rule.severity')
+        description=$(echo "$alert" | jq -r '.rule.description')
+        
+        local cve_id
+        cve_id=$(extract_cve_id "$rule_id")
+        
+        if [[ -z "$cve_id" ]]; then
+            continue
+        fi
+        
+        if [[ -n "${cve_severity[$cve_id]:-}" ]]; then
+            cve_severity[$cve_id]=$(get_higher_severity "${cve_severity[$cve_id]}" "$severity")
+        else
+            cve_severity[$cve_id]="$severity"
+            cve_description[$cve_id]="$description"
+        fi
+        
+        local image_name
+        image_name=$(extract_image_name "$rule_id")
+        if [[ -n "$image_name" ]]; then
+            if [[ -n "${cve_images[$cve_id]:-}" ]]; then
+                if [[ ! "${cve_images[$cve_id]}" =~ (^|,)"$image_name"(,|$) ]]; then
+                    cve_images[$cve_id]="${cve_images[$cve_id]},$image_name"
+                fi
+            else
+                cve_images[$cve_id]="$image_name"
+            fi
+        fi
+        
+        if [[ -n "${cve_rule_ids[$cve_id]:-}" ]]; then
+            cve_rule_ids[$cve_id]="${cve_rule_ids[$cve_id]},$rule_id"
+        else
+            cve_rule_ids[$cve_id]="$rule_id"
+        fi
+    done
+    
+    local results=()
+    for cve_id in "${!cve_severity[@]}"; do
+        local severity="${cve_severity[$cve_id]}"
+        local priority
+        priority=$(severity_to_priority "$severity" "false")
+        
+        local images_json
+        IFS=',' read -ra image_array <<< "${cve_images[$cve_id]:-}"
+        images_json=$(printf '%s\n' "${image_array[@]}" | jq -R . | jq -s .)
+        
+        local rule_ids_json
+        IFS=',' read -ra rule_array <<< "${cve_rule_ids[$cve_id]}"
+        rule_ids_json=$(printf '%s\n' "${rule_array[@]}" | jq -R . | jq -s .)
+        
+        local entry
+        entry=$(jq -n \
+            --arg cve_id "$cve_id" \
+            --argjson priority "$priority" \
+            --arg severity "${severity,,}" \
+            --argjson affected_images "$images_json" \
+            --argjson rule_ids "$rule_ids_json" \
+            --arg description "${cve_description[$cve_id]}" \
+            '{
+                cve_id: $cve_id,
+                priority: $priority,
+                severity: $severity,
+                affected_images: $affected_images,
+                rule_ids: $rule_ids,
+                description: $description
+            }')
+        results+=("$entry")
+    done
+    
+    if [[ ${#results[@]} -eq 0 ]]; then
+        echo "[]"
+        return
+    fi
+    
+    printf '%s\n' "${results[@]}" | jq -s 'sort_by(.priority)'
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [[ -t 0 ]]; then
+        echo "Usage: gh api /repos/{owner}/{repo}/code-scanning/alerts | $0" >&2
+        exit 1
+    fi
+    
+    input=$(cat)
+    triage_alerts "$input"
+fi
