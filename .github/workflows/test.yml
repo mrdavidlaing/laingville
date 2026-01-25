@@ -45,7 +45,7 @@ jobs:
     - name: Cache tools (Arch Linux)
       if: matrix.platform == 'archlinux'
       id: cache-tools-arch
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.local/bin/shellspec
@@ -57,7 +57,7 @@ jobs:
     - name: Cache tools (macOS)
       if: matrix.platform == 'macos'
       id: cache-tools-macos
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.local/bin/shellspec
