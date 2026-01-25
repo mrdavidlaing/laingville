@@ -89,7 +89,7 @@ jobs:
             Follow the playbook in .claude/commands/security-fix.md.
             You have access to 'nix' and standard bash tools.
             Do not commit changes; the workflow handles committing.
-          claude_args: '--model ${{ inputs.model || "claude-sonnet-4-5-20250929" }} --allowed-tools "Bash,Read,Edit,Write,Glob,Grep"'
+          claude_args: "--model ${{ inputs.model || 'claude-sonnet-4-5-20250929' }} --allowed-tools Bash,Read,Edit,Write,Glob,Grep"
 
       - name: Check for changes
         id: changes
