@@ -60,15 +60,22 @@ get_higher_severity() {
     local sev2
     sev2=$(_tolower "$2")
     
-    declare -A severity_rank=(
-        [critical]=1
-        [high]=2
-        [medium]=3
-        [low]=4
-    )
+    # Bash 3.2 compatible: use case instead of associative array
+    local rank1=5
+    case "$sev1" in
+        critical) rank1=1 ;;
+        high) rank1=2 ;;
+        medium) rank1=3 ;;
+        low) rank1=4 ;;
+    esac
     
-    local rank1="${severity_rank[$sev1]:-5}"
-    local rank2="${severity_rank[$sev2]:-5}"
+    local rank2=5
+    case "$sev2" in
+        critical) rank2=1 ;;
+        high) rank2=2 ;;
+        medium) rank2=3 ;;
+        low) rank2=4 ;;
+    esac
     
     if [[ "$rank1" -le "$rank2" ]]; then
         echo "$sev1"

@@ -22,3 +22,7 @@ keys/
 
 # perles local config
 .perles/
+
+# npm artifacts
+package/
+node_modules/

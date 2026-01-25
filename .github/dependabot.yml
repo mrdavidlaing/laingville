@@ -1,19 +1,5 @@
 version: 2
 updates:
-  # Monitor npm dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-
-  # Monitor Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-
   # Monitor GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -21,9 +7,9 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
 
-  # Monitor Docker images (for container dependencies)
+  # Monitor Docker images
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/infra/templates/ubuntu-devcontainer"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

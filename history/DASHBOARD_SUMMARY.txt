@@ -1,0 +1,219 @@
+================================================================================
+ZELLIJ OVERVIEW DASHBOARD - RESEARCH COMPLETE
+================================================================================
+
+QUESTION: What zellij features/plugins enable an "overview dashboard" showing 
+what's going on in all panes?
+
+ANSWER: Highly feasible. Zellij's plugin system is purpose-built for this.
+
+================================================================================
+1. KEY ENABLING FEATURES
+================================================================================
+
+✅ PaneUpdate Event
+   - Fired whenever ANY pane changes (title, exit, resize, focus)
+   - Contains PaneManifest with ALL panes in ALL tabs
+   - Each pane includes: ID, title, status, dimensions, position, exit code
+   - Event-driven (no polling needed)
+
+✅ Permission System  
+   - ReadApplicationState = read-only, safe
+   - ChangeApplicationState = needed for kill/focus/resize actions
+   - Plugin requests on load, user grants once
+
+✅ Built-in UI Components
+   - Table (with selected highlighting)
+   - Ribbon (tabbed interface)
+   - Text (styled output)
+   - NestedList (hierarchical data)
+   - All theme-aware (match user colors)
+
+✅ Plugin Control API
+   - focus_terminal_pane(id)
+   - focus_plugin_pane(id)
+   - close_terminal_pane(id)
+   - close_plugin_pane(id)
+   - Can open new panes, change focus, toggle fullscreen
+
+================================================================================
+2. EXISTING REFERENCE IMPLEMENTATIONS
+================================================================================
+
+eikopf/zellij-dashboard
+- Status: Early/experimental (personal project)
+- Goal: "Neutral space" dashboard like Doom Emacs
+- Features: Date/time, tab view, quick-launch shortcuts
+- Maturity: 2 stars, not production-ready yet
+
+Christian-Prather/zellij-load
+- Status: Functional (v0.1.1 released)
+- Goal: System resource monitor (CPU, memory, GPU)
+- Pattern: Daemon collects data, WASM plugin renders
+- Maturity: 2 stars, well-documented
+
+dj95/zjstatus
+- Purpose: Configurable statusbar (not full overview)
+- Patterns: Widget-based approach, theming
+
+Built-in Plugins (Best References)
+- tab-bar: Multi-tab UI with mouse support
+- status-bar: Mode indicators, keybindings
+- strider: File browser, search, navigation
+- session-manager: Interactive session picker
+
+================================================================================
+3. PLUGIN ARCHITECTURE (SIMPLIFIED)
+================================================================================
+
+Lifecycle:
+  load()   → Subscribe to events, request permissions
+  update() → Receive events, update state, return true to render
+  render() → Draw UI to STDOUT (called when update returns true)
+
+Only Permissions Needed:
+  - ReadApplicationState (read-only)
+  - ChangeApplicationState (optional, for kill/focus/resize)
+
+Event Subscriptions for Dashboard:
+  - PaneUpdate (core data source)
+  - TabUpdate (tab info)
+  - Key (for hjkl/arrow navigation)
+  - Mouse (for clicks)
+
+Data Available in PaneUpdate:
+  - All panes across all tabs
+  - Pane ID, title, position, dimensions
+  - Status: running / exited / held / fullscreen
+  - Layer: tiled / floating
+  - Focus state (in its layer)
+  - Is it a plugin vs terminal pane?
+
+================================================================================
+4. WHAT YOU CAN BUILD
+================================================================================
+
+MVP Dashboard (100 lines):
+  [ ] Table showing all panes in active tab
+  [ ] Columns: ID, Title, Status, Size
+  [ ] Arrow key navigation
+  [ ] Press Enter to focus selected pane
+
+Enhanced (150 lines):
+  [ ] Press 'd' to kill selected pane
+  [ ] Press 'f' to toggle fullscreen
+  [ ] Show keyboard hints at bottom
+
+Advanced (200+ lines):
+  [ ] Search/filter panes (press '/')
+  [ ] Tab navigation (← →)
+  [ ] Mouse click to focus
+  [ ] Color coding (running=green, exited=red)
+
+Professional (300+ lines):
+  [ ] Pane hierarchy/tree view
+  [ ] Resize pane from dashboard
+  [ ] Pane stats (age, scrollback size)
+  [ ] Favorites/sticky panes
+  [ ] Layout switching integration
+
+================================================================================
+5. KEY TECHNICAL INSIGHTS
+================================================================================
+
+✅ What Works Great:
+  - Real-time pane visibility (PaneUpdate events)
+  - Complete pane metadata (position, size, state)
+  - Interactive control (focus, kill, resize)
+  - Theme integration (colors match user config)
+  - Cross-platform (Linux, macOS, Windows via WASM)
+
+⚠️ Limitations:
+  - Command name NOT in PaneInfo (workaround: custom protocol or /proc)
+  - Performance scales O(n) with pane count
+  - Plugin-terminal distinction only via boolean flag
+  - User must grant permissions on first load
+
+================================================================================
+6. RECOMMENDED APPROACH
+================================================================================
+
+Start with:
+  1. Study tab-bar or strider plugin in zellij source
+  2. Use zellij-tile crate (official Rust SDK)
+  3. Build MVP: just table of panes, arrow nav, Enter to focus
+  4. Test with many panes to find performance limits
+
+Layout Integration:
+  layout {
+      pane size=90% {
+          // your workspace
+      }
+      pane size=10% borderless=true {
+          plugin location="file:/path/to/dashboard.wasm"
+      }
+  }
+
+Estimated Effort:
+  - MVP: 4 hours
+  - Production-ready: 8-16 hours
+
+================================================================================
+7. PLUGIN SYSTEM OVERVIEW
+================================================================================
+
+Zellij treats plugins as first-class citizens alongside terminal panes:
+  - Runs in WASM sandbox (safe)
+  - Event-driven architecture
+  - Full access to application state
+  - Can control panes, tabs, sessions
+  - Theme-aware UI components
+  - Cross-platform (no shell dependencies)
+
+13 Built-in Plugins:
+  tab-bar, status-bar, strider (file browser), session-manager, 
+  layout-manager, plugin-manager, compact-bar, multiple-select, 
+  configuration, share, about, sequence, fixture-for-tests
+
+Plugin Language Support:
+  - Rust (official, best documented)
+  - Community efforts for other languages (Python, JS, etc.)
+
+================================================================================
+8. FULL RESEARCH DOCUMENT
+================================================================================
+
+See: history/ZELLIJ_DASHBOARD_RESEARCH.md
+
+Contains:
+  - Dashboard concept mockup
+  - Complete plugin architecture breakdown
+  - Event system reference
+  - Code examples (pseudocode + real patterns)
+  - Existing plugin analysis
+  - Implementation roadmap (phases 1-4)
+  - Cargo.toml + sample code structure
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Building a Zellij overview dashboard is HIGHLY FEASIBLE and STRAIGHTFORWARD.
+
+The plugin system provides exactly what you need:
+  ✓ Real-time visibility of all panes
+  ✓ Complete pane state information
+  ✓ Interactive control (focus, kill, resize)
+  ✓ Theme-integrated UI components
+  ✓ Cross-platform WASM sandbox
+
+Expected complexity: MEDIUM
+Expected development time: 4-8 hours for MVP, 8-16 for production
+
+Next steps:
+  1. Study tab-bar plugin source (zellij repo)
+  2. Set up Rust environment for WASM plugins
+  3. Build MVP with table + arrow navigation + Enter to focus
+  4. Iterate with features (kill, fullscreen, filter, etc.)
+
+================================================================================
