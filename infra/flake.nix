@@ -203,6 +203,8 @@ EOF
               # Note: pkgs.sudo doesn't have setuid in nix store, so we copy and set it here
               # This is the standard Nix pattern for setuid binaries in Docker containers
               mkdir -p ./bin
+              # Remove symlink if it exists (sudo is in devTools packages)
+              rm -f ./bin/sudo
               cp ${pkgs.sudo}/bin/sudo ./bin/sudo
               chmod 4755 ./bin/sudo
 
