@@ -3,7 +3,9 @@
   description = "Nix container infrastructure for laingville";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # Temporarily using staging to get curl 8.18.0 (fixes CVE-2025-13034, CVE-2025-14524, etc.)
+    # TODO: Switch back to nixpkgs-unstable once staging is merged
+    nixpkgs.url = "github:NixOS/nixpkgs/staging";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
