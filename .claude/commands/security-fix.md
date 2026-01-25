@@ -96,10 +96,52 @@
 #
 # ---
 #
-# Step 5: Open PR
+# Step 5: Evidence Generation (SBOM Diff)
+# Capture before/after SBOMs to prove vulnerabilities were remediated.
+#
+# 1) Generate before SBOM (from current image):
+#    nix-closure-sbom.sh .#laingville-devcontainer > before.json
+#
+# 2) Apply your fix (update flake.lock or add overlay).
+#
+# 3) Generate after SBOM (from fixed image):
+#    nix-closure-sbom.sh .#laingville-devcontainer > after.json
+#
+# 4) Compute diff using sbom-diff:
+#    bin/sbom-diff before.json after.json > sbom-diff.json
+#
+#    Output includes:
+#    - "added": New packages (usually empty for security fixes)
+#    - "removed": Vulnerable packages that were deleted (proof of fix)
+#    - "updated": Packages with version bumps (proof of remediation)
+#    - "summary": Human-readable change summary
+#
+# 5) Include diff summary in PR description:
+#    - Copy the "summary" field from sbom-diff.json
+#    - Example: "Removed 1 vulnerable package, updated 2 packages"
+#
+# 6) Attach SBOMs as PR artifacts:
+#    - Upload before.json and after.json to PR
+#    - Attach sbom-diff.json for easy review
+#
+# ---
+#
+# Step 6: Open PR
 # 1) Branch name examples:
 # - `chore/security-fix-<cve>`
 # - `chore/security-bump-nixpkgs-<date>`
+#
+# 2) Commit changes (include `.beads/issues.jsonl` if you used bd).
+#
+# 3) Create PR with a clear "before/after" statement:
+# - Which alerts are expected to close
+# - Which images are affected
+# - Whether this is an upstream bump vs a temporary overlay
+# - Include SBOM diff summary showing vulnerable packages removed/updated
+#
+# 4) After merge, verify:
+# - `Security Scan` workflow run on main
+# - Open alerts list decreases as expected
 #
 # 2) Commit changes (include `.beads/issues.jsonl` if you used bd).
 #

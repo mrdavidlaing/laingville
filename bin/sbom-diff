@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+extract_packages() {
+  local sbom_json="$1"
+  
+  echo "$sbom_json" | jq -r '.packages[] | "\(.name)|\(.version)"' 2>/dev/null || true
+}
+
+find_added_packages() {
+  local before_packages="$1"
+  local after_packages="$2"
+  
+  declare -A before_names
+  while IFS='|' read -r name version; do
+    if [[ -n "$name" ]]; then
+      before_names["$name"]=1
+    fi
+  done <<< "$before_packages"
+  
+  while IFS='|' read -r name version; do
+    if [[ -z "$name" ]]; then
+      continue
+    fi
+    
+    if [[ ! -v before_names["$name"] ]]; then
+      echo "${name}|${version}"
+    fi
+  done <<< "$after_packages"
+}
+
+find_removed_packages() {
+  local before_packages="$1"
+  local after_packages="$2"
+  
+  declare -A after_names
+  while IFS='|' read -r name version; do
+    if [[ -n "$name" ]]; then
+      after_names["$name"]=1
+    fi
+  done <<< "$after_packages"
+  
+  while IFS='|' read -r name version; do
+    if [[ -z "$name" ]]; then
+      continue
+    fi
+    
+    if [[ ! -v after_names["$name"] ]]; then
+      echo "${name}|${version}"
+    fi
+  done <<< "$before_packages"
+}
+
+find_updated_packages() {
+  local before_packages="$1"
+  local after_packages="$2"
+  
+  declare -A before_versions
+  while IFS='|' read -r name version; do
+    if [[ -n "$name" ]]; then
+      before_versions["$name"]="$version"
+    fi
+  done <<< "$before_packages"
+  
+  while IFS='|' read -r name version; do
+    if [[ -z "$name" ]]; then
+      continue
+    fi
+    
+    if [[ -v before_versions["$name"] ]]; then
+      local old_version="${before_versions[$name]}"
+      if [[ "$old_version" != "$version" ]]; then
+        echo "${name}|${old_version}|${version}"
+      fi
+    fi
+  done <<< "$after_packages"
+}
+
+generate_diff_json() {
+  local added="$1"
+  local removed="$2"
+  local updated="$3"
+  
+  local added_count=0
+  local removed_count=0
+  local updated_count=0
+  
+  if [[ -n "$added" ]]; then
+    added_count=$(echo "$added" | grep -c . || true)
+  fi
+  if [[ -n "$removed" ]]; then
+    removed_count=$(echo "$removed" | grep -c . || true)
+  fi
+  if [[ -n "$updated" ]]; then
+    updated_count=$(echo "$updated" | grep -c . || true)
+  fi
+  
+  local summary="Removed $removed_count vulnerable package(s), updated $updated_count package(s), added $added_count package(s)"
+  
+  local added_json="[]"
+  if [[ -n "$added" ]]; then
+    added_json=$(echo "$added" | jq -R 'split("|") | {name: .[0], version: .[1]}' | jq -s '.')
+  fi
+  
+  local removed_json="[]"
+  if [[ -n "$removed" ]]; then
+    removed_json=$(echo "$removed" | jq -R 'split("|") | {name: .[0], version: .[1]}' | jq -s '.')
+  fi
+  
+  local updated_json="[]"
+  if [[ -n "$updated" ]]; then
+    updated_json=$(echo "$updated" | jq -R 'split("|") | {name: .[0], old_version: .[1], new_version: .[2]}' | jq -s '.')
+  fi
+  
+  jq -n \
+    --argjson added "$added_json" \
+    --argjson removed "$removed_json" \
+    --argjson updated "$updated_json" \
+    --arg summary "$summary" \
+    '{added: $added, removed: $removed, updated: $updated, summary: $summary}'
+}
+
+main_sbom_diff() {
+  if [[ $# -lt 2 ]]; then
+    echo "Usage: sbom-diff <before.json> <after.json>" >&2
+    return 1
+  fi
+  
+  local before_file="$1"
+  local after_file="$2"
+  
+  if [[ ! -f "$before_file" ]]; then
+    echo "Error: before file not found: $before_file" >&2
+    return 1
+  fi
+  
+  if [[ ! -f "$after_file" ]]; then
+    echo "Error: after file not found: $after_file" >&2
+    return 1
+  fi
+  
+  local before_json
+  before_json=$(cat "$before_file") || {
+    echo "Error: failed to read before file" >&2
+    return 1
+  }
+  
+  local after_json
+  after_json=$(cat "$after_file") || {
+    echo "Error: failed to read after file" >&2
+    return 1
+  }
+  
+  if ! echo "$before_json" | jq empty 2>/dev/null; then
+    echo "Error: invalid JSON in before file" >&2
+    return 1
+  fi
+  
+  if ! echo "$after_json" | jq empty 2>/dev/null; then
+    echo "Error: invalid JSON in after file" >&2
+    return 1
+  fi
+  
+  local before_packages
+  before_packages=$(extract_packages "$before_json")
+  
+  local after_packages
+  after_packages=$(extract_packages "$after_json")
+  
+  local added
+  added=$(find_added_packages "$before_packages" "$after_packages")
+  
+  local removed
+  removed=$(find_removed_packages "$before_packages" "$after_packages")
+  
+  local updated
+  updated=$(find_updated_packages "$before_packages" "$after_packages")
+  
+  generate_diff_json "$added" "$removed" "$updated"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main_sbom_diff "$@"
+fi
