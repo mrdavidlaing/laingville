@@ -143,6 +143,7 @@ collect_tests_for_changes() {
 
     debug "Processing changed file: $file"
 
+    # shellcheck disable=SC2310
     if map_source_to_tests "$file" > /tmp/mapped_tests.txt 2> /dev/null; then
       local mapped=$(cat /tmp/mapped_tests.txt)
       debug "  Mapped to: $mapped"
@@ -164,7 +165,7 @@ collect_tests_for_changes() {
   if [[ -n "$test_files" ]]; then
     echo "$test_files" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/ $//' > /tmp/collected_tests.txt
   else
-    > /tmp/collected_tests.txt
+    : > /tmp/collected_tests.txt
   fi
 }
 
@@ -180,6 +181,7 @@ run_tests() {
   else
     debug "Running specific tests: $test_files"
     # shellspec expects space-separated file arguments
+    # shellcheck disable=SC2086
     shellspec $test_files
   fi
 }
@@ -210,6 +212,7 @@ main() {
 
   # Get changed files
   local changed_files
+  # shellcheck disable=SC2311
   changed_files=$(get_changed_files "$base_sha" "$head_sha")
 
   if [[ -z "$changed_files" ]]; then
@@ -219,9 +222,11 @@ main() {
   fi
 
   debug "Changed files:"
+  # shellcheck disable=SC2001
   echo "$changed_files" | sed 's/^/  /'
 
   # Check if test infrastructure changed
+  # shellcheck disable=SC2310
   if check_test_infrastructure_changed "$changed_files"; then
     echo "Test infrastructure changed - running full test suite"
     RUN_ALL_TESTS=1
