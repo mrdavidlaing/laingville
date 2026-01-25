@@ -33,16 +33,7 @@ Contract between Feature Extensions and DevContainer environment for cross-mode 
 ## Historical Documentation
 
 ### [history/](history/)
-
-Contains resolved issues, troubleshooting guides, and AI-assisted work session artifacts:
-
-- **ShellSpec Issue #351** - WSL reporter bug investigation and resolution
-  - [BREAKTHROUGH](history/shellspec-issue-351-BREAKTHROUGH.md) - Minimal reproduction of WSL → Windows boundary issue
-  - [FIX-CONFIRMED](history/shellspec-issue-351-FIX-CONFIRMED.md) - Native Linux PowerShell solution
-  - [WORKAROUND](history/shellspec-issue-351-WORKAROUND.md) - Installation guide for WSL users
-
-Also includes analysis documents, benchmark reports, and implementation summaries capturing research and decision-making.
+AI-assisted work session artifacts: analysis documents, benchmark reports, troubleshooting notes, and implementation summaries. These capture the research and decision-making process behind configuration changes and system optimizations.
 
 ### [plans/](plans/)
-
 Implementation plans and design documents from past development work.
