@@ -58,3 +58,70 @@ This is different from a job failure - it's a workflow parsing failure.
 - Double quotes are NOT valid in expressions
 - Example: `${{ inputs.var || 'default' }}` ✓
 - Example: `${{ inputs.var || "default" }}` ✗
+
+---
+
+## Session 2: 2026-01-25 (Continuation) - Additional Fixes & Verification
+
+### Issue 3: Cosign Installer Version Not Available (FIXED)
+- **Location**: `.github/workflows/build-containers.yml` lines 51, 160
+- **Problem**: Workflow used `sigstore/cosign-installer@v4` which doesn't exist
+- **Available Versions**: Latest is v3.10.1
+- **Error**: `Unable to resolve action sigstore/cosign-installer@v4`
+- **Fix**: Updated both occurrences to `sigstore/cosign-installer@v3`
+- **Commit**: `d5f811a` - fix(workflows): update cosign-installer from v4 to v3
+
+### Current Workflow Status (2026-01-25 12:34 UTC)
+
+| Workflow | Run # | Status | Notes |
+|----------|-------|--------|-------|
+| Build Containers | 63 | Queued | Cosign v3 fix applied |
+| Security Scan | 139 | Queued | Should pass (previous runs passing) |
+| Claude Security Fix | 147 | Pending | YAML fixes applied, awaiting execution |
+| Claude Security Fix | 145 | In Progress | Running with fixes |
+
+### ⚠️ GitHub Advanced Security Configuration Issue
+
+**Problem**: Cannot enable Advanced Security settings via GitHub API
+- Endpoints return 404 Not Found
+- Affected endpoints:
+  - `/repos/{owner}/{repo}/vulnerability-alerts`
+  - `/repos/{owner}/{repo}/automated-security-fixes`
+
+**What Needs Manual Configuration**:
+1. Go to GitHub Settings → Advanced Security
+2. Enable "Code scanning" (if not already enabled)
+3. Enable "Secret scanning" (if not already enabled)
+4. Enable "Automatic dependency submission" (CRITICAL for SBOM system)
+5. Enable "Dependabot alerts" (if not already enabled)
+
+**Current Status**:
+- Code scanning alerts: ✅ PRESENT (11 vulnerabilities detected)
+- Dependabot alerts: ❌ EMPTY (no alerts yet)
+- Dependabot configuration: ✅ EXISTS (.github/dependabot.yml)
+
+**Why This Matters**:
+- Container SBOMs are submitted to Dependency Graph via `dependency-snapshot: true`
+- Dependabot monitors the Dependency Graph for vulnerabilities
+- Without automatic dependency submission enabled, container packages won't appear in Dependency Graph
+- Without Dependabot alerts enabled, vulnerabilities won't be detected
+
+### Next Steps
+
+1. **Monitor Workflow Runs** (Next 10 minutes)
+   - Watch runs #63, #139, #147 for completion
+   - Verify all pass successfully
+
+2. **Enable Advanced Security** (Manual, GitHub UI)
+   - Settings → Advanced Security
+   - Enable "Automatic dependency submission"
+   - Enable "Dependabot alerts"
+
+3. **Verify End-to-End Pipeline** (After workflows complete)
+   - Check if security-response workflow triggers
+   - Verify Claude /security-fix creates PR for HIGH/CRITICAL alerts
+   - Test with real vulnerability
+
+4. **Monitor Dependabot** (After 24 hours)
+   - Wait for GitHub to process configuration
+   - Verify Dependabot alerts appear for container packages
