@@ -206,7 +206,7 @@ jobs:
       
     - name: Upload bash coverage (Linux)
       if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bash-coverage-${{ matrix.platform }}
         path: coverage/
@@ -282,7 +282,7 @@ jobs:
 
     - name: Upload bash coverage summary
       if: matrix.platform == 'nix' || matrix.platform == 'archlinux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: coverage-summary-bash-${{ matrix.platform }}
         path: coverage-bash-${{ matrix.platform }}.txt
@@ -343,7 +343,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
 
     - name: Upload Issue #351 test result
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: issue-351-result-${{ matrix.platform }}
         path: issue_351_result.txt
@@ -509,7 +509,7 @@ jobs:
         Write-Host "✅ All $($result.PassedCount) PowerShell tests passed on ${{ matrix.os }}" -ForegroundColor Green
 
     - name: Upload PowerShell coverage summary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: coverage-summary-powershell
         path: coverage-powershell.txt
@@ -529,7 +529,7 @@ jobs:
         Write-Host "✅ PowerShell dry-run tests passed on ${{ matrix.os }}" -ForegroundColor Green
 
     - name: Upload PowerShell test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: powershell-test-results-${{ matrix.os }}
@@ -538,7 +538,7 @@ jobs:
           coverage.xml
 
     - name: Upload PowerShell coverage report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: powershell-coverage-${{ matrix.os }}
