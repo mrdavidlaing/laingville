@@ -234,7 +234,7 @@ jobs:
     name: Syft (SBOM Generator)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: read
     strategy:
       fail-fast: false
@@ -297,6 +297,7 @@ jobs:
           image: '${{ steps.image.outputs.ref }}'
           format: spdx-json
           output-file: 'sbom-${{ matrix.image }}-spdx.json'
+          dependency-snapshot: true
         continue-on-error: true
 
       - name: Generate SBOM with Syft (CycloneDX)
@@ -305,6 +306,7 @@ jobs:
           image: '${{ steps.image.outputs.ref }}'
           format: cyclonedx-json
           output-file: 'sbom-${{ matrix.image }}-cyclonedx.json'
+          dependency-snapshot: true
         continue-on-error: true
 
       - name: Upload SBOM artifacts
