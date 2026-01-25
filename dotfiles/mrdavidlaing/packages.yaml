@@ -11,6 +11,7 @@ omarchy:
     - just  # Command runner (replaces make)
     - zellij
     - opencode-bin  # AI coding assistant CLI
+    - ast-grep
   custom:
     - install_claude_code
     - install_perles
@@ -44,14 +45,15 @@ arch:
     - zellij
     - neovim
     - go
-    - ripgrep
-    - bat
-    - fd
-    - fzf
-    - jq
-    - shellcheck
-    - just
-    - hyprland
+     - ripgrep
+     - ast-grep
+     - bat
+     - fd
+     - fzf
+     - jq
+     - shellcheck
+     - just
+     - hyprland
     - waybar
     - rofi
     - thunar
@@ -123,6 +125,7 @@ macos:
     - gh
     - jq
     - ripgrep
+    - ast-grep
     - fd
     - tree
     # Git UX
@@ -181,6 +184,7 @@ nix:
     - gh
     - jq
     - ripgrep
+    - ast-grep
     - fd
     - tree
     # Git UX
