@@ -30,18 +30,19 @@ Contract between Feature Extensions and DevContainer environment for cross-mode 
 - **[implementations/ubuntu/README.md](implementations/ubuntu/README.md)** - Ubuntu-based development mode prioritizing velocity and agent compatibility.
 - **[implementations/ubuntu/migration.md](implementations/ubuntu/migration.md)** - Migrating projects from Development Mode to Secure Mode.
 
-## Troubleshooting
-
-### ShellSpec Issue #351 (WSL Reporter Bug)
-
-- **[shellspec-issue-351-BREAKTHROUGH.md](shellspec-issue-351-BREAKTHROUGH.md)** - Minimal reproduction: WSL → Windows process boundary issue.
-- **[shellspec-issue-351-FIX-CONFIRMED.md](shellspec-issue-351-FIX-CONFIRMED.md)** - Confirmed fix using native Linux PowerShell instead of Windows.
-- **[shellspec-issue-351-WORKAROUND.md](shellspec-issue-351-WORKAROUND.md)** - Workaround guide: install native Linux PowerShell on WSL.
-
 ## Historical Documentation
 
-### [plans/](plans/)
-Implementation plans and design documents from past development work.
-
 ### [history/](history/)
-AI-assisted work session artifacts: analysis documents, benchmark reports, troubleshooting notes, and implementation summaries. These capture the research and decision-making process behind configuration changes and system optimizations.
+
+Contains resolved issues, troubleshooting guides, and AI-assisted work session artifacts:
+
+- **ShellSpec Issue #351** - WSL reporter bug investigation and resolution
+  - [BREAKTHROUGH](history/shellspec-issue-351-BREAKTHROUGH.md) - Minimal reproduction of WSL → Windows boundary issue
+  - [FIX-CONFIRMED](history/shellspec-issue-351-FIX-CONFIRMED.md) - Native Linux PowerShell solution
+  - [WORKAROUND](history/shellspec-issue-351-WORKAROUND.md) - Installation guide for WSL users
+
+Also includes analysis documents, benchmark reports, and implementation summaries capturing research and decision-making.
+
+### [plans/](plans/)
+
+Implementation plans and design documents from past development work.
