@@ -189,3 +189,97 @@ Replaced direct `syft` CLI calls with `anchore/sbom-action@v0`:
 3. **Check working workflows for patterns** - `security-scan.yml` already solved this problem
 4. **Test locally is insufficient** - Need to verify tools exist in CI environment
 
+---
+
+## Session 4: 2026-01-25 13:00 UTC - Security Response Workflow Fix
+
+### Issue 5: GITHUB_OUTPUT Multi-line JSON Failure (FIXED)
+
+- **Location**: `.github/workflows/security-response.yml` lines 58-79, 95-122, 124-146, 148-183, 185-207
+- **Problem**: Workflow wrote multi-line JSON directly to `$GITHUB_OUTPUT` using `echo "key=value"` format
+- **Error**: `Unable to process file command 'output' successfully. Invalid format '  {'`
+- **Affected Runs**: #1-4 (all failed at "Fetch open security alerts" step)
+
+### Root Cause Analysis
+
+1. The workflow fetched 165 open security alerts from GitHub API
+2. The JSON response was multi-line (pretty-printed by jq)
+3. When written to `$GITHUB_OUTPUT` with `echo "alerts=$alerts"`, GitHub Actions interpreted each line as a separate key=value pair
+4. The second line started with `  {` which is not a valid key=value format
+5. GitHub Actions requires special heredoc syntax for multi-line values:
+   ```bash
+   echo "key<<EOF" >> $GITHUB_OUTPUT
+   echo "$value" >> $GITHUB_OUTPUT
+   echo "EOF" >> $GITHUB_OUTPUT
+   ```
+
+### Fix Applied
+
+Instead of using heredoc syntax (which can still hit size limits), we used temp files:
+
+**Before (broken):**
+```yaml
+echo "alerts=$alerts" >> $GITHUB_OUTPUT
+```
+
+**After (fixed):**
+```yaml
+echo "$alerts" > /tmp/security_alerts.json
+echo "alerts_file=/tmp/security_alerts.json" >> $GITHUB_OUTPUT
+```
+
+### Changes Made
+
+1. **Fetch open security alerts**: Write JSON to `/tmp/security_alerts.json`, pass file path
+2. **Filter new alerts**: Read from file, write filtered JSON to `/tmp/new_alerts.json`
+3. **Triage alerts**: Read from file, write triaged JSON to `/tmp/triaged_alerts.json`
+4. **Invoke Claude**: Read triaged alerts from file
+5. **Update deduplication state**: Read new alerts from file
+
+### Commit
+
+- `c77339c` - fix(security): use temp files instead of GITHUB_OUTPUT for large JSON
+
+### Verification
+
+- Workflow run #21333010369 completed successfully
+- All 12 steps passed:
+  - Set up job ✅
+  - Checkout repository ✅
+  - Fetch open security alerts ✅
+  - Load deduplication state ✅
+  - Filter new alerts ✅
+  - Triage alerts ✅
+  - Invoke Claude for HIGH/CRITICAL alerts ✅
+  - Update deduplication state ✅
+  - Commit state file ✅
+  - Summary ✅
+  - Post Checkout repository ✅
+  - Complete job ✅
+
+### Key Learnings
+
+1. **GITHUB_OUTPUT has format restrictions** - Multi-line values need heredoc syntax or file-based approach
+2. **Large JSON payloads should use files** - Avoids both format issues and size limits
+3. **Temp files persist within a job** - `/tmp/` is available across steps in the same job
+4. **File paths are simple strings** - Easy to pass via GITHUB_OUTPUT without format issues
+5. **Error message is cryptic** - "Invalid format '  {'" doesn't clearly indicate multi-line issue
+
+### Pattern for Large JSON in GitHub Actions
+
+```yaml
+# Step 1: Generate JSON and save to file
+- name: Generate data
+  id: generate
+  run: |
+    data=$(some_command_that_outputs_json)
+    echo "$data" > /tmp/data.json
+    echo "data_file=/tmp/data.json" >> $GITHUB_OUTPUT
+
+# Step 2: Read from file in subsequent step
+- name: Process data
+  run: |
+    data=$(cat "${{ steps.generate.outputs.data_file }}")
+    echo "$data" | jq '.some_field'
+```
+
