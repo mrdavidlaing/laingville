@@ -146,20 +146,6 @@ install_claude_code() {
   echo "Installing Claude Code..."
 
   if [ -x "${REMOTE_HOME}/.bun/bin/bun" ]; then
-    "${REMOTE_HOME}/.bun/bin/bun" add -g @anthropic-ai/claude-code > /dev/null 2>&1
-    chown -R "${TARGET_USER}:${TARGET_USER}" "${REMOTE_HOME}/.bun"
-
-    local claude_version=$("${REMOTE_HOME}/.bun/bin/claude" --version 2> /dev/null | head -1)
-    echo "  ✓ Claude Code ${claude_version} installed"
-  else
-    echo "  ⚠ Warning: bun not found, skipping Claude Code installation"
-  fi
-}
-
-install_claude_code() {
-  echo "Installing Claude Code..."
-
-  if [ -x "${REMOTE_HOME}/.bun/bin/bun" ]; then
     "${REMOTE_HOME}/.bun/bin/bun" install -g @anthropic-ai/claude-code > /dev/null 2>&1
     chown -R "${TARGET_USER}:${TARGET_USER}" "${REMOTE_HOME}/.bun"
 
