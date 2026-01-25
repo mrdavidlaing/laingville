@@ -1,0 +1,255 @@
+# .github/workflows/security-response.yml
+name: Security Response
+
+on:
+  # Trigger after security-scan completes (on main branch)
+  workflow_run:
+    workflows: ["Security Scan"]
+    types: [completed]
+    branches: [main]
+  
+  # Hourly backup polling (0 * * * * UTC = every hour at :00)
+  schedule:
+    - cron: '0 * * * *'
+  
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      force_process_all:
+        description: 'Force processing all open alerts (ignore deduplication)'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Prevent multiple concurrent runs to avoid duplicate processing
+concurrency:
+  group: security-response
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  security-events: read
+  id-token: write
+
+jobs:
+  security-response:
+    name: Poll & Triage Security Alerts
+    runs-on: ubuntu-latest
+    
+    # Only run if workflow_run succeeded (or not from workflow_run)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    
+    outputs:
+      high_critical_count: ${{ steps.triage.outputs.high_critical_count }}
+      total_processed: ${{ steps.triage.outputs.total_processed }}
+      triggered_claude: ${{ steps.invoke_claude.outputs.triggered }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Fetch open security alerts
+        id: fetch_alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch all open code-scanning alerts
+          alerts=$(gh api /repos/${{ github.repository }}/code-scanning/alerts \
+            --paginate \
+            --jq '.[] | select(.state == "open")' \
+            -H "Accept: application/vnd.github+json" 2>/dev/null || echo "[]")
+          
+          # If no alerts, return empty array
+          if [[ -z "$alerts" ]]; then
+            alerts="[]"
+          else
+            # Convert to JSON array
+            alerts=$(echo "$alerts" | jq -s '.')
+          fi
+          
+          echo "alerts=$alerts" >> $GITHUB_OUTPUT
+          echo "alert_count=$(echo "$alerts" | jq 'length')" >> $GITHUB_OUTPUT
+          
+          # Log summary
+          echo "Found $(echo "$alerts" | jq 'length') open alerts"
+      
+      - name: Load deduplication state
+        id: load_state
+        run: |
+          STATE_FILE=".github/.security-response-state"
+          
+          if [[ -f "$STATE_FILE" ]]; then
+            LAST_PROCESSED=$(cat "$STATE_FILE" | jq -r '.last_processed_number // 0')
+            echo "last_processed=$LAST_PROCESSED" >> $GITHUB_OUTPUT
+            echo "Loaded state: last_processed=$LAST_PROCESSED"
+          else
+            echo "last_processed=0" >> $GITHUB_OUTPUT
+            echo "No prior state found, starting fresh"
+          fi
+      
+      - name: Filter new alerts
+        id: filter_alerts
+        env:
+          FORCE_PROCESS_ALL: ${{ github.event.inputs.force_process_all || 'false' }}
+        run: |
+          LAST_PROCESSED=${{ steps.load_state.outputs.last_processed }}
+          ALL_ALERTS='${{ steps.fetch_alerts.outputs.alerts }}'
+          
+          if [[ "$FORCE_PROCESS_ALL" == "true" ]]; then
+            echo "Force processing all alerts (deduplication disabled)"
+            NEW_ALERTS="$ALL_ALERTS"
+          else
+            # Filter to only new alerts (number > last_processed)
+            NEW_ALERTS=$(echo "$ALL_ALERTS" | jq "[.[] | select(.number > $LAST_PROCESSED)]")
+          fi
+          
+          NEW_COUNT=$(echo "$NEW_ALERTS" | jq 'length')
+          echo "new_alerts=$NEW_ALERTS" >> $GITHUB_OUTPUT
+          echo "new_count=$NEW_COUNT" >> $GITHUB_OUTPUT
+          
+          if [[ "$NEW_COUNT" -gt 0 ]]; then
+            echo "Found $NEW_COUNT new alerts to process"
+            echo "$NEW_ALERTS" | jq '.[].number' | sort -n | tail -5 | xargs echo "  Alert numbers:"
+          else
+            echo "No new alerts since last run"
+          fi
+      
+      - name: Triage alerts
+        id: triage
+        run: |
+          NEW_ALERTS='${{ steps.filter_alerts.outputs.new_alerts }}'
+          
+          # Run triage script
+          TRIAGED=$(echo "$NEW_ALERTS" | ./bin/security-triage)
+          
+          echo "triaged=$TRIAGED" >> $GITHUB_OUTPUT
+          
+          # Count HIGH/CRITICAL (priority 1-4)
+          HIGH_CRITICAL=$(echo "$TRIAGED" | jq '[.[] | select(.priority <= 4)] | length')
+          TOTAL=$(echo "$TRIAGED" | jq 'length')
+          
+          echo "high_critical_count=$HIGH_CRITICAL" >> $GITHUB_OUTPUT
+          echo "total_processed=$TOTAL" >> $GITHUB_OUTPUT
+          
+          if [[ "$TOTAL" -gt 0 ]]; then
+            echo "Triaged $TOTAL alerts:"
+            echo "$TRIAGED" | jq -r '.[] | "  [\(.priority)] \(.cve_id) (\(.severity)): \(.description)"'
+          fi
+      
+      - name: Invoke Claude for HIGH/CRITICAL alerts
+        id: invoke_claude
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          TRIAGED='${{ steps.triage.outputs.triaged }}'
+          
+          # Filter to HIGH/CRITICAL (priority 1-4)
+          HIGH_CRITICAL=$(echo "$TRIAGED" | jq '[.[] | select(.priority <= 4)]')
+          HC_COUNT=$(echo "$HIGH_CRITICAL" | jq 'length')
+          
+          if [[ "$HC_COUNT" -eq 0 ]]; then
+            echo "No HIGH/CRITICAL alerts to process"
+            echo "triggered=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "Found $HC_COUNT HIGH/CRITICAL alerts, invoking Claude /security-fix"
+          
+          # Prepare alert context for Claude
+          ALERT_CONTEXT=$(echo "$HIGH_CRITICAL" | jq -r '.[] | "- \(.cve_id) (\(.severity)): \(.description) [Affected: \(.affected_images | join(", "))]"' | head -10)
+          
+          # Trigger claude-security-fix workflow
+          gh workflow run claude-security-fix.yml \
+            --ref main \
+            -f model=claude-sonnet-4-5-20250929 \
+            2>&1 | tee /tmp/workflow_trigger.log
+          
+          if grep -q "created" /tmp/workflow_trigger.log; then
+            echo "triggered=true" >> $GITHUB_OUTPUT
+            echo "✅ Claude /security-fix workflow triggered"
+          else
+            echo "triggered=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Failed to trigger Claude workflow"
+          fi
+      
+      - name: Update deduplication state
+        id: update_state
+        if: steps.filter_alerts.outputs.new_count > 0
+        run: |
+          STATE_FILE=".github/.security-response-state"
+          NEW_ALERTS='${{ steps.filter_alerts.outputs.new_alerts }}'
+          
+          # Get highest alert number
+          MAX_NUMBER=$(echo "$NEW_ALERTS" | jq 'max_by(.number) | .number')
+          
+          # Create state file
+          mkdir -p .github
+          jq -n \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson last_processed "$MAX_NUMBER" \
+            '{
+              timestamp: $timestamp,
+              last_processed_number: $last_processed,
+              workflow_run_id: env.GITHUB_RUN_ID
+            }' > "$STATE_FILE"
+          
+          echo "Updated state: last_processed=$MAX_NUMBER"
+          cat "$STATE_FILE"
+      
+      - name: Commit state file
+        if: steps.filter_alerts.outputs.new_count > 0
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet .github/.security-response-state 2>/dev/null; then
+            echo "No state changes to commit"
+            exit 0
+          fi
+          
+          git add .github/.security-response-state
+          git commit -m "chore(security): update alert deduplication state" \
+                     -m "Processed alerts up to number: $(cat .github/.security-response-state | jq -r '.last_processed_number')" \
+                     -m "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          git push origin main || echo "⚠️ Failed to push state (may be behind)"
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Security Response Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          TOTAL_ALERTS=${{ steps.fetch_alerts.outputs.alert_count }}
+          NEW_ALERTS=${{ steps.filter_alerts.outputs.new_count }}
+          HC_COUNT=${{ steps.triage.outputs.high_critical_count }}
+          TRIGGERED=${{ steps.invoke_claude.outputs.triggered }}
+          
+          echo "### 📊 Alert Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total open alerts:** $TOTAL_ALERTS" >> $GITHUB_STEP_SUMMARY
+          echo "- **New alerts processed:** $NEW_ALERTS" >> $GITHUB_STEP_SUMMARY
+          echo "- **HIGH/CRITICAL alerts:** $HC_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "$TRIGGERED" == "true" ]]; then
+            echo "### ✅ Actions Taken" >> $GITHUB_STEP_SUMMARY
+            echo "- Claude /security-fix workflow triggered for HIGH/CRITICAL alerts" >> $GITHUB_STEP_SUMMARY
+            echo "- Check [Claude Security Fix](https://github.com/${{ github.repository }}/actions/workflows/claude-security-fix.yml) for details" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ℹ️ Status" >> $GITHUB_STEP_SUMMARY
+            if [[ "$HC_COUNT" -eq 0 ]]; then
+              echo "- No HIGH/CRITICAL alerts requiring automated fixes" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- Claude workflow trigger pending or failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Related" >> $GITHUB_STEP_SUMMARY
+          echo "- [Security Alerts](https://github.com/${{ github.repository }}/security/code-scanning)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
