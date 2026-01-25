@@ -211,7 +211,7 @@ jobs:
           fi
 
       - name: Run Grype scanner
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@v7
         id: grype
         with:
           image: '${{ steps.image.outputs.ref }}'
