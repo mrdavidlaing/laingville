@@ -32,6 +32,7 @@ parse_store_path() {
   echo "${name}|${version}"
 }
 
+# shellcheck disable=SC2120,SC2119
 generate_spdx_json() {
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -111,12 +112,16 @@ generate_sbom_from_closure() {
   local closure_json
   closure_json=$(nix path-info --json --recursive "$flake_output" 2> /dev/null || echo "[]")
 
-  # Pipe package specs to generate_spdx_json
-  echo "$closure_json" | jq -r '.[] | .path' 2> /dev/null | while IFS= read -r path; do
+  # Build package specs
+  local packages_spec
+  packages_spec=$(echo "$closure_json" | jq -r '.[] | .path' 2> /dev/null | while IFS= read -r path; do
     if [[ -n "$path" ]]; then
       parse_store_path "$path"
     fi
-  done | generate_spdx_json
+  done)
+
+  # shellcheck disable=SC2119
+  echo "$packages_spec" | generate_spdx_json
 }
 
 main_nix_closure_sbom() {
