@@ -100,21 +100,10 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Install oras
-        run: |
-          # Note: This is a fallback for CI. In production, oras is in the base image
-          # for true airgapped operation. CI is not airgapped, so we can download from GitHub.
-          ORAS_VERSION="1.3.0"
-          ORAS_ARCH=${{ matrix.arch }}
-          if [ "$ORAS_ARCH" = "amd64" ]; then
-            ORAS_SHA256="6cdc692f929100feb08aa8de584d02f7bcc30ec7d88bc2adc2054d782db57c64"
-          else
-            ORAS_SHA256="7649738b48fde10542bcc8b0e9b460ba83936c75fb5be01ee6d4443764a14352"
-          fi
-          curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz" -o /tmp/oras.tar.gz
-          echo "${ORAS_SHA256}  /tmp/oras.tar.gz" | sha256sum -c -
-          tar xz -C /usr/local/bin oras < /tmp/oras.tar.gz
-          rm /tmp/oras.tar.gz
+      - name: Setup oras
+        uses: oras-project/setup-oras@v1
+        with:
+          version: 1.3.0
 
       - name: Push tarball to OCI registry
         run: |
@@ -160,14 +149,10 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Install oras
-        run: |
-          ORAS_VERSION="1.3.0"
-          ORAS_SHA256="6cdc692f929100feb08aa8de584d02f7bcc30ec7d88bc2adc2054d782db57c64"
-          curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" -o /tmp/oras.tar.gz
-          echo "${ORAS_SHA256}  /tmp/oras.tar.gz" | sha256sum -c -
-          tar xz -C /usr/local/bin oras < /tmp/oras.tar.gz
-          rm /tmp/oras.tar.gz
+      - name: Setup oras
+        uses: oras-project/setup-oras@v1
+        with:
+          version: 1.3.0
 
       - name: Create multi-arch manifest
         run: |
