@@ -86,6 +86,7 @@ Describe 'Nix closure SBOM generator'
     Context 'with mock nix path-info output'
       setup() {
   # Mock nix path-info to return test data
+  # shellcheck disable=SC2329
       nix() {
       if [[ "$1" = "path-info" && "$2" = "--json" && "$3" = "--recursive" ]]; then
       cat << 'EOF'

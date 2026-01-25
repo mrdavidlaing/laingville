@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2329
 
 Describe 'SBOM diff generator'
   Include bin/sbom-diff
