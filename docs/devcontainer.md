@@ -525,8 +525,9 @@ laingville/
 
 | Component | Secure Mode | Development Mode |
 |-----------|-------------|------------------|
-| Bedrock Image | ✅ Nix-based | 🚧 Ubuntu planned |
-| Feature: pensive-assistant | ✅ Nix + OCI | 🚧 apt planned |
+| Bedrock Image | ✅ Nix-based | ✅ Ubuntu complete |
+| Feature: pensive-assistant | ✅ Nix + OCI | ✅ apt complete |
+| CLI Tool: bin/ctl | ✅ Complete | ✅ Complete |
 | OCI Distribution | ✅ ghcr.io | N/A |
 | SBOM Generation | 🚧 Planned | N/A |
 | Multi-arch | ✅ amd64, arm64 | TBD |
