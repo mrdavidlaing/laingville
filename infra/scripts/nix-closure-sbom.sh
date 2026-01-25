@@ -38,26 +38,53 @@ generate_spdx_json() {
 
   local -a package_lines=()
   local first=true
+  local pkg_spec name version spdx_id
 
-  for pkg_spec in "$@"; do
-    IFS='|' read -r name version <<< "$pkg_spec"
+  # Handle both arguments and stdin for bash 3.2 compatibility
+  # If arguments provided, use them; otherwise read from stdin
+  if [[ $# -gt 0 ]]; then
+    # Process command-line arguments (for testing)
+    for pkg_spec in "$@"; do
+      IFS='|' read -r name version <<< "$pkg_spec"
+      spdx_id="SPDXRef-Package-${name}-${version}"
 
-    local spdx_id="SPDXRef-Package-${name}-${version}"
+      if [[ "$first" == true ]]; then
+        first=false
+      else
+        package_lines+=(",")
+      fi
 
-    if [[ "$first" == true ]]; then
-      first=false
-    else
-      package_lines+=(",")
-    fi
+      package_lines+=("    {")
+      package_lines+=("      \"name\": \"$name\",")
+      package_lines+=("      \"version\": \"$version\",")
+      package_lines+=("      \"SPDXID\": \"$spdx_id\",")
+      package_lines+=("      \"downloadLocation\": \"NOASSERTION\",")
+      package_lines+=("      \"filesAnalyzed\": false")
+      package_lines+=("    }")
+    done
+  else
+    # Read from stdin (for production use with pipes)
+    while IFS= read -r pkg_spec; do
+      [[ -z "$pkg_spec" ]] && continue
 
-    package_lines+=("    {")
-    package_lines+=("      \"name\": \"$name\",")
-    package_lines+=("      \"version\": \"$version\",")
-    package_lines+=("      \"SPDXID\": \"$spdx_id\",")
-    package_lines+=("      \"downloadLocation\": \"NOASSERTION\",")
-    package_lines+=("      \"filesAnalyzed\": false")
-    package_lines+=("    }")
-  done
+      IFS='|' read -r name version <<< "$pkg_spec"
+      spdx_id="SPDXRef-Package-${name}-${version}"
+
+      if [[ "$first" == true ]]; then
+        first=false
+      else
+        package_lines+=(",")
+      fi
+
+      package_lines+=("    {")
+      package_lines+=("      \"name\": \"$name\",")
+      package_lines+=("      \"version\": \"$version\",")
+      package_lines+=("      \"SPDXID\": \"$spdx_id\",")
+      package_lines+=("      \"downloadLocation\": \"NOASSERTION\",")
+      package_lines+=("      \"filesAnalyzed\": false")
+      package_lines+=("    }")
+    done
+  fi
 
   cat << EOF
 {
@@ -84,19 +111,12 @@ generate_sbom_from_closure() {
   local closure_json
   closure_json=$(nix path-info --json --recursive "$flake_output" 2> /dev/null || echo "[]")
 
-  local -a packages=()
-
-  while IFS= read -r path; do
+  # Pipe package specs to generate_spdx_json
+  echo "$closure_json" | jq -r '.[] | .path' 2> /dev/null | while IFS= read -r path; do
     if [[ -n "$path" ]]; then
-      local pkg_spec
-      pkg_spec=$(parse_store_path "$path")
-      if [[ -n "$pkg_spec" ]]; then
-        packages+=("$pkg_spec")
-      fi
+      parse_store_path "$path"
     fi
-  done < <(echo "$closure_json" | jq -r '.[] | .path' 2> /dev/null || true)
-
-  generate_spdx_json "${packages[@]}"
+  done | generate_spdx_json
 }
 
 main_nix_closure_sbom() {

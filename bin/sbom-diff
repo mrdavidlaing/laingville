@@ -8,47 +8,47 @@ extract_packages() {
 }
 
 find_added_packages() {
-  local before_packages="$1"
-  local after_packages="$2"
-  
-  declare -A before_names
-  while IFS='|' read -r name version; do
-    if [[ -n "$name" ]]; then
-      before_names["$name"]=1
-    fi
-  done <<< "$before_packages"
-  
-  while IFS='|' read -r name version; do
-    if [[ -z "$name" ]]; then
-      continue
-    fi
-    
-    if [[ ! -v before_names["$name"] ]]; then
-      echo "${name}|${version}"
-    fi
-  done <<< "$after_packages"
+   local before_packages="$1"
+   local after_packages="$2"
+   
+   declare -A before_names
+   while IFS='|' read -r name version; do
+     if [[ -n "$name" ]]; then
+       before_names["$name"]=1
+     fi
+   done <<< "$before_packages"
+   
+   while IFS='|' read -r name version; do
+     if [[ -z "$name" ]]; then
+       continue
+     fi
+     
+     if [[ -z "${before_names["$name"]:-}" ]]; then
+       echo "${name}|${version}"
+     fi
+   done <<< "$after_packages"
 }
 
 find_removed_packages() {
-  local before_packages="$1"
-  local after_packages="$2"
-  
-  declare -A after_names
-  while IFS='|' read -r name version; do
-    if [[ -n "$name" ]]; then
-      after_names["$name"]=1
-    fi
-  done <<< "$after_packages"
-  
-  while IFS='|' read -r name version; do
-    if [[ -z "$name" ]]; then
-      continue
-    fi
-    
-    if [[ ! -v after_names["$name"] ]]; then
-      echo "${name}|${version}"
-    fi
-  done <<< "$before_packages"
+   local before_packages="$1"
+   local after_packages="$2"
+   
+   declare -A after_names
+   while IFS='|' read -r name version; do
+     if [[ -n "$name" ]]; then
+       after_names["$name"]=1
+     fi
+   done <<< "$after_packages"
+   
+   while IFS='|' read -r name version; do
+     if [[ -z "$name" ]]; then
+       continue
+     fi
+     
+     if [[ -z "${after_names["$name"]:-}" ]]; then
+       echo "${name}|${version}"
+     fi
+   done <<< "$before_packages"
 }
 
 find_updated_packages() {
@@ -62,18 +62,18 @@ find_updated_packages() {
     fi
   done <<< "$before_packages"
   
-  while IFS='|' read -r name version; do
-    if [[ -z "$name" ]]; then
-      continue
-    fi
-    
-    if [[ -v before_versions["$name"] ]]; then
-      local old_version="${before_versions[$name]}"
-      if [[ "$old_version" != "$version" ]]; then
-        echo "${name}|${old_version}|${version}"
-      fi
-    fi
-  done <<< "$after_packages"
+   while IFS='|' read -r name version; do
+     if [[ -z "$name" ]]; then
+       continue
+     fi
+     
+     local old_version="${before_versions[$name]:-}"
+     if [[ -n "$old_version" ]]; then
+       if [[ "$old_version" != "$version" ]]; then
+         echo "${name}|${old_version}|${version}"
+       fi
+     fi
+   done <<< "$after_packages"
 }
 
 generate_diff_json() {
