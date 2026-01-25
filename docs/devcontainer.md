@@ -528,7 +528,7 @@ laingville/
 | Bedrock Image | ✅ Nix-based | 🚧 Ubuntu planned |
 | Feature: pensive-assistant | ✅ Nix + OCI | 🚧 apt planned |
 | OCI Distribution | ✅ ghcr.io | N/A |
-| SBOM Generation | 🚧 Planned | N/A |
+| SBOM Generation | ✅ Complete | N/A |
 | Multi-arch | ✅ amd64, arm64 | TBD |
 | Documentation | 📝 In progress | 📝 In progress |
 
