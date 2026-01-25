@@ -33,14 +33,13 @@ parse_store_path() {
 }
 
 generate_spdx_json() {
-  local -a packages=("$@")
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
   local -a package_lines=()
   local first=true
 
-  for pkg_spec in "${packages[@]}"; do
+  for pkg_spec in "$@"; do
     IFS='|' read -r name version <<< "$pkg_spec"
 
     local spdx_id="SPDXRef-Package-${name}-${version}"
@@ -96,10 +95,6 @@ generate_sbom_from_closure() {
       fi
     fi
   done < <(echo "$closure_json" | jq -r '.[] | .path' 2> /dev/null || true)
-
-  if [[ ${#packages[@]} -eq 0 ]]; then
-    packages=()
-  fi
 
   generate_spdx_json "${packages[@]}"
 }

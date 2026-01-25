@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# bash 3.2 compatible lowercase conversion
+_tolower() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 severity_to_priority() {
-    local severity="${1,,}"
+    local severity
+    severity=$(_tolower "$1")
     local has_exploit="${2:-false}"
     
     case "$severity" in
@@ -49,8 +55,10 @@ extract_image_name() {
 }
 
 get_higher_severity() {
-    local sev1="${1,,}"
-    local sev2="${2,,}"
+    local sev1
+    sev1=$(_tolower "$1")
+    local sev2
+    sev2=$(_tolower "$2")
     
     declare -A severity_rank=(
         [critical]=1
@@ -147,22 +155,24 @@ triage_alerts() {
         IFS=',' read -ra rule_array <<< "${cve_rule_ids[$cve_id]}"
         rule_ids_json=$(printf '%s\n' "${rule_array[@]}" | jq -R . | jq -s .)
         
-        local entry
-        entry=$(jq -n \
-            --arg cve_id "$cve_id" \
-            --argjson priority "$priority" \
-            --arg severity "${severity,,}" \
-            --argjson affected_images "$images_json" \
-            --argjson rule_ids "$rule_ids_json" \
-            --arg description "${cve_description[$cve_id]}" \
-            '{
-                cve_id: $cve_id,
-                priority: $priority,
-                severity: $severity,
-                affected_images: $affected_images,
-                rule_ids: $rule_ids,
-                description: $description
-            }')
+         local entry
+         local severity_lower
+         severity_lower=$(_tolower "$severity")
+         entry=$(jq -n \
+             --arg cve_id "$cve_id" \
+             --argjson priority "$priority" \
+             --arg severity "$severity_lower" \
+             --argjson affected_images "$images_json" \
+             --argjson rule_ids "$rule_ids_json" \
+             --arg description "${cve_description[$cve_id]}" \
+             '{
+                 cve_id: $cve_id,
+                 priority: $priority,
+                 severity: $severity,
+                 affected_images: $affected_images,
+                 rule_ids: $rule_ids,
+                 description: $description
+             }')
         results+=("$entry")
     done
     
