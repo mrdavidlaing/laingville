@@ -14,14 +14,16 @@ fi
 echo "🚀 Running pre-push checks..."
 echo
 
-# Run tests
-echo "🧪 Running tests..."
-if ! just test; then
-    echo
-    echo "❌ Tests failed. Push aborted."
-    echo "💡 Fix the issues above, or use 'git push --no-verify' to skip this hook."
-    exit 1
-fi
+# Run tests on changed files
+echo "🧪 Running tests on changed files..."
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if ! ./scripts/run-changed-tests.sh "$remote_sha" "$local_sha"; then
+        echo
+        echo "❌ Tests failed. Push aborted."
+        echo "💡 Fix the issues above, or use 'git push --no-verify' to skip this hook."
+        exit 1
+    fi
+done
 
 echo
 echo "✅ All pre-push checks passed! Proceeding with push..."

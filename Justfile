@@ -61,6 +61,12 @@ test-bash:
         exit 1
     fi
 
+# Run tests for changed files (selective testing)
+test-changed:
+    #!/usr/bin/env bash
+    echo "🧪 Running tests for changed files..."
+    ./scripts/run-changed-tests.sh
+
 # Run PowerShell tests using Pester
 test-powershell:
     #!/usr/bin/env bash
@@ -265,6 +271,7 @@ help:
     @echo "  just lint         - Lint bash + PowerShell scripts (if pwsh available)"
     @echo "  just test         - Run all tests (bash + PowerShell)"
     @echo "  just test-bash    - Run bash tests with shellspec"
+    @echo "  just test-changed - Run tests for changed files only (faster)"
     @echo "  just test-powershell - Run PowerShell tests with Pester"
     @echo "  just check        - Check format and run lint/test without modifying files"
     @echo ""
