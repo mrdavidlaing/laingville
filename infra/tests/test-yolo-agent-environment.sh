@@ -62,7 +62,7 @@ fi
 # Test sudo can install packages (simulate with echo)
 if sudo -n sh -c 'echo "test" > /tmp/sudo-test' 2> /dev/null; then
   pass "Sudo has write permissions"
-  rm -f /tmp/sudo-test
+  sudo rm -f /tmp/sudo-test
 else
   fail "Sudo cannot write files"
 fi
