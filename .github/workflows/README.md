@@ -28,6 +28,13 @@ Comprehensive security scanning of container images and repository code.
 - SBOM artifacts available in workflow artifacts
 - Table output in job logs for CRITICAL/HIGH findings
 
+**Dependabot Integration:**
+- Container SBOMs (SPDX, CycloneDX) are automatically submitted to GitHub's Dependency Graph via the Dependency Submission API
+- Dependabot monitors all dependencies in the graph against the GitHub Advisory Database
+- When vulnerabilities are found, alerts appear in **Repository → Security → Dependabot alerts**
+- Package types covered: OS packages (glibc, openssl, etc.), language packages (npm, pip), and container base images
+- Configuration: `.github/dependabot.yml` enables monitoring for npm, pip, GitHub Actions, and Docker dependencies
+
 #### `claude-security-fix.yml` - Automated Security Remediation
 Uses the Claude Code Action to automatically identify and fix security vulnerabilities.
 
