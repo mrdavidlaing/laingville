@@ -42,67 +42,67 @@ jobs:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
 
     steps:
-       - name: Validate secrets
-         run: |
-           if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
-             echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not configured"
-             echo "Please add your Claude Code OAuth token to repository secrets"
-             echo "See: .github/workflows/README.md for setup instructions"
-             exit 1
-           fi
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not configured"
+            echo "Please add your Claude Code OAuth token to repository secrets"
+            echo "See: .github/workflows/README.md for setup instructions"
+            exit 1
+          fi
 
-       - name: Checkout repository
-         uses: actions/checkout@v4
-         with:
-           fetch-depth: 1  # Shallow clone is sufficient
-           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # Shallow clone is sufficient
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-       - name: Install Nix
-         uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-       - name: Setup Nix cache
-         uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
-       - name: Configure git
-         run: |
-           git config user.name "claude[bot]"
-           git config user.email "claude[bot]@users.noreply.github.com"
+      - name: Configure git
+        run: |
+          git config user.name "claude[bot]"
+          git config user.email "claude[bot]@users.noreply.github.com"
 
-       - name: Create feature branch
-         id: branch
-         run: |
-           # Generate unique branch name with high-precision timestamp and random suffix
-           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-           RANDOM_SUFFIX=$(openssl rand -hex 3)
-           BRANCH="claude/security-fix-${TIMESTAMP}-${RANDOM_SUFFIX}"
-           echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
-           git checkout -b "$BRANCH"
+      - name: Create feature branch
+        id: branch
+        run: |
+          # Generate unique branch name with high-precision timestamp and random suffix
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          RANDOM_SUFFIX=$(openssl rand -hex 3)
+          BRANCH="claude/security-fix-${TIMESTAMP}-${RANDOM_SUFFIX}"
+          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH"
 
-       - name: Run Claude /security-fix
-         id: claude
-         uses: anthropics/claude-code-action@v1
-         with:
-           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-           prompt: |
-             Run the /security-fix command to analyze and fix security issues.
-             
-             Follow the playbook in .claude/commands/security-fix.md.
-             You have access to 'nix' and standard bash tools.
-             Do not commit changes; the workflow handles committing.
-           claude_args: '--model ${{ inputs.model || "claude-sonnet-4-5-20250929" }} --allowed-tools "Bash,Read,Edit,Write,Glob,Grep"'
+      - name: Run Claude /security-fix
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Run the /security-fix command to analyze and fix security issues.
+            
+            Follow the playbook in .claude/commands/security-fix.md.
+            You have access to 'nix' and standard bash tools.
+            Do not commit changes; the workflow handles committing.
+          claude_args: '--model ${{ inputs.model || "claude-sonnet-4-5-20250929" }} --allowed-tools "Bash,Read,Edit,Write,Glob,Grep"'
 
-       - name: Check for changes
-         id: changes
-         run: |
-           # Check for any changes in tracked or untracked files
-           if [ -z "$(git status --porcelain)" ]; then
-             echo "has_changes=false" >> $GITHUB_OUTPUT
-             echo "No changes made by Claude"
-           else
-             echo "has_changes=true" >> $GITHUB_OUTPUT
-             echo "Changes detected:"
-             git status --short
-           fi
+      - name: Check for changes
+        id: changes
+        run: |
+          # Check for any changes in tracked or untracked files
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes made by Claude"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git status --short
+          fi
 
       - name: Validate and stage changes
         if: steps.changes.outputs.has_changes == 'true'
