@@ -2,11 +2,11 @@
   "model": "opencode/claude-sonnet-4-5",
   "categories": {
     "quick": { "model": "opencode/claude-haiku-4-5" },
-    "ultrabrain": { "model": "opencode/claude-opus-4-5" },
+    "ultrabrain": { "model": "opencode/claude-sonnet-4-5" },
     "artistry": { "model": "opencode/gemini-3-pro" },
     "visual-engineering": { "model": "opencode/gemini-3-pro" },
     "writing": { "model": "opencode/claude-sonnet-4-5" },
-    "unspecified-low": { "model": "opencode/claude-haiku-4-5" },
+    "unspecified-low": { "model": "opencode/claude-sonnet-4-5" },
     "unspecified-high": { "model": "opencode/claude-opus-4-5" }
   },
   "agents": {
@@ -14,10 +14,10 @@
     "sisyphus": { "model": "opencode/claude-haiku-4-5" },
     "prometheus": { "model": "opencode/claude-opus-4-5" },
     "metis": { "model": "opencode/claude-opus-4-5" },
-    "oracle": { "model": "opencode/gemini-3-flash" },
-    "momus": { "model": "opencode/claude-opus-4-5" },
+    "oracle": { "model": "opencode/claude-sonnet-4-5" },
+    "momus": { "model": "opencode/claude-sonnet-4-5" },
     "explore": { "model": "opencode/claude-haiku-4-5" },
-    "librarian": { "model": "opencode/gemini-3-flash" },
+    "librarian": { "model": "opencode/claude-haiku-4-5" },
     "multimodal-looker": { "model": "opencode/gemini-3-flash" }
   }
 }

@@ -58,6 +58,7 @@
             starship         # Cross-shell prompt
             openssh          # SSH client for Git over SSH and remote access
             gcc              # C compiler (required for Rust native compilation)
+            oras             # OCI registry artifact tool (for pensive-assistant feature in airgapped environments)
           ];
 
           # Nix tooling (for containers that need nix develop)

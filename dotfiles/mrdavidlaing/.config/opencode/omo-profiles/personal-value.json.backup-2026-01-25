@@ -1,0 +1,23 @@
+{
+  "model": "opencode/claude-sonnet-4-5",
+  "categories": {
+    "quick": { "model": "opencode/gpt-5.1-codex-mini" },
+    "ultrabrain": { "model": "opencode/qwen3-coder" },
+    "artistry": { "model": "opencode/gemini-3-flash" },
+    "visual-engineering": { "model": "opencode/gemini-3-flash" },
+    "writing": { "model": "opencode/gpt-5-nano" },
+    "unspecified-low": { "model": "opencode/claude-haiku-4-5" },
+    "unspecified-high": { "model": "opencode/kimi-k2-thinking" }
+  },
+  "agents": {
+    "atlas": { "model": "opencode/gpt-5.1-codex-mini" },
+    "sisyphus": { "model": "opencode/gpt-5.1-codex-mini" },
+    "prometheus": { "model": "opencode/kimi-k2-thinking" },
+    "metis": { "model": "opencode/kimi-k2-thinking" },
+    "oracle": { "model": "opencode/qwen3-coder" },
+    "momus": { "model": "opencode/qwen3-coder" },
+    "explore": { "model": "opencode/gpt-5.1-codex-mini" },
+    "librarian": { "model": "opencode/gpt-5.1-codex-mini" },
+    "multimodal-looker": { "model": "opencode/gemini-3-flash" }
+  }
+}

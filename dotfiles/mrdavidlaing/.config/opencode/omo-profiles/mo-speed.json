@@ -3,21 +3,21 @@
   "categories": {
     "quick": { "model": "anthropic/claude-haiku-4-5" },
     "ultrabrain": { "model": "anthropic/claude-sonnet-4-5" },
-    "artistry": { "model": "google/gemini-3-pro" },
-    "visual-engineering": { "model": "google/gemini-3-flash" },
-    "writing": { "model": "google/gemini-3-flash" },
-    "unspecified-low": { "model": "anthropic/claude-sonnet-4-5" },
-    "unspecified-high": { "model": "openai/o3-mini" }
+    "artistry": { "model": "google/gemini-3-flash-preview" },
+    "visual-engineering": { "model": "google/gemini-3-flash-preview" },
+    "writing": { "model": "google/gemini-3-flash-preview" },
+    "unspecified-low": { "model": "anthropic/claude-haiku-4-5" },
+    "unspecified-high": { "model": "anthropic/claude-sonnet-4-5" }
   },
   "agents": {
     "atlas": { "model": "anthropic/claude-haiku-4-5" },
     "sisyphus": { "model": "anthropic/claude-haiku-4-5" },
-    "prometheus": { "model": "openai/o3-mini" },
-    "metis": { "model": "openai/o3-mini" },
-    "oracle": { "model": "anthropic/claude-sonnet-4-5" },
+    "prometheus": { "model": "anthropic/claude-sonnet-4-5" },
+    "metis": { "model": "anthropic/claude-sonnet-4-5" },
+    "oracle": { "model": "google/gemini-3-flash-preview" },
     "momus": { "model": "anthropic/claude-sonnet-4-5" },
     "explore": { "model": "anthropic/claude-haiku-4-5" },
-    "librarian": { "model": "anthropic/claude-haiku-4-5" },
-    "multimodal-looker": { "model": "google/gemini-3-flash" }
+    "librarian": { "model": "google/gemini-3-flash-preview" },
+    "multimodal-looker": { "model": "google/gemini-3-flash-preview" }
   }
 }

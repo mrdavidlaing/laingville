@@ -43,29 +43,12 @@ else
   echo "Local tarball not found, pulling from OCI registry..."
   mkdir -p "${FEATURE_DIR}/dist"
 
-  # Install oras if not available
+  # Verify oras is available (should be in base image for airgapped environments)
   if ! command -v oras > /dev/null 2>&1; then
-    echo "Installing oras..."
-    ORAS_VERSION="1.3.0"
-    case "$ORAS_ARCH" in
-      amd64)
-        ORAS_SHA256="6cdc692f929100feb08aa8de584d02f7bcc30ec7d88bc2adc2054d782db57c64"
-        ;;
-      arm64)
-        ORAS_SHA256="7649738b48fde10542bcc8b0e9b460ba83936c75fb5be01ee6d4443764a14352"
-        ;;
-    esac
-    ORAS_URL="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz"
-    ORAS_TMP=$(mktemp)
-    curl -fsSL "$ORAS_URL" -o "$ORAS_TMP"
-    echo "${ORAS_SHA256}  ${ORAS_TMP}" | sha256sum -c - || {
-      echo "Error: oras checksum verification failed"
-      rm -f "$ORAS_TMP"
-      exit 1
-    }
-    mkdir -p /usr/local/bin
-    tar xz -C /usr/local/bin oras < "$ORAS_TMP"
-    rm -f "$ORAS_TMP"
+    echo "Error: oras not found in PATH"
+    echo "This feature requires oras to be installed in the base image."
+    echo "For airgapped environments, ensure the base image includes oras."
+    exit 1
   fi
 
   # Pull tarball from OCI registry (architecture-specific tag)
@@ -73,7 +56,7 @@ else
   # don't support automatic platform selection like Docker image manifests
   cd "${FEATURE_DIR}/dist"
   OCI_TAG_ARCH="${OCI_TAG}-${ORAS_ARCH}"
-  if /usr/local/bin/oras pull "${OCI_REGISTRY}:${OCI_TAG_ARCH}"; then
+  if oras pull "${OCI_REGISTRY}:${OCI_TAG_ARCH}"; then
     echo "Successfully pulled from ${OCI_REGISTRY}:${OCI_TAG_ARCH}"
   else
     echo "Error: Failed to pull from OCI registry."
