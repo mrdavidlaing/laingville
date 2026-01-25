@@ -1,6 +1,8 @@
 {
-  "active_plan": "/Users/mrdavidlaing/mo-inator-workspace/laingville/.sisyphus/plans/nix-devcontainer-update.md",
-  "started_at": "2026-01-24T20:17:07.787Z",
-  "session_ids": ["ses_40f3274c7ffeDXhKoQIgpq1Px2"],
-  "plan_name": "nix-devcontainer-update"
+  "active_plan": "/Users/mrdavidlaing/mo-inator-workspace/laingville/.sisyphus/plans/sbom-security-response.md",
+  "started_at": "2026-01-25T11:34:41.306Z",
+  "session_ids": [
+    "ses_40b3ebc23ffe0imli9gv7qJnA7"
+  ],
+  "plan_name": "sbom-security-response"
 }
