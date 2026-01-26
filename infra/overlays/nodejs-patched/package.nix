@@ -1,6 +1,7 @@
-# Patched nodejs package with npm 11.6.4 to fix glob CVE-2025-64756
-# The upstream nodejs_22 bundles npm 10.9.4 with glob 10.4.5 (vulnerable)
-# npm 11.6.4 includes glob 13.0.0 (fixed)
+# Patched nodejs package with npm 11.8.0 to fix:
+# - glob CVE-2025-64756 (includes glob 13.0.0, fixed)
+# - tar CVE-2026-23745, CVE-2026-23950 (includes tar 7.5.4, fixed)
+# The upstream nodejs_22 bundles npm 10.9.4 with vulnerable glob and tar
 #
 # This overlay wraps the original nodejs_22 and replaces its npm with 11.6.4.
 # Used for container images where we need CVE-free npm but don't need nodePackages.
@@ -21,17 +22,17 @@
 }:
 
 let
-  # npm 11.6.4 tarball from npm registry
-  # Hash obtained via: nix-prefetch-url https://registry.npmjs.org/npm/-/npm-11.6.4.tgz --type sha256
+  # npm 11.8.0 tarball from npm registry (includes tar 7.5.4 for CVE-2026-23745/23950 fixes)
+  # Hash obtained via: nix-prefetch-url https://registry.npmjs.org/npm/-/npm-11.8.0.tgz --type sha256
   npmTarball = fetchurl {
-    url = "https://registry.npmjs.org/npm/-/npm-11.6.4.tgz";
-    hash = "sha256-nAftyhKFPN2/T+1ONySFqmDAZPm/PkzRV6LbVRiheSs=";
+    url = "https://registry.npmjs.org/npm/-/npm-11.8.0.tgz";
+    hash = "sha256-WiGd19TnHX0ontRQlxgs7a+TNwIjsUMQj23LjsysE3U=";
   };
 
   # Extract npm to a derivation
   npmPackage = stdenv.mkDerivation {
     pname = "npm-standalone";
-    version = "11.6.4";
+    version = "11.8.0";
     src = npmTarball;
 
     # npm tarball extracts to "package/" directory
@@ -45,7 +46,7 @@ let
     '';
 
     meta = {
-      description = "npm package manager (standalone, version 11.6.4)";
+      description = "npm package manager (standalone, version 11.8.0)";
       homepage = "https://www.npmjs.com/";
       license = lib.licenses.artistic2;
     };
@@ -103,7 +104,7 @@ stdenv.mkDerivation {
 
   # Inherit meta from original nodejs so buildNpmPackage can access platforms
   meta = nodejs_22.meta // {
-    description = "Node.js with patched npm 11.6.4 (CVE-2025-64756 fix)";
+    description = "Node.js with patched npm 11.8.0 (glob CVE-2025-64756, tar CVE-2026-23745/23950 fixes)";
   };
 
   # Pass through all attributes that buildNpmPackage and other tools expect
