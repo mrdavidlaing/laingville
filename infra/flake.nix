@@ -81,12 +81,12 @@
           ];
 
           # Language: Node
-          # Uses nodejs_22_patched with npm 11.6.4 to fix glob CVE-2025-64756
+          # Uses nodejs_22_patched with npm 11.8.0 to fix glob & tar CVEs
           node = with pkgs; [
             nodejs_22_patched  # Node.js 22 LTS with patched npm
           ];
           # nodeDev: Uses patched nodePackages.* rebuilt with nodejs_22_patched.
-          # The overlay rebuilds nodePackages with npm 11.6.4 (glob 13.0.0, fixed),
+          # The overlay rebuilds nodePackages with npm 11.8.0 (glob 13.0.0, tar 7.5.4 - fixed),
           # ensuring they're CVE-free while keeping the convenience of nixpkgs packages.
           nodeDev = with pkgs; [
             bun                                    # Fast JavaScript runtime/bundler
